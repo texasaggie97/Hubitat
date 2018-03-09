@@ -20,7 +20,7 @@ metadata {
 
     definition (name: "Switch Off Timer", namespace: "Cobra", author: "AJ Parker") {
 		capability "Switch"
-        capability "Momentary"
+ //       capability "Momentary"
         
  //       capability "Relay Switch"
 //		  capability "Sensor"
