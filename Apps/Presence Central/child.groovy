@@ -36,10 +36,11 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 08/03/2018
+ *  Last Update: 15/03/2018
  *
  *  Changes:
  *
+ *  V2.1.0 - Added ability to arm/disarm HSM
  *  V2.0.0 - Initial port to Hubitat - Slightly restricted feature list
  *  V1.4.0 - Added 'Present' if everyone is at home trigger
  *  V1.3.0 - Updated 'Control a Switch' to give further options
@@ -100,7 +101,7 @@ def initialize() {
 	state.riseSetGo = true
 
 // Basic Subscriptions    
-
+	subscribe(location, "hsmStatus", statusHandler)
 	subscribe(enableSwitch, "switch", switchEnable)
 	subscribe(location, "sunriseTime", sunriseSunsetTimeHandler)
 	subscribe(location, "sunsetTime", sunriseSunsetTimeHandler)
@@ -283,7 +284,7 @@ def presenceActions(){
 
 
 def outputActions(){
-input "presenceAction", "enum", title: "What action to take?",required: true, submitOnChange: true, options: ["Control A Switch", "Change Mode",  "Control a Lock", "Send A Message", "Flash Lights"]
+input "presenceAction", "enum", title: "What action to take?",required: true, submitOnChange: true, options: ["Control A Switch", "Change Mode",  "Control a Lock", "Send A Message", "Flash Lights", "Set Safety Monitor Mode"]
 
     // Removed from 'action' options until active/re-coded  ********************************************************************************************************************************
     // "Speak A Message", "Control a Door", 
@@ -307,9 +308,9 @@ if (presenceAction) {
 
     }
     
-    
-   else if(state.selection2 == "Speak A Message"){ 
-   input "speaker", "capability.musicPlayer", title: "Choose speaker(s)", required: false, multiple: true
+ 
+    else if(state.selection2 == "Speak A Message"){ 
+    input "speaker", "capability.musicPlayer", title: "Choose speaker(s)", required: false, multiple: true
 	input "volume1", "number", title: "Normal Speaker volume", description: "0-100%", defaultValue: "100",  required: true
     input "message1", "text", title: "Message to play when sensor arrives (Or is present at check time)",  required: false
 	input "message2", "text", title: "Message to play when sensor leaves (Or is not present at check time)",  required: false
@@ -620,6 +621,15 @@ LOGDEBUG("state.contactDoor = $state.contactDoor")
 
 // ************************* Actions ****************************************
 
+// HSM Actions
+
+def statusHandler(evt){
+  state.hsmStatus = evt.value
+  LOGDEBUG("HSM = $state.hsmStatus")
+      
+}
+
+
 // Flash Actions
 
 def checkFlashArrived(){
@@ -753,6 +763,12 @@ else if(state.selection2 == "Speak A Message"){
   state.msg1 = message1
 	speakNow()
  }
+  else if(state.selection2 == "Set Safety Monitor Mode"){
+ LOGDEBUG("Decided to: 'Change HSM mode to Disarm' (intruder alerts only")
+ sendLocationEvent(name: "hsmSetArm", value: "disarm")
+      
+ }
+    
  else if(state.selection2 == "Send A Message"){
  LOGDEBUG("Decided to: 'Send A Message' ")
  def msg = message1
@@ -865,6 +881,12 @@ else if(state.selection2 == "Speak A Message"){
  LOGDEBUG("Decided to: 'Send A Message' ")
    def msg = message2
   sendMessage(msg)
+ }
+    
+  else if(state.selection2 == "Set Safety Monitor Mode"){
+ LOGDEBUG("Decided to: 'Change HSM mode to ArmAway' ")
+ sendLocationEvent(name: "hsmSetArm", value: "armAway")
+      
  }
 
  else if(state.selection2 == "Change Mode"){
@@ -1481,6 +1503,6 @@ def LOGDEBUG(txt){
 
 // App Version   ***********************************************
 def setAppVersion(){
-    state.appversion = "2.0.0"
+    state.appversion = "2.1.0"
 }
 // end app version *********************************************
