@@ -36,10 +36,11 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 15/03/2018
+ *  Last Update: 18/03/2018
  *
  *  Changes:
  *
+ *  V2.2.0 - Debug SMS and added 5 slots for phone numbers
  *  V2.1.0 - Added ability to arm/disarm HSM
  *  V2.0.0 - Initial port to Hubitat - Slightly restricted feature list
  *  V1.4.0 - Added 'Present' if everyone is at home trigger
@@ -325,8 +326,12 @@ if (presenceAction) {
      input "message1", "text", title: "Message to send when sensor arrives  (Or is present at check time)",  required: false
 	 input "message2", "text", title: "Message to send when sensor leaves  (Or is not present at check time)",  required: false
  //    input("recipients", "contact", title: "Send notifications to") {
-     input(name: "sms", type: "phone", title: "Send A Text To", description: null, required: false)
- //    input(name: "pushNotification", type: "bool", title: "Send a push notification to", description: null, defaultValue: true)
+     	input(name: "sms1", type: "phone", title: "Input 1st Phone Number ", required: false)
+        input(name: "sms2", type: "phone", title: "Input 2nd Phone Number ", required: false)
+        input(name: "sms3", type: "phone", title: "Input 3rd Phone Number ", required: false)
+        input(name: "sms4", type: "phone", title: "Input 4th Phone Number ", required: false)
+        input(name: "sms5", type: "phone", title: "Input 5th Phone Number ", required: false)
+         //    input(name: "pushNotification", type: "bool", title: "Send a push notification to", description: null, defaultValue: true)
      }
  //    }
     
@@ -377,12 +382,19 @@ if(doorAction){
     if(alertOption == true){
        
 		input "doorContactDelay", "number", title: "Once contact has been open/closed for this number of seconds", defaultValue: '0', description: "Seconds", required: true
-        input("recipients", "contact", title: "Send notifications to") {
-    	input(name: "sms", type: "phone", title: "Send A Text To", description: null, required: false)
-    	input(name: "pushNotification", type: "bool", title: "Send a push notification", description: null, defaultValue: true)
-        }
+  //      input("recipients", "contact", title: "Send notifications to") {
+
+            
+            
+    //	input(name: "pushNotification", type: "bool", title: "Send a push notification", description: null, defaultValue: true)
+      //  }
     	input "message1", "text", title: "Send this message (Open)",  required: false
     	input "message2", "text", title: "Send this message (Closed)",  required: false
+        input(name: "sms1", type: "phone", title: "Input 1st Phone Number ", required: false)
+        input(name: "sms2", type: "phone", title: "Input 2nd Phone Number ", required: false)
+        input(name: "sms3", type: "phone", title: "Input 3rd Phone Number ", required: false)
+        input(name: "sms4", type: "phone", title: "Input 4th Phone Number ", required: false)
+        input(name: "sms5", type: "phone", title: "Input 5th Phone Number ", required: false)
         
      }
     }
@@ -397,13 +409,17 @@ if(doorAction){
     if(alertOption == true){
        
 		input "doorContactDelay", "number", title: "Once contact has been open/closed for this number of seconds", defaultValue: '0', description: "Seconds", required: true
-        input("recipients", "contact", title: "Send notifications to") {
-    	input(name: "sms", type: "phone", title: "Send A Text To", description: null, required: false)
-    	input(name: "pushNotification", type: "bool", title: "Send a push notification", description: null, defaultValue: true)
-        }
+   //     input("recipients", "contact", title: "Send notifications to") {
+   // 	input(name: "sms", type: "phone", title: "Send A Text To", description: null, required: false)
+   // 	input(name: "pushNotification", type: "bool", title: "Send a push notification", description: null, defaultValue: true)
+     //   }
     	input "message1", "text", title: "Send this message (Open)",  required: false
     	input "message2", "text", title: "Send this message (Closed)",  required: false
-        
+        input(name: "sms1", type: "phone", title: "Input 1st Phone Number ", required: false)
+        input(name: "sms2", type: "phone", title: "Input 2nd Phone Number ", required: false)
+        input(name: "sms3", type: "phone", title: "Input 3rd Phone Number ", required: false)
+        input(name: "sms4", type: "phone", title: "Input 4th Phone Number ", required: false)
+        input(name: "sms5", type: "phone", title: "Input 5th Phone Number ", required: false)
      }
 }
     
@@ -418,12 +434,17 @@ if(doorAction){
     if(alertOption == true){
        
 		input "doorContactDelay", "number", title: "Once contact has been open/closed for this number of seconds", defaultValue: '0', description: "Seconds", required: true
-        input("recipients", "contact", title: "Send notifications to") {
-    	input(name: "sms", type: "phone", title: "Send A Text To", description: null, required: false)
-    	input(name: "pushNotification", type: "bool", title: "Send a push notification", description: null, defaultValue: true)
-        }
+   //     input("recipients", "contact", title: "Send notifications to") {
+    //	input(name: "sms", type: "phone", title: "Send A Text To", description: null, required: false)
+   // 	input(name: "pushNotification", type: "bool", title: "Send a push notification", description: null, defaultValue: true)
+   //     }
     	input "message1", "text", title: "Send this message (Open)",  required: false
     	input "message2", "text", title: "Send this message (Closed)",  required: false
+        input(name: "sms1", type: "phone", title: "Input 1st Phone Number ", required: false)
+        input(name: "sms2", type: "phone", title: "Input 2nd Phone Number ", required: false)
+        input(name: "sms3", type: "phone", title: "Input 3rd Phone Number ", required: false)
+        input(name: "sms4", type: "phone", title: "Input 4th Phone Number ", required: false)
+        input(name: "sms5", type: "phone", title: "Input 5th Phone Number ", required: false)
         
      }
   }  
@@ -1085,17 +1106,24 @@ def changeMode2() {
 
 
 def sendMessage(msg) {
-    if (location.contactBookEnabled) {
-        sendNotificationToContacts(msg, recipients)
-    }
-    else {
-        if (sms) {
-            sendSms(sms, msg)
-        }
-        if (pushNotification) {
-            sendPush(msg)
-        }
-    }
+    
+  LOGDEBUG("Sending message: '$msg' to $sms")
+//    if (location.contactBookEnabled) {
+ //       sendNotificationToContacts(msg, recipients)
+//    }
+//    else {
+     if (sms1) {sendSms(sms1, msg)}
+     if (sms2) {sendSms(sms2, msg)}
+     if (sms3) {sendSms(sms3, msg)}
+     if (sms4) {sendSms(sms4, msg)}
+     if (sms5) {sendSms(sms5, msg)}
+    
+    
+    
+  //      if (pushNotification) {
+ //           sendPush(msg)
+ //       }
+ //   }
 }
 
 // end message actions ===============================
@@ -1503,6 +1531,6 @@ def LOGDEBUG(txt){
 
 // App Version   ***********************************************
 def setAppVersion(){
-    state.appversion = "2.1.0"
+    state.appversion = "2.2.0"
 }
 // end app version *********************************************
