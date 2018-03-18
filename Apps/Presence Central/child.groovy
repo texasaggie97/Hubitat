@@ -1107,16 +1107,31 @@ def changeMode2() {
 
 def sendMessage(msg) {
     
-  LOGDEBUG("Sending message: '$msg' to $sms")
+  LOGDEBUG("Sending message: '$msg' to configured phone numbers")
 //    if (location.contactBookEnabled) {
  //       sendNotificationToContacts(msg, recipients)
 //    }
 //    else {
-     if (sms1) {sendSms(sms1, msg)}
-     if (sms2) {sendSms(sms2, msg)}
-     if (sms3) {sendSms(sms3, msg)}
-     if (sms4) {sendSms(sms4, msg)}
-     if (sms5) {sendSms(sms5, msg)}
+     if (sms1) {
+          LOGDEBUG("Sending message: '$msg' to $sms1")
+         sendSms(sms1, msg)
+     }
+     if (sms2) {
+          LOGDEBUG("Sending message: '$msg' to $sms2")
+         sendSms(sms2, msg)
+     }
+     if (sms3) { 
+         LOGDEBUG("Sending message: '$msg' to $sms3")
+                sendSms(sms3, msg)
+               }
+     if (sms4) {
+          LOGDEBUG("Sending message: '$msg' to $sms4")
+         sendSms(sms4, msg)
+     }
+     if (sms5) {
+         LOGDEBUG("Sending message: '$msg' to $sms5")
+         sendSms(sms5, msg)
+     }
     
     
     
