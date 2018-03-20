@@ -36,10 +36,12 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 18/03/2018
+ *  Last Update: 20/03/2018
  *
  *  Changes:
  *
+ *
+ *  V2.3.0 - Added 'PushOver' messaging option
  *  V2.2.0 - Debug SMS and added 5 slots for phone numbers
  *  V2.1.0 - Added ability to arm/disarm HSM
  *  V2.0.0 - Initial port to Hubitat - Slightly restricted feature list
@@ -205,7 +207,9 @@ def finalPage() {
            		mode title: "Only allow actions when in specific mode(s)", required: false
                 input "fromTime", "time", title: "Only allow actions from ", required: false
 				input "toTime", "time", title: "Only allow actions until", required: false 
-				input "days", "enum", title: "Only allow actions on these days of the week", required: false, multiple: true, options: ["Monday": "Monday", "Tuesday": "Tuesday", "Wednesday": "Wednesday", "Thursday": "Thursday", "Friday": "Friday", "Saturday": "Saturday", "Sunday": "Sunday"]
+				input "days", "enum", title: "Only allow actions on these days of the week", required: false, multiple: true, options: ["Monday": "Monday", "Tuesday": "Tuesday", 
+
+"Wednesday": "Wednesday", "Thursday": "Thursday", "Friday": "Friday", "Saturday": "Saturday", "Sunday": "Sunday"]
                 
 		input "setRise", "bool", title: "Only allow actions between SunSet and SunRise", required: false, submitOnChange: true, defaultValue: false
 				
@@ -247,7 +251,9 @@ def basicInputs(){
 }
 
 def triggerInput() {
-   input "trigger", "enum", title: "How to trigger actions?",required: true, submitOnChange: true, options: ["Single Presence Sensor", "Group 1 \r\n(Anyone arrives or leaves = changed presence)", "Group 2 \r\n('Present' if anyone is at home)", "Group 3 \r\n('Present' if everyone is at home)", "Check for presence at a certain time"]
+   input "trigger", "enum", title: "How to trigger actions?",required: true, submitOnChange: true, options: ["Single Presence Sensor", "Group 1 \r\n(Anyone arrives or leaves = changed presence)", 
+
+"Group 2 \r\n('Present' if anyone is at home)", "Group 3 \r\n('Present' if everyone is at home)", "Check for presence at a certain time"]
   
 }
 
@@ -285,7 +291,7 @@ def presenceActions(){
 
 
 def outputActions(){
-input "presenceAction", "enum", title: "What action to take?",required: true, submitOnChange: true, options: ["Control A Switch", "Change Mode",  "Control a Lock", "Send A Message", "Flash Lights", "Set Safety Monitor Mode"]
+input "presenceAction", "enum", title: "What action to take?",required: true, submitOnChange: true, options: ["Control A Switch", "Change Mode",  "Control a Lock", "Send An SMS Message", "PushOver Message", "Flash Lights", "Set Safety Monitor Mode"]
 
     // Removed from 'action' options until active/re-coded  ********************************************************************************************************************************
     // "Speak A Message", "Control a Door", 
@@ -308,7 +314,13 @@ if (presenceAction) {
      input "presenceSensor1Action1", "enum", title: "What action to take?",required: true, submitOnChange: true, options: ["On when arrived/present & Off when left/not present","Off when arrived/present & On when left/not present", "On when arrived/present (No Off)", "Off when arrived/present (No On)", "On when left/not present (No Off)", "Off when left/not present (No On)"]
 
     }
-    
+      else if(state.selection2 == "PushOver Message"){ 
+    input "speaker", "capability.speechSynthesis", title: "PushOver Device", required: false, multiple: true
+    input "message1", "text", title: "Message to send when sensor arrives (Or is present at check time)",  required: false
+	input "message2", "text", title: "Message to send when sensor leaves (Or is not present at check time)",  required: false
+//    input "msgDelay", "number", title: "Minutes delay between messages (Enter 0 for no delay)", defaultValue: '0', description: "Minutes", required: true
+
+	}
  
     else if(state.selection2 == "Speak A Message"){ 
     input "speaker", "capability.musicPlayer", title: "Choose speaker(s)", required: false, multiple: true
@@ -322,16 +334,16 @@ if (presenceAction) {
 	}
     
     
-     else if(state.selection2 == "Send A Message"){
+     else if(state.selection2 == "Send An SMS Message"){
      input "message1", "text", title: "Message to send when sensor arrives  (Or is present at check time)",  required: false
 	 input "message2", "text", title: "Message to send when sensor leaves  (Or is not present at check time)",  required: false
- //    input("recipients", "contact", title: "Send notifications to") {
+
      	input(name: "sms1", type: "phone", title: "Input 1st Phone Number ", required: false)
         input(name: "sms2", type: "phone", title: "Input 2nd Phone Number ", required: false)
         input(name: "sms3", type: "phone", title: "Input 3rd Phone Number ", required: false)
         input(name: "sms4", type: "phone", title: "Input 4th Phone Number ", required: false)
         input(name: "sms5", type: "phone", title: "Input 5th Phone Number ", required: false)
-         //    input(name: "pushNotification", type: "bool", title: "Send a push notification to", description: null, defaultValue: true)
+      
      }
  //    }
     
@@ -779,6 +791,13 @@ LOGDEBUG("Deciding on correct Arrival Action")
 	}  
  }
  
+else if(state.selection2 == "PushOver Message"){
+  LOGDEBUG("Decided to: Send a message via PushOver - Sending now... ")
+  state.msg1 = message1
+	speaker.speak(state.msg1)
+ }
+    
+    
 else if(state.selection2 == "Speak A Message"){
   LOGDEBUG("Decided to: 'Speak A Message' ")
   state.msg1 = message1
@@ -790,8 +809,8 @@ else if(state.selection2 == "Speak A Message"){
       
  }
     
- else if(state.selection2 == "Send A Message"){
- LOGDEBUG("Decided to: 'Send A Message' ")
+ else if(state.selection2 == "Send An SMS Message"){
+ LOGDEBUG("Decided to: 'Send An SMS Message' ")
  def msg = message1
   sendMessage(msg)
  }
@@ -893,13 +912,20 @@ LOGDEBUG("Deciding on correct Departure Action")
       
 	}  
  }
+    
+else if(state.selection2 == "PushOver Message"){
+  LOGDEBUG("Decided to: Send a message via PushOver - Sending now... ")
+  state.msg1 = message2
+	speaker.speak(state.msg1)
+ }    
+    
 else if(state.selection2 == "Speak A Message"){
   LOGDEBUG("Decided to: 'Speak A Message' ")
   state.msg1 = message2
 	speakNow()
  }
- else if(state.selection2 == "Send A Message"){
- LOGDEBUG("Decided to: 'Send A Message' ")
+ else if(state.selection2 == "Send An SMS Message"){
+ LOGDEBUG("Decided to: 'Send An SMS Message' ")
    def msg = message2
   sendMessage(msg)
  }
@@ -1546,6 +1572,6 @@ def LOGDEBUG(txt){
 
 // App Version   ***********************************************
 def setAppVersion(){
-    state.appversion = "2.2.0"
+    state.appversion = "2.3.0"
 }
 // end app version *********************************************
