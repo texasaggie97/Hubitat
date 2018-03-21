@@ -40,7 +40,7 @@
  *
  *  Changes:
  *
- *
+ *  V2.3.1 - Added ability to configure Pushover priority from GUI
  *  V2.3.0 - Added 'PushOver' messaging option
  *  V2.2.0 - Debug SMS and added 5 slots for phone numbers
  *  V2.1.0 - Added ability to arm/disarm HSM
@@ -318,6 +318,7 @@ if (presenceAction) {
     input "speaker", "capability.speechSynthesis", title: "PushOver Device", required: false, multiple: true
     input "message1", "text", title: "Message to send when sensor arrives (Or is present at check time)",  required: false
 	input "message2", "text", title: "Message to send when sensor leaves (Or is not present at check time)",  required: false
+    input "priority1", "enum", title: "Message Priority",required: true, submitOnChange: true, options: ["None", "Low", "Normal", "High"], defaultValue: "None"
 //    input "msgDelay", "number", title: "Minutes delay between messages (Enter 0 for no delay)", defaultValue: '0', description: "Minutes", required: true
 
 	}
@@ -793,8 +794,8 @@ LOGDEBUG("Deciding on correct Arrival Action")
  
 else if(state.selection2 == "PushOver Message"){
   LOGDEBUG("Decided to: Send a message via PushOver - Sending now... ")
-  state.msg1 = message1
-	speaker.speak(state.msg1)
+	pushOver('arrived')
+   
  }
     
     
@@ -915,8 +916,7 @@ LOGDEBUG("Deciding on correct Departure Action")
     
 else if(state.selection2 == "PushOver Message"){
   LOGDEBUG("Decided to: Send a message via PushOver - Sending now... ")
-  state.msg1 = message2
-	speaker.speak(state.msg1)
+	pushOver('departed')
  }    
     
 else if(state.selection2 == "Speak A Message"){
@@ -1091,8 +1091,54 @@ def	presentCounter3 = 0
 
 // end group 3 actions ==================================
 
+// PushOver Message Actions =============================
+def pushOver(status){
+ def newPriority = priority1
+ def type1 = status
+ LOGDEBUG("Message priority = $newPriority - Type = $status" ) 
 
-
+ if(type1 == 'arrived'){
+     
+    if(newPriority  == 'None'){
+     state.msg1 = message1
+	speaker.speak(state.msg1)
+    }
+     
+    else if(newPriority  == 'Low'){
+     state.msg1 = '[L]' + message1
+	speaker.speak(state.msg1)
+    }
+    else if(newPriority  == 'Normal'){
+     state.msg1 = '[N]' + message1
+	speaker.speak(state.msg1)
+    }
+    else if(newPriority  == 'High'){
+     state.msg1 = '[H]' + message1
+	speaker.speak(state.msg1)
+    }
+  } 
+ if(type1 == 'departed'){
+     
+    if(newPriority  == 'None'){
+     state.msg1 = message2
+	speaker.speak(state.msg1)
+    }
+     
+    else if(newPriority  == 'Low'){
+     state.msg1 = '[L]' + message2
+	speaker.speak(state.msg1)
+    }
+    else if(newPriority  == 'Normal'){
+     state.msg1 = '[N]' + message2
+	speaker.speak(state.msg1)
+    }
+    else if(newPriority  == 'High'){
+     state.msg1 = '[H]' + message2
+	speaker.speak(state.msg1)
+    }
+  }     
+    
+}
 
 
 
@@ -1572,6 +1618,6 @@ def LOGDEBUG(txt){
 
 // App Version   ***********************************************
 def setAppVersion(){
-    state.appversion = "2.3.0"
+    state.appversion = "2.3.1"
 }
 // end app version *********************************************
