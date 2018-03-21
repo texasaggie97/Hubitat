@@ -317,8 +317,9 @@ if (presenceAction) {
       else if(state.selection2 == "PushOver Message"){ 
     input "speaker", "capability.speechSynthesis", title: "PushOver Device", required: false, multiple: true
     input "message1", "text", title: "Message to send when sensor arrives (Or is present at check time)",  required: false
+    input "priority1", "enum", title: "Message Priority for Arrival",required: true, submitOnChange: true, options: ["None", "Low", "Normal", "High"], defaultValue: "None"
 	input "message2", "text", title: "Message to send when sensor leaves (Or is not present at check time)",  required: false
-    input "priority1", "enum", title: "Message Priority",required: true, submitOnChange: true, options: ["None", "Low", "Normal", "High"], defaultValue: "None"
+    input "priority2", "enum", title: "Message Priority for Departure",required: true, submitOnChange: true, options: ["None", "Low", "Normal", "High"], defaultValue: "None"
 //    input "msgDelay", "number", title: "Minutes delay between messages (Enter 0 for no delay)", defaultValue: '0', description: "Minutes", required: true
 
 	}
@@ -1093,11 +1094,11 @@ def	presentCounter3 = 0
 
 // PushOver Message Actions =============================
 def pushOver(status){
- def newPriority = priority1
  def type1 = status
- LOGDEBUG("Message priority = $newPriority - Type = $status" ) 
 
  if(type1 == 'arrived'){
+  def newPriority = priority1 
+  LOGDEBUG("Message priority = $newPriority - Action = $status" ) 
      
     if(newPriority  == 'None'){
      state.msg1 = message1
@@ -1118,6 +1119,8 @@ def pushOver(status){
     }
   } 
  if(type1 == 'departed'){
+  def newPriority = priority2 
+  LOGDEBUG("Message priority = $newPriority - Action = $status" ) 
      
     if(newPriority  == 'None'){
      state.msg1 = message2
