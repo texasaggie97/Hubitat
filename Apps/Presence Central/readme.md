@@ -1,6 +1,4 @@
-﻿# Presence Central
-
-Hubitat port
+﻿# Presence Central - Hubitat port
 ************************************
 
 
@@ -15,7 +13,7 @@ INSTALL NOTES:
 
 4. Click ‘Load New Apps’
 
-5. Select ‘Presence Central’ under ‘User Apps’
+5. Select ‘Presence Central’ under ‘User Apps’ (Not the child app)
 
 6. Save
 
