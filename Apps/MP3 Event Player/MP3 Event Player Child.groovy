@@ -19,7 +19,7 @@
  * 
  *
  *
- *
+ *  V1.2.1 - Debug "Time" trigger
  *  V1.2.0 - Converted Sonos command for Hubitat compatibility
  *  V1.0.0 - POC
  *
@@ -280,8 +280,9 @@ LOGDEBUG("$switch1 = $evt.value")
 
 
 
-def scheduledTimeHandler() {
-	eventHandler(time)
+def scheduledTimeHandler(evt) {
+   def evt1 = 'SCHEDULED TIME EVENT'
+	eventHandler(evt1)
 }
 
 def modeChangeHandler(evt) {
@@ -438,5 +439,5 @@ def LOGDEBUG(txt){
     
 // App Version   *********************************************************************************
 def setAppVersion(){
-    state.appversion = "1.0.0"
+    state.appversion = "1.2.1"
 }
