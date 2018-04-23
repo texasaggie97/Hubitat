@@ -18,7 +18,7 @@
  *
  * 
  *
- *
+ *  V1.2.2 - Debug - appliance trigger
  *  V1.2.1 - Debug "time" trigger
  *  V1.2.0 - Converted Sonos command for Hubitat compatibility
  *  V1.0.0 - POC
@@ -309,7 +309,7 @@ goNow(evt)
 
 
 def goNow(evt){
-LOGDEBUG("goNow evt = $evt.value - state.currS1 = $state.currS1")
+LOGDEBUG("goNow evt = $evt.value")
  if (state.currS1 == null || state.currS1 == true) {
 if (allOk) {
 def soundURI = pathURI + "/" + sound 
@@ -446,5 +446,5 @@ def LOGDEBUG(txt){
     
 // App Version   *********************************************************************************
 def setAppVersion(){
-    state.appversion = "1.2.1"
+    state.appversion = "1.2.2"
 }
