@@ -19,7 +19,7 @@
  * 
  *
  *
- *  V1.2.1 - Debug "Time" trigger
+ *  V1.2.1 - Debug "time" trigger
  *  V1.2.0 - Converted Sonos command for Hubitat compatibility
  *  V1.0.0 - POC
  *
@@ -68,6 +68,7 @@ def updated() {
 def initialize() {
 	
     state.timer = 'yes'
+    state.currS1 = true
     setAppVersion()
     logCheck()
     if(acceleration){subscribe(acceleration, "acceleration.active", eventHandler)}
@@ -132,8 +133,8 @@ section("Speaker Settings") {
    } 
 
 section("Trigger") {
-  input "trigger", "enum", title: "Action to trigger mp3", required: true, submitOnChange: true, options: ["Acceleration", "Appliance Power Monitor", "Button Pushed", "Contact Open", "Contact Closed", "Carbon Monoxide Detected", "Presence - Arrival", "Presence - Departure", "Leak Detected", "Mode Change", "Motion Active", "Smoke Detected", "Switch On", "Switch Off", "Time"]
-
+  input "trigger", "enum", title: "Action to trigger mp3", required: true, submitOnChange: true, options: ["Acceleration", "Appliance Power Monitor",  "Contact Open", "Contact Closed", "Carbon Monoxide Detected", "Presence - Arrival", "Presence - Departure", "Leak Detected", "Mode Change", "Motion Active", "Smoke Detected", "Switch On", "Switch Off", "Time"]
+// "Button Pushed",
 
 }
 section() {
@@ -218,6 +219,7 @@ def chooseInputs(){
 
 // Appliance Power Monitor
 def powerApplianceNow(evt){
+    getAllOk()
 state.meterValue = evt.value as double
 state.activateThreshold = aboveThreshold
 
@@ -229,9 +231,9 @@ LOGDEBUG( "Activate threshold reached or exceeded setting state.activate to: $st
 }
 }
 
+LOGDEBUG( "state.currS1 == $state.currS1 && state.activate == $state.activate")
 
-
- if(state.appgo == true && state.activate == true){
+ if(state.currS1 == true && state.activate == true){
 LOGDEBUG( "powerApplianceNow -  Power is: $state.meterValue")
     state.belowValue = belowThreshold as int
     if (state.meterValue < state.belowValue) {
@@ -248,7 +250,7 @@ LOGDEBUG( "Not reached threshold yet to activate monitoring")
      }
      
      
- if(state.appgo == false){
+ if(state.currS1 == false){
 LOGDEBUG( "App disabled by $enableswitch being off")
 
 }
@@ -260,8 +262,8 @@ def checkApplianceAgain1() {
    
      if (state.meterValue < state.belowValue) {
 LOGDEBUG(" checkApplianceAgain1 - Checking again now... Power is: $state.meterValue")
-    
-      eventHandler(evt)
+    def evt1 = "APPLIANCE POWER"
+      eventHandler(evt1)
       state.activate = false  
 			}
      else  if (state.meterValue > state.belowValue) {
@@ -276,6 +278,10 @@ LOGDEBUG( "checkApplianceAgain1 -  Power is: $state.meterValue so cannot run yet
 def switchHandler(evt) {
    state.currS1 = evt.value  // Note: Optional if switch is used to control action
 LOGDEBUG("$switch1 = $evt.value")
+    
+    
+    
+    
   					   }
 
 
@@ -303,8 +309,8 @@ goNow(evt)
 
 
 def goNow(evt){
-LOGDEBUG("goNow evt = $evt.value")
- if (state.currS1 == null || state.currS1 == "on") {
+LOGDEBUG("goNow evt = $evt.value - state.currS1 = $state.currS1")
+ if (state.currS1 == null || state.currS1 == true) {
 if (allOk) {
 def soundURI = pathURI + "/" + sound 
 
@@ -396,6 +402,7 @@ private getTimeLabel()
 }    
     
 def setVolume(){
+    LOGDEBUG("Calling setVolume...")
 def timecheck = fromTime2
 if (timecheck != null){
 def between2 = timeOfDayIsBetween(fromTime2, toTime2, new Date(), location.timeZone)
@@ -414,7 +421,7 @@ LOGDEBUG("Quiet Time = No - Setting Normal time - Volume = $state.volume Speaker
 }
 else if (timecheck == null){
 state.volume = volume1
-
+LOGDEBUG("Quiet Time = No - Setting Normal time - Volume = $state.volume Speaker = $state.speakerNow")
 	}
 }    
 
