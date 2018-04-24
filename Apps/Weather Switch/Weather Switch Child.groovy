@@ -41,7 +41,7 @@
  *
  *
  *
- *  V1.2.0 - Additional data logging 
+ *  V1.1.0 - Additional data logging 
  *  V1.0.0 - POC
  *
  */
