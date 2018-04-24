@@ -172,7 +172,7 @@ def  illuminanceHandler(evt){
     def evt1 = event1.toDouble()
     def call1 = 'Illuminance'
 	LOGDEBUG("Illuminance is $evt1")
- 	actionNow(Illuminance,vt1)
+ 	actionNow(Illuminance, evt1)
 }
         
     
