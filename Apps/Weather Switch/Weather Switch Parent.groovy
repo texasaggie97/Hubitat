@@ -41,7 +41,7 @@
  *
  *
  *
- *
+ *  V1.1.0 - Debug
  *  V1.0.0 - POC
  *
  */
@@ -98,9 +98,9 @@ def mainPage() {
       
 		section {    
 			paragraph image: "https://raw.githubusercontent.com/cobravmax/SmartThings/master/icons/cobra.png",
-				title: "MP3 Central",
+				title: "Weather Switch",
 				required: false,
-				"This parent app is a container for all Mp3 Event child apps"
+				"This parent app is a container for all Weather Event child apps"
 			}
             
 		section{
@@ -108,17 +108,7 @@ def mainPage() {
 			}
     
 		
-    
-    
-    
-// Links to child apps    
-    
-     
-    section{
-			paragraph ( title: "Events", "Add a new event automation child below"  )
-			}
-     
-     
+  
      
      
 // New Child Apps 
@@ -127,7 +117,7 @@ def mainPage() {
       
         
       section ("Add An Event"){
-		app(name: "weatherApp", appName: "Weather Switch Child", namespace: "Cobra", title: "New Child", multiple: true)
+		app(name: "weatherApp", appName: "Weather Switch Child", namespace: "Cobra", title: "Add a new event automation child", multiple: true)
 		
             
             }
@@ -167,5 +157,5 @@ def mainPage() {
  
 // App Version   *********************************************************************************
 def setAppVersion(){
-    state.appversion = "1.0.0"
+    state.appversion = "1.1.0"
 }

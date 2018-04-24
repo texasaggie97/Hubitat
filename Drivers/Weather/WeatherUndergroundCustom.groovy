@@ -15,11 +15,13 @@
  *  - Last Update 25/04/2018
  * 
  *  - Added ability to choose 'Pressure', 'Distance/Speed' & 'Precipitation' units & switchable logging- @Cobra 25/04/2018
- *  - Added wind gust - @Cobra 24/04/2018
+ *  - Added wind gust - removed some capabilities and added attributes - @Cobra 24/04/2018
  *  - Added wind direction - @Cobra 23/04/2018
  *  - Added ability to choose between "Fahrenheit" and "Celsius" - @Cobra 23/03/2018
  *
  */
+
+
 
 metadata {
     definition (name: "WeatherUndergroundCustom", namespace: "Cobra", author: "mattw01") {
@@ -50,7 +52,7 @@ metadata {
         attribute "Temperature", "string"
         attribute "Illuminance", "string"
         attribute "Humidity", "string"
-        
+        attribute "Alert", "string"
        
        
         
@@ -101,88 +103,122 @@ def poll()
 def forcePoll()
 {
     log.debug "WU: forcePoll called"
-    def params = [
+    def params1 = [
         uri: "http://api.wunderground.com/api/${apiKey}/conditions/forecast/q/${pollLocation}.json"
     ]
-    log.debug "params: ${params}"
+    
+     def params2 = [
+        uri: "http://api.wunderground.com/api/${apiKey}/alerts/q/${pollLocation}.json"
+    ]
+    
+    
+    log.debug "params1: ${params1}"
+    log.debug "params2: ${params2}"
     try {
-        httpGet(params) { resp ->
-            resp.headers.each {
-            log.debug "Response: ${it.name} : ${it.value}"
+        httpGet(params1) { resp1 ->
+            resp1.headers.each {
+            log.debug "Response1: ${it.name} : ${it.value}"
         }
             if(logSet == true){  
-            log.debug "params: ${params}"
+            log.debug "params1: ${params1}"
             
- 		    log.debug "response contentType: ${resp.contentType}"
- 		    log.debug "response data: ${resp.data}"
-            }        
-            sendEvent(name: "Illuminance", value: resp.data.current_observation.solarradiation, unit: "lux")  
-            sendEvent(name: "Observation_Time", value: resp.data.current_observation.observation_time)
-            sendEvent(name: "Weather", value: resp.data.current_observation.weather)
-            sendEvent(name: "Wind_String", value: resp.data.current_observation.wind_string)
-            sendEvent(name: "Solar_Radiation", value: resp.data.current_observation.solarradiation, unit: "W")
-            sendEvent(name: "Humidity", value: resp.data.current_observation.relative_humidity, unit: "%")
-            sendEvent(name: "UV", value: resp.data.current_observation.UV)
-            sendEvent(name: "Forecast_Conditions", value: resp.data.forecast.simpleforecast.forecastday[0].conditions)
-            sendEvent(name: "Wind_Direction", value: resp.data.current_observation.wind_dir)
+ 		    log.debug "response contentType: ${resp1.contentType}"
+ 		    log.debug "response data: ${resp1.data}"
+            } 
+            if(logSet == false){ 
+            log.info "Further WU data logging disabled (params1)"    
+            }    
+            
+            
+            
+          
+               
+               
+            sendEvent(name: "Illuminance", value: resp1.data.current_observation.solarradiation, unit: "lux")  
+            sendEvent(name: "Observation_Time", value: resp1.data.current_observation.observation_time)
+            sendEvent(name: "Weather", value: resp1.data.current_observation.weather)
+            sendEvent(name: "Wind_String", value: resp1.data.current_observation.wind_string)
+            sendEvent(name: "Solar_Radiation", value: resp1.data.current_observation.solarradiation, unit: "W")
+            sendEvent(name: "Humidity", value: resp1.data.current_observation.relative_humidity, unit: "%")
+            sendEvent(name: "UV", value: resp1.data.current_observation.UV)
+            sendEvent(name: "Forecast_Conditions", value: resp1.data.forecast.simpleforecast.forecastday[0].conditions)
+            sendEvent(name: "Wind_Direction", value: resp1.data.current_observation.wind_dir)
             
             
             if(rainFormat == "Inches"){
-            sendEvent(name: "Precip_Last_Hour", value: resp.data.current_observation.precip_1hr_in, unit: "IN")
-            sendEvent(name: "Precip_Today", value: resp.data.current_observation.precip_today_in, unit: "IN")
+            sendEvent(name: "Precip_Last_Hour", value: resp1.data.current_observation.precip_1hr_in, unit: "IN")
+            sendEvent(name: "Precip_Today", value: resp1.data.current_observation.precip_today_in, unit: "IN")
             }
             if(rainFormat == "Millimetres"){   
-            sendEvent(name: "Precip_Today", value: resp.data.current_observation.precip_today_metric, unit: "MM")
-            sendEvent(name: "Precip_Last_Hour", value: resp.data.current_observation.precip_1hr_metric, unit: "MM")
+            sendEvent(name: "Precip_Today", value: resp1.data.current_observation.precip_today_metric, unit: "MM")
+            sendEvent(name: "Precip_Last_Hour", value: resp1.data.current_observation.precip_1hr_metric, unit: "MM")
             }
             
             if(tempFormat == "Celsius"){
-            sendEvent(name: "Temperature", value: resp.data.current_observation.temp_c, unit: "C")
-            sendEvent(name: "Feels_Like", value: resp.data.current_observation.feelslike_c, unit: "C")
-            sendEvent(name: "Dewpoint", value: resp.data.current_observation.dewpoint_c, unit: "C")
-            sendEvent(name: "Forecast_High", value: resp.data.forecast.simpleforecast.forecastday[0].high.celsius, unit: "C")
-            sendEvent(name: "Forecast_Low", value: resp.data.forecast.simpleforecast.forecastday[0].low.celsius, unit: "C")
+            sendEvent(name: "Temperature", value: resp1.data.current_observation.temp_c, unit: "C")
+            sendEvent(name: "Feels_Like", value: resp1.data.current_observation.feelslike_c, unit: "C")
+            sendEvent(name: "Dewpoint", value: resp1.data.current_observation.dewpoint_c, unit: "C")
+            sendEvent(name: "Forecast_High", value: resp1.data.forecast.simpleforecast.forecastday[0].high.celsius, unit: "C")
+            sendEvent(name: "Forecast_Low", value: resp1.data.forecast.simpleforecast.forecastday[0].low.celsius, unit: "C")
             sendEvent(name: "Display_Unit_Temperature", value: "Celsius")
             	
         }
            if(tempFormat == "Fahrenheit"){ 
-           sendEvent(name: "Temperature", value: resp.data.current_observation.temp_f, unit: "F")
-           sendEvent(name: "Feels_Like", value: resp.data.current_observation.feelslike_f, unit: "F")
-           sendEvent(name: "Dewpoint", value: resp.data.current_observation.dewpoint_f, unit: "F")
-           sendEvent(name: "Forecast_High", value: resp.data.forecast.simpleforecast.forecastday[0].high.fahrenheit, unit: "F")
-           sendEvent(name: "Forecast_Low", value: resp.data.forecast.simpleforecast.forecastday[0].low.fahrenheit, unit: "F")
+           sendEvent(name: "Temperature", value: resp1.data.current_observation.temp_f, unit: "F")
+           sendEvent(name: "Feels_Like", value: resp1.data.current_observation.feelslike_f, unit: "F")
+           sendEvent(name: "Dewpoint", value: resp1.data.current_observation.dewpoint_f, unit: "F")
+           sendEvent(name: "Forecast_High", value: resp1.data.forecast.simpleforecast.forecastday[0].high.fahrenheit, unit: "F")
+           sendEvent(name: "Forecast_Low", value: resp1.data.forecast.simpleforecast.forecastday[0].low.fahrenheit, unit: "F")
             sendEvent(name: "Display_Unit_Temperature", value: "Fahrenheit")
             	
            }  
             
           if(distanceFormat == "Miles (mph)"){  
-            sendEvent(name: "Visibility", value: resp.data.current_observation.visibility_mi, unit: "mi")
-            sendEvent(name: "Wind_Speed", value: resp.data.current_observation.wind_mph, unit: "MPH")
-            sendEvent(name: "Wind_Gust", value: resp.data.current_observation.wind_gust_mph)  
+            sendEvent(name: "Visibility", value: resp1.data.current_observation.visibility_mi, unit: "mi")
+            sendEvent(name: "Wind_Speed", value: resp1.data.current_observation.wind_mph, unit: "MPH")
+            sendEvent(name: "Wind_Gust", value: resp1.data.current_observation.wind_gust_mph)  
             sendEvent(name: "Display_Unit_Distance", value: "Miles (mph)")  
           }  
             
           if(distanceFormat == "Kilometres (kph)"){
-           sendEvent(name: "Visibility", value: resp.data.current_observation.visibility_km, unit: "km")
-           sendEvent(name: "Wind_Speed", value: resp.data.current_observation.wind_kph, unit: "KPH")  
-           sendEvent(name: "Wind_Gust", value: resp.data.current_observation.wind_gust_kph)  
+           sendEvent(name: "Visibility", value: resp1.data.current_observation.visibility_km, unit: "km")
+           sendEvent(name: "Wind_Speed", value: resp1.data.current_observation.wind_kph, unit: "KPH")  
+           sendEvent(name: "Wind_Gust", value: resp1.data.current_observation.wind_gust_kph)  
            sendEvent(name: "Display_Unit_Distance", value: "Kilometres (kph)")  
           }
                       
             if(pressureFormat == "Inches"){
-            sendEvent(name: "Pressure", value: resp.data.current_observation.pressure_in, unit: "mi")
+            sendEvent(name: "Pressure", value: resp1.data.current_observation.pressure_in, unit: "mi")
             sendEvent(name: "Display_Unit_Pressure", value: "Inches")  
             }
             
             if(pressureFormat == "Millibar"){
-            sendEvent(name: "Pressure", value: resp.data.current_observation.pressure_mb, unit: "mb")
+            sendEvent(name: "Pressure", value: resp1.data.current_observation.pressure_mb, unit: "mb")
             sendEvent(name: "Display_Unit_Pressure", value: "Millibar")  
             }
             
          state.lastPoll = now()   
+           httpGet(params2) { resp2 ->
+            resp2.headers.each {
+            log.debug "Response2: ${it.name} : ${it.value}"
+        }
+            if(logSet == true){  
+            log.debug "params2: ${params2}"
             
+ 		    log.debug "response2 contentType: ${resp2.contentType}"
+ 		    log.debug "response2 data: ${resp2.data}"
+            } 
+            if(logSet == false){ 
+            log.info "Further WU data logging disabled (params2)"    
+            }     
+               
+            sendEvent(name: "Alert", value: resp2.data.alerts.level_meteoalarm_description)   
+               
+               
             
-        }           
+        }
+        } 
+        
     } catch (e) {
         log.error "something went wrong: $e"
     }

@@ -41,7 +41,7 @@
  *
  *
  *
- *
+ *  V1.2.0 - Additional data logging 
  *  V1.0.0 - POC
  *
  */
@@ -61,6 +61,14 @@ definition(
 
 
 preferences {
+     page name: "mainPage", title: "", install: false, uninstall: true, nextPage: "restrictionsPage"
+     page name: "restrictionsPage", title: "", install: true, uninstall: true
+}
+    
+    
+// main page *****************************************************************************************************************
+  def mainPage() {
+    dynamicPage(name: "mainPage") {  
 	section("Input/Output") {
     input(name: "enableswitch1", type: "capability.switch", title: "Enable/Disable app with this switch", required: false, multiple: false)
 	input(name: "sensor1", type: "capability.sensor", title: "WU Device", required: true, multiple: false)
@@ -70,30 +78,86 @@ preferences {
     section() {
   input "trigger", "enum", title: "Action to trigger switch", required: true, submitOnChange: true, 
       options: [
+          "Dewpoint",
+          "Forecast High",
+          "Forecast Low",
           "Illuminance",
-          "Solar Radiation",
-          "Temperature Feels Like",
           "Precipitation in Last Hour",
           "Precipitation Today",
-          "Wind Speed",
-    //      "Wind Direction",
           "Pressure",
-          "Dewpoint",
+          "Solar Radiation",
+          "Temperature Feels Like",
           "UV Radiation",
           "Visibility",
-          "Forecast High",
-          "Forecast Low"
-      ] 
+  //      "Wind Direction",
+          "Wind Gust",
+          "Wind Speed"
+          ]       
+          
+          
+          
+          
+      
    input(name: "action1", type: "bool", title: "Turn switch On or Off when trigger active", required: true, defaultValue: true)      
    input(name: "threshold1", type: "number", title: "Threshold", required: true, description: "Trigger above or below this number", defaultValue: '0')
    input(name: "switchMode1", type: "bool", title: "On = Trigger Above Threshold - Off = Trigger Below Threshold", required: true, defaultValue: true ) 
-      
- }
+     
+     }
+    } 
+  }
 
-    section() {
+// Restrictions Page *************************************************************************************************************
+
+def restrictionsPage() {
+       dynamicPage(name: "restrictionsPage") {
+           
+           section() {
+           		mode title: "Run only when in specific mode(s) ", required: false
+            }
+        
+
+		section() {
+        
+    input "restrictions1", "bool", title: "Restrict by Time & Day", required: true, defaultValue: false, submitOnChange: true
+    input "restrictions2", "bool", title: "Restrict by Presence Sensor", required: true, defaultValue: false, submitOnChange: true
+     }
+
+      if(restrictions1 == true){    
+     	section("Time/Day") {
+    input "fromTime", "time", title: "Allow actions from", required: false
+    input "toTime", "time", title: "Allow actions until", required: false
+    input "days", "enum", title: "Select Days of the Week", required: false, multiple: true, options: ["Monday": "Monday", "Tuesday": "Tuesday", "Wednesday": "Wednesday", "Thursday": "Thursday", "Friday": "Friday", "Saturday": "Saturday", "Sunday": "Sunday"]
+    		}      
+      }       
+      if(restrictions2 == true){
+    section("This is to restrict on 1 or 2 presence sensor(s)") {
+    input "restrictPresenceSensor", "capability.presenceSensor", title: "Select presence sensor 1 to restrict action", required: false, multiple: false, submitOnChange: true
+    if(restrictPresenceSensor){
+   	input "restrictPresenceAction", "bool", title: "   On = Action only when someone is 'Present'  \r\n   Off = Action only when someone is 'NOT Present'  ", required: true, defaultValue: false    
+	}
+     input "restrictPresenceSensor1", "capability.presenceSensor", title: "Select presence sensor 2 to restrict action", required: false, multiple: false, submitOnChange: true
+    if(restrictPresenceSensor1){
+   	input "restrictPresenceAction1", "bool", title: "   On = Action only when someone is 'Present'  \r\n   Off = Action only when someone is 'NOT Present'  ", required: true, defaultValue: false    
+	}
+    
+    }
+            }         
+           
+       
+       section() {
+                label title: "Enter a name for this automation child", required: false
+            }
+      section() {
             input "debugMode", "bool", title: "Enable logging", required: true, defaultValue: false
   	        }
-}
+
+           
+           
+      }          
+           
+       }
+
+           
 
 def installed() {
 	log.debug "Installed with settings: ${settings}"
@@ -117,30 +181,35 @@ def initialize() {
         
 	subscribe(enableswitch1, "switch", enableSwitch1Handler)
     subscribe(sensorSwitch1, "switch", sensorSwitch1Handler)
-    subscribe(sensor1, "DisplayUnit", displayUnitHandler)
-    
+    subscribe(sensor1, "Display_Unit_Temperature", displayTempUnitHandler)
+    subscribe(sensor1,  "Display_Unit_Pressure", displayPressureUnitHandler)
+    subscribe(sensor1, "Display_Unit_Distance", displayDistanceUnitHandler)
+   
+    if (restrictPresenceSensor){subscribe(restrictPresenceSensor, "presence", restrictPresenceSensorHandler)}
+	if (restrictPresenceSensor1){subscribe(restrictPresenceSensor1, "presence", restrictPresence1SensorHandler)}
+        
     state.selection = trigger
     
-    if(state.selection == "Illuminance"){ subscribe(sensor1, "illuminance", illuminanceHandler)}
-    if(state.selection ==  "Solar Radiation"){subscribe(sensor1, "solarradiation", solarradiationHandler)}
-    if(state.selection == "Temperature Feels Like"){subscribe(sensor1, "feelsLike", feelsLikeHandler)}
-    if(state.selection == "Precipitation in Last Hour"){subscribe(sensor1, "precip_1hr_in", precip_1hr_inHandler)}
-    if(state.selection == "Precipitation Today"){subscribe(sensor1, "precip_today_in", precip_today_inHandler)}
-    if(state.selection == "Wind Speed"){subscribe(sensor1, "wind_mph", wind_mphHandler)}
- //   if(state.selection == "Wind Direction"){subscribe(sensor1, "wind_dir", wind_dirHandler)}
-    if(state.selection == "Pressure"){subscribe(sensor1, "pressure_in", pressure_inHandler)}
-    if(state.selection ==  "Dewpoint"){subscribe(sensor1, "dewpoint", dewpointHandler)}
+    if(state.selection == "Illuminance"){ subscribe(sensor1, "Illuminance", illuminanceHandler)}
+    if(state.selection ==  "Solar Radiation"){subscribe(sensor1, "Solar_Radiation", solarradiationHandler)}
+    if(state.selection == "Temperature Feels Like"){subscribe(sensor1, "Feels_Like", feelsLikeHandler)}
+    if(state.selection == "Precipitation in Last Hour"){subscribe(sensor1, "Precip_Last_Hour", precip_1hrHandler)}
+    if(state.selection == "Precipitation Today"){subscribe(sensor1, "Precip_Today", precip_todayHandler)}
+    if(state.selection == "Wind Speed"){subscribe(sensor1, "Wind_Speed", windHandler)}
+    if(state.selection == "Wind Gust"){subscribe(sensor1, "Wind_Gust", wind_gustHandler)}
+    if(state.selection == "Pressure"){subscribe(sensor1, "Pressure", pressureHandler)}
+    if(state.selection ==  "Dewpoint"){subscribe(sensor1, "Dewpoint", dewpointHandler)}
     if(state.selection == "UV Radiation"){subscribe(sensor1, "UV", uvHandler)}
-    if(state.selection == "Visibility"){subscribe(sensor1, "visibility_mi", visibility_miHandler)}
-    if(state.selection == "Forecast High"){subscribe(sensor1, "forecastHigh", forecastHighHandler)}
-    if(state.selection == "Forecast Low"){subscribe(sensor1, "forecastLow", forecastLowHandler)}
+    if(state.selection == "Visibility"){subscribe(sensor1, "Visibility", visibilityHandler)}
+    if(state.selection == "Forecast High"){subscribe(sensor1, "Forecast_High", forecastHighHandler)}
+    if(state.selection == "Forecast Low"){subscribe(sensor1, "Forecast_Low", forecastLowHandler)}
 
-   
-    subscribe(sensor1, "observation_time", observation_timeHandler)
-    subscribe(sensor1, "weather", weatherHandler)
-    subscribe(sensor1, "forecastConditions", forecastConditionsHandler)
-    subscribe(sensor1, "wind_string", wind_stringHandler)
-    
+  	subscribe(sensor1, "Wind_Direction", wind_dirHandler)
+    subscribe(sensor1, "Observation_Time", observation_timeHandler)
+    subscribe(sensor1, "Weather", weatherHandler)
+    subscribe(sensor1, "Forecast_Conditions", forecastConditionsHandler)
+    subscribe(sensor1, "Wind_String", wind_stringHandler)
+    subscribe(sensor1, "Alert", alertHandler)
     
 }
 
@@ -159,10 +228,21 @@ state.currS1 = evt.value
 LOGDEBUG("$switch1 is $state.currS1")
 }
 
-def displayUnitHandler(evt){
+def displayTempUnitHandler(evt){
 state.unit1 = evt.value
-LOGDEBUG("Display Unit is $state.unit1")
+LOGDEBUG("Temp Display Unit is $state.unit1")
 }
+
+def displayPressureUnitHandler(evt){
+state.unit2 = evt.value
+LOGDEBUG("Pressure Display Unit is $state.unit2")
+}
+
+def displayDistanceUnitHandler(evt){
+state.unit3 = evt.value
+LOGDEBUG("Distance Display Unit is $state.unit3")
+}
+
 
 
 // Weather Report Handlers
@@ -196,6 +276,13 @@ state.weather1 = evt.value
 LOGDEBUG("Weather is $state.weather1")
 }
 
+def  alertHandler(evt){
+state.alert1 = evt.value
+LOGDEBUG("Weather Alert is $state.alert1")    
+   
+}
+
+
 def feelsLikeHandler(evt){
     def event3 = evt.value
     def evt3 = event3.toDouble()
@@ -206,7 +293,7 @@ def feelsLikeHandler(evt){
 
 
 
-def precip_1hr_inHandler(evt){
+def precip_1hrHandler(evt){
     def event4 = evt.value
     def evt4 = event4.toDouble()
     def call4 = 'Precipitation in last hour'
@@ -215,7 +302,7 @@ def precip_1hr_inHandler(evt){
 
 }
 
-def precip_today_inHandler(evt){
+def precip_todayHandler(evt){
     def event5 = evt.value
     def evt5 = event5.toDouble()
     def call5 = 'Precipitation Today'
@@ -225,7 +312,7 @@ def precip_today_inHandler(evt){
 
 }
 
-def wind_mphHandler(evt){ 
+def windHandler(evt){ 
 def event6 = evt.value
     def evt6 = event6.toDouble()
     def call6 = 'Wind Speed'
@@ -238,7 +325,7 @@ def wind_stringHandler(evt){
 LOGDEBUG("Wind String = $evt.value")
 }
 
-def pressure_inHandler(evt){
+def pressureHandler(evt){
     def event7 = evt.value
     def evt7 = event7.toDouble()
     def call7 = 'Pressure'
@@ -265,7 +352,7 @@ def uvHandler(evt){
 
 }
 
-def visibility_miHandler(evt){
+def visibilityHandler(evt){
     def event10 = evt.value
     def evt10 = event10.toDouble()
     def call10 = 'Visibility'
@@ -295,14 +382,24 @@ def forecastLowHandler(evt){
 
 def wind_dirHandler(evt){
   def event13 = evt.value
-    def evt13 = event13.toDouble()
-    def call13 = 'Wind Directiopn'
+   
+    def evt13 = event13
+    def call13 = 'Wind Direction'
     LOGDEBUG("Wind Direction =  $evt13")
-    actionNow(call13, evt13)
+//    actionNow(call13, evt13)
 
 }
 
-
+def wind_gustHandler(evt){
+  def event14 = evt.value
+    def evt14 = event14.toDouble()
+    def call14 = 'Wind Gust'
+    LOGDEBUG("Wind Direction =  $evt13")
+    actionNow(call14, evt14)   
+}   
+    
+    
+ 
 
 def forecastConditionsHandler(evt){
 state.forecastCond1 = evt.value
@@ -320,8 +417,18 @@ state.thresh = threshold1
 state.action = action1
 state.mode = switchMode1
    LOGDEBUG("Calling event = $call") 
-    LOGDEBUG("state.evtNow = $state.evtNow -- state.thresh = $state.thresh -- state.action = $state.action -- state.mode = $state.mode")
+LOGDEBUG("Calling.. CheckTime")
+checkTime()
+LOGDEBUG("Calling.. CheckDay")
+checkDay()
+LOGDEBUG("Calling.. CheckPresence")
+checkPresence()
+LOGDEBUG("Calling.. CheckPresence1")
+checkPresence1()   
     
+    
+    LOGDEBUG("state.evtNow = $state.evtNow -- state.thresh = $state.thresh -- state.action = $state.action -- state.mode = $state.mode - state.presenceRestriction = $state.presenceRestriction - state.presenceRestriction1 = $state.presenceRestriction1")
+ if(state.timeOK == true && state.dayCheck == true && state.presenceRestriction == true && state.presenceRestriction1 == true){
     if(state.action == true){   
         LOGDEBUG("state.action = $state.action")
     if(state.evtNow > state.thresh && state.mode == true){ on()}
@@ -337,7 +444,10 @@ state.mode = switchMode1
 	if(state.evtNow < state.thresh && state.mode == true){ on()}
     if(state.evtNow < state.thresh && state.mode == false){ off()}
     }    
-     
+ }
+    else{
+     LOGDEBUG("One or more restrictions are active so cannot continue")
+    }
 }
 
 
@@ -357,6 +467,145 @@ def off(){
     	sensorswitch1.off()      
        
 }
+  
+// Check time allowed to run...
+
+def checkTime(){
+def timecheckNow = fromTime
+if (timecheckNow != null){
+def between = timeOfDayIsBetween(fromTime, toTime, new Date(), location.timeZone)
+    if (between) {
+    state.timeOK = true
+   LOGDEBUG("Time is ok so can continue...")
+    
+}
+else if (!between) {
+state.timeOK = false
+LOGDEBUG("Time is NOT ok so cannot continue...")
+	}
+  }
+else if (timecheckNow == null){  
+state.timeOK = true
+  LOGDEBUG("Time restrictions have not been configured -  Continue...")
+  }
+}
+
+
+// check days allowed to run
+def checkDay(){
+def daycheckNow = days
+if (daycheckNow != null){
+ def df = new java.text.SimpleDateFormat("EEEE")
+    
+    df.setTimeZone(location.timeZone)
+    def day = df.format(new Date())
+    def dayCheck1 = days.contains(day)
+    if (dayCheck1) {
+
+  state.dayCheck = true
+LOGDEBUG( " Day ok so can continue...")
+ }       
+ else {
+LOGDEBUG( " Not today!")
+ state.dayCheck = false
+ }
+ }
+if (daycheckNow == null){ 
+ LOGDEBUG("Day restrictions have not been configured -  Continue...")
+ state.dayCheck = true 
+} 
+}
+
+    
+    
+    
+    
+    
+// Define restrictPresenceSensor actions
+def restrictPresenceSensorHandler(evt){
+state.presencestatus1 = evt.value
+LOGDEBUG("state.presencestatus1 = $evt.value")
+checkPresence()
+checkPresence1()
+
+}
+
+
+def checkPresence(){
+LOGDEBUG("running checkPresence - restrictPresenceSensor = $restrictPresenceSensor")
+
+if(restrictPresenceSensor){
+LOGDEBUG("Presence = $state.presencestatus1")
+def actionPresenceRestrict = restrictPresenceAction
+
+
+if (state.presencestatus1 == "present" && actionPresenceRestrict == true){
+LOGDEBUG("Presence ok")
+state.presenceRestriction = true
+}
+else if (state.presencestatus1 == "not present" && actionPresenceRestrict == true){
+LOGDEBUG("Presence not ok")
+state.presenceRestriction = false
+}
+
+if (state.presencestatus1 == "not present" && actionPresenceRestrict == false){
+LOGDEBUG("Presence ok")
+state.presenceRestriction = true
+}
+else if (state.presencestatus1 == "present" && actionPresenceRestrict == false){
+LOGDEBUG("Presence not ok")
+state.presenceRestriction = false
+}
+}
+else if(!restrictPresenceSensor){
+state.presenceRestriction = true
+LOGDEBUG("Presence sensor restriction not used")
+}
+}
+
+
+def restrictPresence1SensorHandler(evt){
+state.presencestatus2 = evt.value
+LOGDEBUG("state.presencestatus2 = $evt.value")
+checkPresence1()
+
+
+}
+
+
+def checkPresence1(){
+LOGDEBUG("running checkPresence1 - restrictPresenceSensor1 = $restrictPresenceSensor1")
+
+if(restrictPresenceSensor1){
+LOGDEBUG("Presence = $state.presencestatus1")
+def actionPresenceRestrict1 = restrictPresenceAction1
+
+
+if (state.presencestatus2 == "present" && actionPresenceRestrict1 == true){
+LOGDEBUG("Presence 2 ok")
+state.presenceRestriction1 = true
+}
+else if (state.presencestatus2 == "not present" && actionPresenceRestrict1 == true){
+LOGDEBUG("Presence 2 not ok")
+state.presenceRestriction1 = false
+}
+
+if (state.presencestatus2 == "not present" && actionPresenceRestrict1 == false){
+LOGDEBUG("Presence 2 ok")
+state.presenceRestriction1 = true
+}
+else if (state.presencestatus2 == "present" && actionPresenceRestrict1 == false){
+LOGDEBUG("Presence 2 not ok")
+state.presenceRestriction1 = false
+}
+}
+else if(!restrictPresenceSensor1){
+state.presenceRestriction1 = true
+LOGDEBUG("Presence sensor 2 restriction not used")
+}
+}
+
+
 
 
 
@@ -383,5 +632,5 @@ def LOGDEBUG(txt){
 
 // App Version   *********************************************************************************
 def setAppVersion(){
-    state.appversion = "1.0.0"
+    state.appversion = "1.1.0"
 }
