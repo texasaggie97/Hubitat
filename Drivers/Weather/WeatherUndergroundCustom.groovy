@@ -13,6 +13,7 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  * - Added ability to choose between "Fahrenheit" and "Celsius" - @Cobra 23/03/2018
+ * - Added wind direction - @Cobra 23/04/2018
  *
  */
 
@@ -43,6 +44,7 @@ metadata {
         attribute "forecastLow", "number"
         attribute "forecastConditions", "string"
         attribute "DisplayUnit", "string"
+        attribute "wind_dir", "string"
         
         
     }
@@ -112,7 +114,7 @@ def forcePoll()
             sendEvent(name: "UV", value: resp.data.current_observation.UV)
             sendEvent(name: "visibility_mi", value: resp.data.current_observation.visibility_mi, unit: "mi")
             sendEvent(name: "forecastConditions", value: resp.data.forecast.simpleforecast.forecastday[0].conditions)
-            
+            sendEvent(name: "wind_dir", value: resp.data.current_observation.wind_dir)
             
             if(unitFormat == "Celsius"){
             sendEvent(name: "temperature", value: resp.data.current_observation.temp_c, unit: "C")
