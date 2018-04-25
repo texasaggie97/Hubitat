@@ -33,15 +33,15 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 24/04/2018
+ *  Last Update: 25/04/2018
  *
  *  Changes:
  *
  * 
  *
  *
- *
- *  V1.1.0 - Additional data logging 
+ *  V1.2.1 - debug
+ *  V1.1.0 - additional data logging
  *  V1.0.0 - POC
  *
  */
@@ -285,7 +285,7 @@ LOGDEBUG("Weather Alert is $state.alert1")
 
 def feelsLikeHandler(evt){
     def event3 = evt.value
-    def evt3 = event3.toDouble()
+    def evt3 = event3.toDouble() 
     def call3 = 'Temperature feels Like'
 	LOGDEBUG("Temperature feels Like: $evt3")
     actionNow(call3, evt3)
@@ -295,7 +295,7 @@ def feelsLikeHandler(evt){
 
 def precip_1hrHandler(evt){
     def event4 = evt.value
-    def evt4 = event4.toDouble()
+    def evt4 = event4.toInteger() 
     def call4 = 'Precipitation in last hour'
 	LOGDEBUG("Precipitation in last hour is $evt4")
     actionNow(call4, evt4)
@@ -304,7 +304,7 @@ def precip_1hrHandler(evt){
 
 def precip_todayHandler(evt){
     def event5 = evt.value
-    def evt5 = event5.toDouble()
+    def evt5 = event5.toInteger() 
     def call5 = 'Precipitation Today'
 	LOGDEBUG("Precipitation Today is $evt5")
     actionNow(call5, evt5)
@@ -314,7 +314,7 @@ def precip_todayHandler(evt){
 
 def windHandler(evt){ 
 def event6 = evt.value
-    def evt6 = event6.toDouble()
+    def evt6 = event6.toDouble() 
     def call6 = 'Wind Speed'
     LOGDEBUG("Wind =  $evt6.value")
     actionNow(call6, evt6.value)
@@ -327,7 +327,7 @@ LOGDEBUG("Wind String = $evt.value")
 
 def pressureHandler(evt){
     def event7 = evt.value
-    def evt7 = event7.toDouble()
+    def evt7 = event7.toDouble() 
     def call7 = 'Pressure'
     LOGDEBUG("Pressure =  $evt7")
     actionNow(call7, evt7)
@@ -336,7 +336,7 @@ def pressureHandler(evt){
 
 def dewpointHandler(evt){
     def event8 = evt.value
-    def evt8 = event8.toDouble()
+    def evt8 = event8.toInteger() 
     def call8 = 'Dewpoint'
     LOGDEBUG("Dewpoint =  $evt8")
     actionNow(call8, evt8)
@@ -345,7 +345,7 @@ def dewpointHandler(evt){
 
 def uvHandler(evt){
     def event9 = evt.value
-    def evt9 = event9.toDouble()
+    def evt9 = event9.toInteger() 
     def call9 = 'UV'
     LOGDEBUG("UV =  $evt9")
     actionNow(call8, evt9)
@@ -364,7 +364,7 @@ def visibilityHandler(evt){
 
 def forecastHighHandler(evt){
     def event11 = evt.value
-    def evt11 = event11.toDouble()
+    def evt11 = event11.toInteger()  //.toDouble()
     def call11 = 'Forecast High'
     LOGDEBUG("Forecast High =  $evt11")
     actionNow(call11, evt11)
@@ -374,7 +374,7 @@ def forecastHighHandler(evt){
 
 def forecastLowHandler(evt){
     def event12 = evt.value
-    def evt12 = event12.toDouble()
+    def evt12 = event12.toInteger() 
     def call12 = 'Forecast Low'
     LOGDEBUG("Forecast Low =  $evt12")
    actionNow(call12, evt12)
@@ -632,5 +632,5 @@ def LOGDEBUG(txt){
 
 // App Version   *********************************************************************************
 def setAppVersion(){
-    state.appversion = "1.1.0"
+    state.appversion = "1.2.1"
 }
