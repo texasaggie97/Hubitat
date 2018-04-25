@@ -25,15 +25,22 @@
  */
 
 metadata {
-    definition (name: "WeatherUndergroundCustom", namespace: "Cobra", author: "mattw01") {
+    definition (name: "WeatherUndergroundCustom - SmartTiles", namespace: "Cobra", author: "mattw01") {
         capability "Actuator"
         capability "Sensor"
+        capability "Temperature Measurement"
+        capability "Illuminance Measurement"
+        capability "Relative Humidity Measurement"
+        capability "Polling"
+
+
+
         command "poll"
         command "forcePoll"
         attribute "Solar_Radiation", "number"
         attribute "Observation_Time", "string"
         attribute "Weather", "string"
-        attribute "Temperature_Feels_Like", "number"
+        attribute "Feels_Like", "number"
         attribute "Precip_Last_Hour", "number"
         attribute "Precip_Today", "number"
         attribute "Wind_Speed", "number"
@@ -57,7 +64,6 @@ metadata {
         attribute "Driver_Version", "string"
         attribute "Driver_NameSpace", "string"
         attribute "Driver_Station_ID", "string"
-   //     attribute "Weather_Report", "string"
         
          
     }
@@ -81,7 +87,7 @@ metadata {
 
 def updated() {
     log.debug "updated called"
-    state.version = "1.4.0"    // ************************* Update as required *************************************
+    state.version = "1.5.0"    // ************************* Update as required *************************************
     unschedule()
     forcePoll()
     def pollIntervalCmd = (settings?.pollInterval ?: "5 Minutes").replace(" ", "")
@@ -161,7 +167,7 @@ def forcePoll()
             
             if(tempFormat == "Celsius"){
             sendEvent(name: "Temperature", value: resp1.data.current_observation.temp_c, unit: "C")
-            sendEvent(name: "Temperature_Feels_Like", value: resp1.data.current_observation.feelslike_c, unit: "C")
+            sendEvent(name: "Feels_Like", value: resp1.data.current_observation.feelslike_c, unit: "C")
             sendEvent(name: "Dewpoint", value: resp1.data.current_observation.dewpoint_c, unit: "C")
             sendEvent(name: "Forecast_High", value: resp1.data.forecast.simpleforecast.forecastday[0].high.celsius, unit: "C")
             sendEvent(name: "Forecast_Low", value: resp1.data.forecast.simpleforecast.forecastday[0].low.celsius, unit: "C")
@@ -170,7 +176,7 @@ def forcePoll()
         }
            if(tempFormat == "Fahrenheit"){ 
            sendEvent(name: "Temperature", value: resp1.data.current_observation.temp_f, unit: "F")
-           sendEvent(name: "Temperature_Feels_Like", value: resp1.data.current_observation.feelslike_f, unit: "F")
+           sendEvent(name: "Feels_Like", value: resp1.data.current_observation.feelslike_f, unit: "F")
            sendEvent(name: "Dewpoint", value: resp1.data.current_observation.dewpoint_f, unit: "F")
            sendEvent(name: "Forecast_High", value: resp1.data.forecast.simpleforecast.forecastday[0].high.fahrenheit, unit: "F")
            sendEvent(name: "Forecast_Low", value: resp1.data.forecast.simpleforecast.forecastday[0].low.fahrenheit, unit: "F")
