@@ -13,13 +13,14 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  *  - Last Update 25/04/2018
- *  - Version 1.4.0
+ *  
  *
- * 
- *  - Added ability to choose 'Pressure', 'Distance/Speed' & 'Precipitation' units & switchable logging- @Cobra 25/04/2018
- *  - Added wind gust - removed some capabilities and added attributes - @Cobra 24/04/2018
- *  - Added wind direction - @Cobra 23/04/2018
- *  - Added ability to choose between "Fahrenheit" and "Celsius" - @Cobra 23/03/2018
+ *  V1.5.0 - Added 'Station ID' so you can confirm you are using correct WU station
+ *  V1.4.0 - Added ability to choose 'Pressure', 'Distance/Speed' & 'Precipitation' units & switchable logging- @Cobra 25/04/2018
+ *  V1.3.0 - Added wind gust - removed some capabilities and added attributes - @Cobra 24/04/2018
+ *  V1.2.0 - Added wind direction - @Cobra 23/04/2018
+ *  V1.1.0 - Added ability to choose between "Fahrenheit" and "Celsius" - @Cobra 23/03/2018
+ *  V1.0.0 - Original @mattw01 version
  *
  */
 
@@ -53,8 +54,9 @@ metadata {
         attribute "Illuminance", "string"
         attribute "Humidity", "string"
         attribute "Alert", "string"
-        attribute "DriverVersion", "string"
-        attribute "DriverNameSpace", "string"
+        attribute "Driver_Version", "string"
+        attribute "Driver_NameSpace", "string"
+        attribute "Driver_Station_ID", "string"
         
          
     }
@@ -78,7 +80,7 @@ metadata {
 
 def updated() {
     log.debug "updated called"
-    state.version = "1.4.0"    // ************************* Update as required *************************************
+    state.version = "1.5.0"    // ************************* Update as required *************************************
     unschedule()
     forcePoll()
     def pollIntervalCmd = (settings?.pollInterval ?: "5 Minutes").replace(" ", "")
@@ -130,8 +132,9 @@ def forcePoll()
             log.info "Further WU data logging disabled (params1)"    
             }    
             
-             sendEvent(name: "DriverNameSpace", value: "Cobra")
-             sendEvent(name: "DriverVersion", value: state.version)
+             sendEvent(name: "Driver_NameSpace", value: "Cobra")
+             sendEvent(name: "Driver_Version", value: state.version)
+            sendEvent(name: "Driver_Station_ID", value: resp1.data.current_observation.station_id)
           
                
                

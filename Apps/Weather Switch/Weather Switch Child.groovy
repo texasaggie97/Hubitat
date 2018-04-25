@@ -182,8 +182,8 @@ def initialize() {
 	subscribe(enableswitch1, "switch", enableSwitch1Handler)
     subscribe(sensorSwitch1, "switch", sensorSwitch1Handler)
     
-    subscribe(sensor1, "DriverNameSpace", checkNameHandler)
-    subscribe(sensor1, "DriverVersion", checkDriverVerHandler)
+    subscribe(sensor1, "Driver_NameSpace", checkNameHandler)
+    subscribe(sensor1, "Driver_Version", checkDriverVerHandler)
     
     subscribe(sensor1, "Display_Unit_Temperature", displayTempUnitHandler)
     subscribe(sensor1,  "Display_Unit_Pressure", displayPressureUnitHandler)
@@ -226,6 +226,8 @@ LOGDEBUG("$enableswitch1 is $state.enablecurrS1")
        }
      
 }
+
+
 
 def checkNameHandler(evt){
   def drivername = evt.value 
@@ -649,6 +651,6 @@ def LOGDEBUG(txt){
 // App & Driver Version   *********************************************************************************
 def setAppVersion(){
     state.appversion = "1.2.1"
-    state.reqdriverversion = "1.4.0"  // requred driver version for this app
+    state.reqdriverversion = "1.5.0"  // requred driver version for this app
     state.reqNameSpace = "Cobra"   // check to confirm Cobra's driver is being used
 }
