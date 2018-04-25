@@ -40,7 +40,7 @@
  * 
  *
  *
- *  V1.2.1 - debug
+ *  V1.2.1 - Debug & added driver version checking
  *  V1.1.0 - additional data logging
  *  V1.0.0 - POC
  *
@@ -181,6 +181,10 @@ def initialize() {
         
 	subscribe(enableswitch1, "switch", enableSwitch1Handler)
     subscribe(sensorSwitch1, "switch", sensorSwitch1Handler)
+    
+    subscribe(sensor1, "DriverNameSpace", checkNameHandler)
+    subscribe(sensor1, "DriverVersion", checkDriverVerHandler)
+    
     subscribe(sensor1, "Display_Unit_Temperature", displayTempUnitHandler)
     subscribe(sensor1,  "Display_Unit_Pressure", displayPressureUnitHandler)
     subscribe(sensor1, "Display_Unit_Distance", displayDistanceUnitHandler)
@@ -223,6 +227,18 @@ LOGDEBUG("$enableswitch1 is $state.enablecurrS1")
      
 }
 
+def checkNameHandler(evt){
+  def drivername = evt.value 
+    if(state.reqNameSpace == drivername){LOGDEBUG("You ARE using Cobra's version of the driver ")} 
+    else {LOGDEBUG("*** You are not using Cobra's version of the driver ***  ")} 
+}
+
+def checkDriverVerHandler(evt){
+    def driverversion = evt.value
+    if(state.reqdriverversion == driverversion){LOGDEBUG("Driver version number:OK")}
+    else{LOGDEBUG("*** Driver version number does not match what is required for this app ***")}
+}
+          
 def sensorSwitch1Handler(evt){
 state.currS1 = evt.value
 LOGDEBUG("$switch1 is $state.currS1")
@@ -630,7 +646,9 @@ def LOGDEBUG(txt){
 }
 
 
-// App Version   *********************************************************************************
+// App & Driver Version   *********************************************************************************
 def setAppVersion(){
     state.appversion = "1.2.1"
+    state.reqdriverversion = "1.4.0"  // requred driver version for this app
+    state.reqNameSpace = "Cobra"   // check to confirm Cobra's driver is being used
 }
