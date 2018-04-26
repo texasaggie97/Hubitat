@@ -12,8 +12,10 @@
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
  *  for the specific language governing permissions and limitations under the License.
  *
- *  - Last Update 25/04/2018
+ *  - Last Update 26/04/2018
  *
+ *  V1.7.2 - Debud on lowercase version - updated version number for consistancy
+ *  V1.7.1 - Debug
  *  V1.7.0 - Added 'Weather Summary' as a summary of the data with some English in between @Cobra - 26/04/2018
  *  V1.6.0 - Changed some attribute names - @Cobra - 25/04/2018/
  *  V1.5.0 - Added 'Station ID' so you can confirm you are using correct WU station @Cobra 25/04/2018
@@ -84,7 +86,7 @@ metadata {
 
 def updated() {
     log.debug "updated called"
-    state.version = "1.7.0"    // ************************* Update as required *************************************
+    state.version = "1.7.2"    // ************************* Update as required *************************************
     unschedule()
     ForcePoll()
     def pollIntervalCmd = (settings?.pollInterval ?: "5 Minutes").replace(" ", "")
