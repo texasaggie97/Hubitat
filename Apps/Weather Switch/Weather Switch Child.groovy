@@ -232,13 +232,13 @@ LOGDEBUG("$enableswitch1 is $state.enablecurrS1")
 def checkNameHandler(evt){
   def drivername = evt.value 
     if(state.reqNameSpace == drivername){LOGDEBUG("You ARE using Cobra's version of the driver ")} 
-    else {LOGDEBUG("*** You are not using Cobra's version of the driver ***  ")} 
+    else {log.warn "*** You are not using Cobra's version of the driver ***  "} 
 }
 
 def checkDriverVerHandler(evt){
     def driverversion = evt.value
     if(state.reqdriverversion == driverversion){LOGDEBUG("Driver version number:OK")}
-    else{LOGDEBUG("*** Driver version number does not match what is required for this app ***")}
+    else{log.warn "*** Driver version number does not match requirement for this app ***"}
 }
           
 def sensorSwitch1Handler(evt){
@@ -651,6 +651,6 @@ def LOGDEBUG(txt){
 // App & Driver Version   *********************************************************************************
 def setAppVersion(){
     state.appversion = "1.2.1"
-    state.reqdriverversion = "1.7.0"  // required driver version for this app
+    state.reqdriverversion = "1.7.2"  // required driver version for this app
     state.reqNameSpace = "Cobra"   // check to confirm Cobra's driver is being used
 }
