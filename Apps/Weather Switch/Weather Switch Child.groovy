@@ -651,6 +651,6 @@ def LOGDEBUG(txt){
 // App & Driver Version   *********************************************************************************
 def setAppVersion(){
     state.appversion = "1.2.1"
-    state.reqdriverversion = "1.5.0"  // requred driver version for this app
+    state.reqdriverversion = "1.7.0"  // required driver version for this app
     state.reqNameSpace = "Cobra"   // check to confirm Cobra's driver is being used
 }

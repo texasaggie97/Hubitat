@@ -14,6 +14,8 @@
  *
  *  - Last Update 26/04/2018
  *
+ *  V1.7.2  - Added lowercase 'city' - @Cobra 26/04/2018
+ *  V1.7.1  - Debug 'illuminence' in lowercase was missing - @cobra 26/04/2018
  *  V1.7.0  - Added 'Weather Summary' as a summary of the data with some English in between - @Cobra  26/04/2018
  *  V1.6.0  - Added additional attributes and capabilities in lowercase for dashboard displays that use this - @Cobra  26/04/2018
  *  V1.5.0  - Added 'Station ID' so you can confirm you are using correct WU station - @Cobra 25/04/2018
@@ -69,6 +71,7 @@ metadata {
         attribute "weather", "string"
         attribute "feelsLike", "number"
         attribute "weatherIcon", "string"
+	attribute "city", "string"
          
     }
     preferences() {
@@ -92,7 +95,7 @@ metadata {
 
 def updated() {
     log.debug "updated called"
-    state.version = "1.7.0"    // ************************* Update as required *************************************
+    state.version = "1.7.2"    // ************************* Update as required *************************************
     unschedule()
     ForcePoll()
     def pollIntervalCmd = (settings?.pollInterval ?: "5 Minutes").replace(" ", "")
@@ -153,6 +156,8 @@ def ForcePoll()
             // lowercase
             sendEvent(name: "weather", value: resp1.data.current_observation.weather)
             sendEvent(name: "humidity", value: resp1.data.current_observation.relative_humidity, unit: "%")
+	    sendEvent(name: "illuminance", value: resp1.data.current_observation.solarradiation, unit: "lux") 
+	    sendEvent(name: "city", value: resp1.data.current_observation.display_location.city)
             
             // select today's icon or the forecast icon
             
