@@ -14,7 +14,8 @@
  *
  *  - Last Update 26/04/2018
  *
- *  V1.7.2 - Debud on lowercase version - updated version number for consistancy
+ *  V1.8.0 - added 'stateChange' to some of the params that were not updating on poll
+ *  V1.7.2 - Debug on lowercase version - updated version number for consistancy
  *  V1.7.1 - Debug
  *  V1.7.0 - Added 'Weather Summary' as a summary of the data with some English in between @Cobra - 26/04/2018
  *  V1.6.0 - Changed some attribute names - @Cobra - 25/04/2018/
@@ -86,7 +87,7 @@ metadata {
 
 def updated() {
     log.debug "updated called"
-    state.version = "1.7.2"    // ************************* Update as required *************************************
+    state.version = "1.8.0"    // ************************* Update as required *************************************
     unschedule()
     ForcePoll()
     def pollIntervalCmd = (settings?.pollInterval ?: "5 Minutes").replace(" ", "")
@@ -139,10 +140,10 @@ def ForcePoll()
             log.info "Further WU detailed data logging disabled (params1)"    
             }    
             
-             sendEvent(name: "Driver_NameSpace", value: "Cobra")
-             sendEvent(name: "Driver_Version", value: state.version)
-             sendEvent(name: "Station_ID", value: resp1.data.current_observation.station_id)
-             sendEvent(name: "Station_City", value: resp1.data.current_observation.display_location.city)
+             sendEvent(name: "Driver_NameSpace", value: "Cobra", isStateChange: true)
+             sendEvent(name: "Driver_Version", value: state.version, isStateChange: true)
+             sendEvent(name: "Station_ID", value: resp1.data.current_observation.station_id, isStateChange: true)
+             sendEvent(name: "Station_City", value: resp1.data.current_observation.display_location.city, isStateChange: true)
             
             state.WeatherSummeryFormat = weatherFormat
             
@@ -152,7 +153,7 @@ def ForcePoll()
                        + resp1.data.forecast.simpleforecast.forecastday[0].low.celsius  + " degrees. " + "Humidity is currently around " + resp1.data.current_observation.relative_humidity + " and temperature is " 
                        + resp1.data.current_observation.temp_c + " degrees. " + " The temperature feels like it's " + resp1.data.current_observation.feelslike_c + " degrees. " + "Wind is from the " + resp1.data.current_observation.wind_dir
                        + " at " + resp1.data.current_observation.wind_mph + " mph" + ", with gusts up to " + resp1.data.current_observation.wind_gust_mph + " mph" + ". Visibility today is around " + resp1.data.current_observation.visibility_mi
-                       + " miles" + ". "
+                       + " miles" + ". ", isStateChange: true
                       )  
             }
                 
@@ -162,7 +163,7 @@ def ForcePoll()
                        + resp1.data.forecast.simpleforecast.forecastday[0].low.fahrenheit  + " degrees. " + "Humidity is currently around " + resp1.data.current_observation.relative_humidity + " and temperature is " 
                        + resp1.data.current_observation.temp_f + " degrees. " + " The temperature feels like it's " + resp1.data.current_observation.feelslike_f + " degrees. " + "Wind is from the " + resp1.data.current_observation.wind_dir
                        + " at " + resp1.data.current_observation.wind_mph + " mph" + ", with gusts up to: " + resp1.data.current_observation.wind_gust_mph + " mph" + ". Visibility today is around " + resp1.data.current_observation.visibility_mi
-                       + " miles" + ". "
+                       + " miles" + ". ", isStateChange: true
                       )  
             }    
             
@@ -172,7 +173,7 @@ def ForcePoll()
                        + resp1.data.forecast.simpleforecast.forecastday[0].low.celsius  + " degrees. " + "Humidity is currently around " + resp1.data.current_observation.relative_humidity + " and temperature is " 
                        + resp1.data.current_observation.temp_c + " degrees. " + " The temperature feels like it's " + resp1.data.current_observation.feelslike_c + " degrees. " + "Wind is from the " + resp1.data.current_observation.wind_dir
                        + " at " + resp1.data.current_observation.wind_kph + " kph" + ", with gusts up to " + resp1.data.current_observation.wind_gust_kph + " kph" + ". Visibility today is around " + resp1.data.current_observation.visibility_km
-                       + " kilometres" + ". "
+                       + " kilometres" + ". ", isStateChange: true
                       )  
             }
                 
