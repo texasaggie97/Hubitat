@@ -17,7 +17,7 @@
  *  Changes:
  *
  * 
- *
+ *  V1.2.3 - Debug - error in goNow method relating to enable/disable switch
  *  V1.2.2 - Debug - appliance trigger
  *  V1.2.1 - Debug "time" trigger
  *  V1.2.0 - Converted Sonos command for Hubitat compatibility
@@ -233,7 +233,7 @@ LOGDEBUG( "Activate threshold reached or exceeded setting state.activate to: $st
 
 LOGDEBUG( "state.currS1 == $state.currS1 && state.activate == $state.activate")
 
- if(state.currS1 == true && state.activate == true){
+ if(state.currS1 == 'on' && state.activate == true){
 LOGDEBUG( "powerApplianceNow -  Power is: $state.meterValue")
     state.belowValue = belowThreshold as int
     if (state.meterValue < state.belowValue) {
@@ -278,8 +278,7 @@ LOGDEBUG( "checkApplianceAgain1 -  Power is: $state.meterValue so cannot run yet
 def switchHandler(evt) {
    state.currS1 = evt.value  // Note: Optional if switch is used to control action
 LOGDEBUG("$switch1 = $evt.value")
-    
-    
+   
     
     
   					   }
@@ -310,7 +309,7 @@ goNow(evt)
 
 def goNow(evt){
 LOGDEBUG("goNow evt = $evt.value")
- if (state.currS1 == null || state.currS1 == true) {
+ if (state.currS1 == null || state.currS1 == 'on') {
 if (allOk) {
 def soundURI = pathURI + "/" + sound 
 
@@ -446,5 +445,5 @@ def LOGDEBUG(txt){
     
 // App Version   *********************************************************************************
 def setAppVersion(){
-    state.appversion = "1.2.2"
+    state.appversion = "1.2.3"
 }
