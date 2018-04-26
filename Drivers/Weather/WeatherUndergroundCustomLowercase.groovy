@@ -1,5 +1,5 @@
 /**
- *  WeatherUndergroundCustom
+ *  WeatherUndergroundCustom - LowerCase
  *
  *  Copyright 2018 mattw01
  *
@@ -12,35 +12,32 @@
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
  *  for the specific language governing permissions and limitations under the License.
  *
- *  - Last Update 25/04/2018
+ *  - Last Update 26/04/2018
  *  
- *
- *  V1.5.0 - Added 'Station ID' so you can confirm you are using correct WU station
- *  V1.4.0 - Added ability to choose 'Pressure', 'Distance/Speed' & 'Precipitation' units & switchable logging- @Cobra 25/04/2018
- *  V1.3.0 - Added wind gust - removed some capabilities and added attributes - @Cobra 24/04/2018
- *  V1.2.0 - Added wind direction - @Cobra 23/04/2018
- *  V1.1.0 - Added ability to choose between "Fahrenheit" and "Celsius" - @Cobra 23/03/2018
- *  V1.0.0 - Original @mattw01 version
+ *  V1.6.0L - Added additional attributes and capabilities in lowercase for dashboard displays that use this
+ *  V1.5.0  - Added 'Station ID' so you can confirm you are using correct WU station
+ *  V1.4.0  - Added ability to choose 'Pressure', 'Distance/Speed' & 'Precipitation' units & switchable logging- @Cobra 25/04/2018
+ *  V1.3.0  - Added wind gust - removed some capabilities and added attributes - @Cobra 24/04/2018
+ *  V1.2.0  - Added wind direction - @Cobra 23/04/2018
+ *  V1.1.0  - Added ability to choose between "Fahrenheit" and "Celsius" - @Cobra 23/03/2018
+ *  V1.0.0  - Original @mattw01 version
  *
  */
 
 metadata {
-    definition (name: "WeatherUndergroundCustom - SmartTiles", namespace: "Cobra", author: "mattw01") {
+    definition (name: "WeatherUndergroundCustomLowerCase", namespace: "Cobra", author: "mattw01") {
         capability "Actuator"
         capability "Sensor"
         capability "Temperature Measurement"
         capability "Illuminance Measurement"
         capability "Relative Humidity Measurement"
-        capability "Polling"
-
-
-
-        command "poll"
-        command "forcePoll"
+        command "Poll"
+        command "ForcePoll"
+   
         attribute "Solar_Radiation", "number"
         attribute "Observation_Time", "string"
         attribute "Weather", "string"
-        attribute "Feels_Like", "number"
+        attribute "Temperature_Feels_Like", "number"
         attribute "Precip_Last_Hour", "number"
         attribute "Precip_Today", "number"
         attribute "Wind_Speed", "number"
@@ -63,8 +60,14 @@ metadata {
         attribute "Alert", "string"
         attribute "Driver_Version", "string"
         attribute "Driver_NameSpace", "string"
-        attribute "Driver_Station_ID", "string"
+        attribute "Station_ID", "string"
+        attribute "Weather_Report", "string"
+        attribute "Station_City", "string"
         
+        // lowercase
+        attribute "weather", "string"
+        attribute "feelsLike", "number"
+        attribute "weatherIcon", "string"
          
     }
     preferences() {
@@ -87,32 +90,32 @@ metadata {
 
 def updated() {
     log.debug "updated called"
-    state.version = "1.5.0"    // ************************* Update as required *************************************
+    state.version = "1.6.0L"    // ************************* Update as required *************************************
     unschedule()
-    forcePoll()
+    ForcePoll()
     def pollIntervalCmd = (settings?.pollInterval ?: "5 Minutes").replace(" ", "")
     if(autoPoll)
         "runEvery${pollIntervalCmd}"(pollSchedule)
 }
 def pollSchedule()
 {
-    forcePoll()
+    ForcePoll()
 }
               
 def parse(String description) {
 }
 
-def poll()
+def Poll()
 {
     if(now() - state.lastPoll > (pollIntervalLimit * 60000))
-        forcePoll()
+        ForcePoll()
     else
-        log.debug "poll called before interval threshold was reached"
+        log.debug "Poll called before interval threshold was reached"
 }
 
-def forcePoll()
+def ForcePoll()
 {
-    log.debug "WU: forcePoll called"
+    log.debug "WU: ForcePoll called"
     def params1 = [
         uri: "http://api.wunderground.com/api/${apiKey}/conditions/forecast/q/${pollLocation}.json"
     ]
@@ -141,9 +144,18 @@ def forcePoll()
             
              sendEvent(name: "Driver_NameSpace", value: "Cobra")
              sendEvent(name: "Driver_Version", value: state.version)
-            sendEvent(name: "Driver_Station_ID", value: resp1.data.current_observation.station_id)
-          
-               
+            sendEvent(name: "Station_ID", value: resp1.data.current_observation.station_id)
+             sendEvent(name: "Station_City", value: resp1.data.current_observation.display_location.city)
+            
+            
+            // lowercase
+            sendEvent(name: "weather", value: resp1.data.current_observation.weather)
+            sendEvent(name: "humidity", value: resp1.data.current_observation.relative_humidity, unit: "%")
+            
+            // select today's icon or the forecast icon
+            
+       //     sendEvent(name: "weatherIcon", value: resp1.data.forecast.simpleforecast.forecastday[0].icon)
+            sendEvent(name: "weatherIcon", value: resp1.data.current_observation.icon)
                
             sendEvent(name: "Illuminance", value: resp1.data.current_observation.solarradiation, unit: "lux")  
             sendEvent(name: "Observation_Time", value: resp1.data.current_observation.observation_time)
@@ -167,21 +179,27 @@ def forcePoll()
             
             if(tempFormat == "Celsius"){
             sendEvent(name: "Temperature", value: resp1.data.current_observation.temp_c, unit: "C")
-            sendEvent(name: "Feels_Like", value: resp1.data.current_observation.feelslike_c, unit: "C")
+            sendEvent(name: "Temperature_Feels_Like", value: resp1.data.current_observation.feelslike_c, unit: "C")
             sendEvent(name: "Dewpoint", value: resp1.data.current_observation.dewpoint_c, unit: "C")
             sendEvent(name: "Forecast_High", value: resp1.data.forecast.simpleforecast.forecastday[0].high.celsius, unit: "C")
             sendEvent(name: "Forecast_Low", value: resp1.data.forecast.simpleforecast.forecastday[0].low.celsius, unit: "C")
             sendEvent(name: "Display_Unit_Temperature", value: "Celsius")
-            	
+                
+                // lowercase
+             sendEvent(name: "feelsLike", value: resp1.data.current_observation.feelslike_c, unit: "C")    
+            sendEvent(name: "temperature", value: resp1.data.current_observation.temp_c, unit: "C")	
         }
            if(tempFormat == "Fahrenheit"){ 
            sendEvent(name: "Temperature", value: resp1.data.current_observation.temp_f, unit: "F")
-           sendEvent(name: "Feels_Like", value: resp1.data.current_observation.feelslike_f, unit: "F")
+           sendEvent(name: "Temperature_Feels_Like", value: resp1.data.current_observation.feelslike_f, unit: "F")
            sendEvent(name: "Dewpoint", value: resp1.data.current_observation.dewpoint_f, unit: "F")
            sendEvent(name: "Forecast_High", value: resp1.data.forecast.simpleforecast.forecastday[0].high.fahrenheit, unit: "F")
            sendEvent(name: "Forecast_Low", value: resp1.data.forecast.simpleforecast.forecastday[0].low.fahrenheit, unit: "F")
             sendEvent(name: "Display_Unit_Temperature", value: "Fahrenheit")
-            	
+               
+               // lowercase
+           sendEvent(name: "feelsLike", value: resp1.data.current_observation.feelslike_f, unit: "F")    
+           sendEvent(name: "temperature", value: resp1.data.current_observation.temp_f, unit: "F")	
            }  
             
           if(distanceFormat == "Miles (mph)"){  
@@ -225,7 +243,7 @@ def forcePoll()
                
             sendEvent(name: "Alert", value: resp2.data.alerts.level_meteoalarm_description)   
                
-               
+          state.lastPoll = now()     
             
         }
         } 
