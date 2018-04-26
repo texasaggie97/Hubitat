@@ -1,5 +1,5 @@
 /**
- *  WeatherUndergroundCustom - LowerCase
+ *  WeatherUndergroundCustomLowerCase
  *
  *  Copyright 2018 mattw01
  *
@@ -14,7 +14,7 @@
  *
  *  - Last Update 26/04/2018
  *  
- *  V1.6.0L - Added additional attributes and capabilities in lowercase for dashboard displays that use this
+ *  V1.6.0  - Added additional attributes and capabilities in lowercase for dashboard displays that use this
  *  V1.5.0  - Added 'Station ID' so you can confirm you are using correct WU station
  *  V1.4.0  - Added ability to choose 'Pressure', 'Distance/Speed' & 'Precipitation' units & switchable logging- @Cobra 25/04/2018
  *  V1.3.0  - Added wind gust - removed some capabilities and added attributes - @Cobra 24/04/2018
@@ -90,7 +90,7 @@ metadata {
 
 def updated() {
     log.debug "updated called"
-    state.version = "1.6.0L"    // ************************* Update as required *************************************
+    state.version = "1.6.0"    // ************************* Update as required *************************************
     unschedule()
     ForcePoll()
     def pollIntervalCmd = (settings?.pollInterval ?: "5 Minutes").replace(" ", "")
