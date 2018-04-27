@@ -14,6 +14,7 @@
  *
  *  - Last Update 27/04/2018
  *
+ *  V2.0.0 - version alignment with lowercase version - @Cobra 27/04/2018 
  *  V1.9.0 - Added 'Chance_Of_Rain' an an attribute (also added to the summary) - @Cobra 27/04/2018 
  *  V1.8.0 - added 'stateChange' to some of the params that were not updating on poll - @Cobra 27/04/2018 
  *  V1.7.2 - Debug on lowercase version - updated version number for consistancy - @Cobra 26/04/2018 

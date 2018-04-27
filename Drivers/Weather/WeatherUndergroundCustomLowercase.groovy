@@ -14,6 +14,7 @@
  *
  *  - Last Update 27/04/2018
  *
+ *  V2.0.0  - Debug as 'humidity' was showing a double % sign in some dashboards - thanks to @Matthew for the fix! - @Cobra 27/04/2018 
  *  V1.9.0  - Added 'Chance_Of_Rain' an an attribute (also added to the summary) - Also added lowercase "percentPrecip" attribute - @Cobra 27/04/2018 
  *  V1.8.0  - Added 'stateChange' to some of the params that were not updating on poll - @Cobra 27/04/2018 
  *  V1.7.2  - Added lowercase 'city' - @Cobra 26/04/2018
@@ -100,7 +101,7 @@ metadata {
 
 def updated() {
     log.debug "updated called"
-    state.version = "1.9.0"    // ************************* Update as required *************************************
+    state.version = "2.0.0"    // ************************* Update as required *************************************
     unschedule()
     ForcePoll()
     def pollIntervalCmd = (settings?.pollInterval ?: "5 Minutes").replace(" ", "")
@@ -160,7 +161,7 @@ def ForcePoll()
             
             // lowercase
             sendEvent(name: "weather", value: resp1.data.current_observation.weather)
-            sendEvent(name: "humidity", value: resp1.data.current_observation.relative_humidity)
+            sendEvent(name: "humidity", value: resp1.data.current_observation.relative_humidity.replaceFirst("%", ""))
 	    	sendEvent(name: "illuminance", value: resp1.data.current_observation.solarradiation, unit: "lux") 
 	    	sendEvent(name: "city", value: resp1.data.current_observation.display_location.city, isStateChange: true)
             sendEvent(name: "percentPrecip", value: resp1.data.forecast.simpleforecast.forecastday[0].pop , isStateChange: true)
