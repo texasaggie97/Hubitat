@@ -1,5 +1,5 @@
 /**
- *  WeatherUndergroundCustom
+ *  WeatherUndergroundCustomLowerCase
  *
  *  Copyright 2018 mattw01
  *
@@ -160,7 +160,7 @@ def ForcePoll()
             
             // lowercase
             sendEvent(name: "weather", value: resp1.data.current_observation.weather)
-            sendEvent(name: "humidity", value: resp1.data.current_observation.relative_humidity, unit: "%")
+            sendEvent(name: "humidity", value: resp1.data.current_observation.relative_humidity)
 	    	sendEvent(name: "illuminance", value: resp1.data.current_observation.solarradiation, unit: "lux") 
 	    	sendEvent(name: "city", value: resp1.data.current_observation.display_location.city, isStateChange: true)
             sendEvent(name: "percentPrecip", value: resp1.data.forecast.simpleforecast.forecastday[0].pop , isStateChange: true)
@@ -209,7 +209,7 @@ def ForcePoll()
             sendEvent(name: "Weather", value: resp1.data.current_observation.weather)
             sendEvent(name: "Wind_String", value: resp1.data.current_observation.wind_string)
             sendEvent(name: "Solar_Radiation", value: resp1.data.current_observation.solarradiation, unit: "W")
-            sendEvent(name: "Humidity", value: resp1.data.current_observation.relative_humidity, unit: "%")
+            sendEvent(name: "Humidity", value: resp1.data.current_observation.relative_humidity)
             sendEvent(name: "UV", value: resp1.data.current_observation.UV)
             sendEvent(name: "Forecast_Conditions", value: resp1.data.forecast.simpleforecast.forecastday[0].conditions)
             sendEvent(name: "Wind_Direction", value: resp1.data.current_observation.wind_dir)
