@@ -33,12 +33,13 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 25/04/2018
+ *  Last Update: 27/04/2018
  *
  *  Changes:
  *
  * 
  *
+ *  V1.3.0.190 - Added 'Chance Of Rain' as a trigger for use with a new driver (v1.9.0)
  *  V1.3.0.180 - New versioning to incorporate required driver version
  *  V1.2.1 - Debug & added driver version checking
  *  V1.1.0 - additional data logging
@@ -78,6 +79,7 @@ preferences {
     section() {
   input "trigger", "enum", title: "Action to trigger switch", required: true, submitOnChange: true, 
       options: [
+          "Chance Of Rain",
           "Dewpoint",
           "Forecast High",
           "Forecast Low",
@@ -216,7 +218,7 @@ def initialize() {
     if(state.selection == "Visibility"){subscribe(sensor1, "Visibility", visibilityHandler)}
     if(state.selection == "Forecast High"){subscribe(sensor1, "Forecast_High", forecastHighHandler)}
     if(state.selection == "Forecast Low"){subscribe(sensor1, "Forecast_Low", forecastLowHandler)}
-
+	if(state.selection == "Chance Of Rain"){subscribe(sensor1, "Chance_Of_Rain", rainHandler)}
   	
 }
 
@@ -429,11 +431,24 @@ def wind_gustHandler(evt){
   def event14 = evt.value
     def evt14 = event14.toDouble()
     def call14 = 'Wind Gust'
-    LOGDEBUG("Wind Direction =  $evt13")
+    LOGDEBUG("Wind Direction =  $evt14")
     actionNow(call14, evt14)   
 }   
     
+def rainHandler(evt){
+   def removePercent = (evt.value.minus('%')) 
+   def event15 = removePercent
+    def evt15 = event15.toDouble()
+    def call15 = 'Wind Gust'
+    LOGDEBUG("Chance Of Rain =  $evt15 %")
+    actionNow(call15, evt15)     
     
+    
+    
+}
+
+
+
  
 
 def forecastConditionsHandler(evt){
@@ -672,7 +687,7 @@ def LOGDEBUG(txt){
 
 // App & Driver Version   *********************************************************************************
 def setAppVersion(){
-    state.appversion = "1.3.0.180"
-    state.reqdriverversion = "1.8.0"  // required driver version for this app
+    state.appversion = "1.3.0.190"
+    state.reqdriverversion = "1.9.0"  // required driver version for this app
     state.reqNameSpace = "Cobra"   // check to confirm Cobra's driver is being used
 }
