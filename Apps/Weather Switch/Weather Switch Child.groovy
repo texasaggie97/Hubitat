@@ -39,7 +39,7 @@
  *
  * 
  *
- *
+ *  V1.3.0.180 - New versioning to incorporate required driver version
  *  V1.2.1 - Debug & added driver version checking
  *  V1.1.0 - additional data logging
  *  V1.0.0 - POC
@@ -176,6 +176,7 @@ def initialize() {
 	log.info "Initialised with settings: ${settings}"
 	setAppVersion()
 	logCheck()
+    signOff()
 	state.enablecurrS1 = 'on'
         
         
@@ -188,6 +189,14 @@ def initialize() {
     subscribe(sensor1, "Display_Unit_Temperature", displayTempUnitHandler)
     subscribe(sensor1,  "Display_Unit_Pressure", displayPressureUnitHandler)
     subscribe(sensor1, "Display_Unit_Distance", displayDistanceUnitHandler)
+    subscribe(sensor1, "Wind_Direction", wind_dirHandler)
+    subscribe(sensor1, "Observation_Time", observation_timeHandler)
+    subscribe(sensor1, "Weather", weatherHandler)
+    subscribe(sensor1, "Forecast_Conditions", forecastConditionsHandler)
+    subscribe(sensor1, "Alert", alertHandler)
+    subscribe(sensor1, "Station_City", cityHandler)
+    subscribe(sensor1, "Station_ID", stationHandler)
+//  subscribe(sensor1, "Wind_String", wind_stringHandler)
    
     if (restrictPresenceSensor){subscribe(restrictPresenceSensor, "presence", restrictPresenceSensorHandler)}
 	if (restrictPresenceSensor1){subscribe(restrictPresenceSensor1, "presence", restrictPresence1SensorHandler)}
@@ -208,13 +217,7 @@ def initialize() {
     if(state.selection == "Forecast High"){subscribe(sensor1, "Forecast_High", forecastHighHandler)}
     if(state.selection == "Forecast Low"){subscribe(sensor1, "Forecast_Low", forecastLowHandler)}
 
-  	subscribe(sensor1, "Wind_Direction", wind_dirHandler)
-    subscribe(sensor1, "Observation_Time", observation_timeHandler)
-    subscribe(sensor1, "Weather", weatherHandler)
-    subscribe(sensor1, "Forecast_Conditions", forecastConditionsHandler)
-    subscribe(sensor1, "Wind_String", wind_stringHandler)
-    subscribe(sensor1, "Alert", alertHandler)
-    
+  	
 }
 
 def enableSwitch1Handler(evt){
@@ -299,6 +302,20 @@ state.alert1 = evt.value
 LOGDEBUG("Weather Alert is $state.alert1")    
    
 }
+def  cityHandler(evt){
+state.city1 = evt.value
+LOGDEBUG("City is $state.city1")    
+   
+}
+def  stationHandler(evt){
+state.station1 = evt.value
+LOGDEBUG("Station is $state.station1")    
+   
+}
+
+
+
+
 
 
 def feelsLikeHandler(evt){
@@ -425,6 +442,11 @@ LOGDEBUG("Forecast Conditions = $state.forecastCond1")
 }
 
 
+def signOff(){
+LOGDEBUG("Observation Time: $state.observe1 - City: $state.city - Station: $state.station")   
+    
+    
+}
 
 // Switch Actions
 
@@ -650,7 +672,7 @@ def LOGDEBUG(txt){
 
 // App & Driver Version   *********************************************************************************
 def setAppVersion(){
-    state.appversion = "1.2.1"
-    state.reqdriverversion = "1.7.2"  // required driver version for this app
+    state.appversion = "1.3.0"
+    state.reqdriverversion = "1.8.0"  // required driver version for this app
     state.reqNameSpace = "Cobra"   // check to confirm Cobra's driver is being used
 }
