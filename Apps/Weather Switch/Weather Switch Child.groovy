@@ -39,7 +39,7 @@
  *
  * 
  *
- *  V1.3.0.190 - Added 'Chance Of Rain' as a trigger for use with a new driver (v1.9.0)
+ *  V1.4.0.190 - Added 'Chance Of Rain' as a trigger for use with a new driver (v1.9.0)
  *  V1.3.0.180 - New versioning to incorporate required driver version
  *  V1.2.1 - Debug & added driver version checking
  *  V1.1.0 - additional data logging
@@ -687,7 +687,7 @@ def LOGDEBUG(txt){
 
 // App & Driver Version   *********************************************************************************
 def setAppVersion(){
-    state.appversion = "1.3.0.190"
+    state.appversion = "1.4.0.190"
     state.reqdriverversion = "1.9.0"  // required driver version for this app
     state.reqNameSpace = "Cobra"   // check to confirm Cobra's driver is being used
 }
