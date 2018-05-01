@@ -12,11 +12,15 @@
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
  *  for the specific language governing permissions and limitations under the License.
  *
- *  - Last Update 27/04/2018
+ *  - Last Update 01/05/2018
  *
+ *
+ *  V2.1.1 - Added defaultValue to "pollIntervalLimit" to prevent errors on new installs
+ *  V2.1.0 - Added 3 attributes - Rain tomorrow & the day after and Station_State also added poll counter and reset button @Cobra 01/05/2018
+ *  V2.0.1 - Changed to one call to WU for Alerts, Conditions and Forecast - Thanks to: @Scottma61 for this one
  *  V2.0.0 - version alignment with lowercase version - @Cobra 27/04/2018 
  *  V1.9.0 - Added 'Chance_Of_Rain' an an attribute (also added to the summary) - @Cobra 27/04/2018 
- *  V1.8.0 - added 'stateChange' to some of the params that were not updating on poll - @Cobra 27/04/2018 
+ *  V1.8.0 - added 'stateChange' to some of the params that were not updating on poll unless changed - @Cobra 27/04/2018 
  *  V1.7.2 - Debug on lowercase version - updated version number for consistancy - @Cobra 26/04/2018 
  *  V1.7.1 - Debug - @Cobra 26/04/2018 
  *  V1.7.0 - Added 'Weather Summary' as a summary of the data with some English in between @Cobra - 26/04/2018
@@ -36,8 +40,9 @@ metadata {
         capability "Sensor"
         command "Poll"
         command "ForcePoll"
+        command "ResetPollCount"
         
-        
+        attribute "Polls_Since_Reset", "number"
         attribute "Solar_Radiation", "number"
         attribute "Observation_Time", "string"
         attribute "Weather", "string"
@@ -56,6 +61,8 @@ metadata {
         attribute "Display_Unit_Temperature", "string"
         attribute "Display_Unit_Distance", "string"
         attribute "Display_Unit_Pressure", "string"
+        attribute "Display_Unit_Precipitation", "sting"
+        attribute "Display_Summary_Format", "string"
         attribute "Wind_Direction", "string"
         attribute "Wind_Gust", "string"
         attribute "Temperature", "string"
@@ -67,7 +74,13 @@ metadata {
         attribute "Station_ID", "string"
         attribute "Weather_Summary", "string"
         attribute "Station_City", "string"
+        attribute "Station_State", "string"
         attribute "Chance_Of_Rain", "string"
+        attribute "Expected_Rain_Tomorrow", "string"
+        attribute "Expected_Rain_Day_After_Tomorrow", "string"
+    //    attribute "Wind_Gust_Tomorrow", "string"
+        
+        
     }
     preferences() {
         section("Query Inputs"){
@@ -77,7 +90,7 @@ metadata {
             input "distanceFormat", "enum", required: true, title: "Display Unit - Distance/Speed: Miles or Kilometres",  options: ["Miles (mph)", "Kilometres (kph)"]
             input "pressureFormat", "enum", required: true, title: "Display Unit - Pressure: Inches or Millibar",  options: ["Inches", "Millibar"]
             input "rainFormat", "enum", required: true, title: "Display Unit - Precipitation: Inches or Millimetres",  options: ["Inches", "Millimetres"]
-            input "pollIntervalLimit", "number", title: "Poll Interval Limit:", required: true
+            input "pollIntervalLimit", "number", title: "Poll Interval Limit:", defaultValue: "1", required: true
             input "autoPoll", "bool", required: false, title: "Enable Auto Poll"
             input "pollInterval", "enum", title: "Auto Poll Interval:", required: false, defaultValue: "5 Minutes",
                    options: ["5 Minutes", "10 Minutes", "15 Minutes", "30 Minutes", "1 Hour", "3 Hours"]
@@ -89,13 +102,21 @@ metadata {
 
 def updated() {
     log.debug "updated called"
-    state.version = "1.9.0"    // ************************* Update as required *************************************
+    state.version = "2.1.1"    // ************************* Update as required *************************************
     unschedule()
+    state.NumOfPolls = 0
     ForcePoll()
     def pollIntervalCmd = (settings?.pollInterval ?: "5 Minutes").replace(" ", "")
     if(autoPoll)
         "runEvery${pollIntervalCmd}"(pollSchedule)
 }
+
+def ResetPollCount(){
+state.NumOfPolls = -1
+    log.info "Poll counter reset.."
+ForcePoll()
+}
+
 def pollSchedule()
 {
     ForcePoll()
@@ -115,17 +136,14 @@ def Poll()
 def ForcePoll()
 {
     
+    state.NumOfPolls = (state.NumOfPolls) + 1
+    log.info " state.NumOfPolls = $state.NumOfPolls" 
    
     log.debug "WU: ForcePoll called"
     def params1 = [
-        uri: "http://api.wunderground.com/api/${apiKey}/conditions/forecast/q/${pollLocation}.json"
+        uri: "http://api.wunderground.com/api/${apiKey}/alerts/conditions/forecast/q/${pollLocation}.json"
     ]
     
-     def params2 = [
-        uri: "http://api.wunderground.com/api/${apiKey}/alerts/q/${pollLocation}.json"
-    ]
-    
-
     try {
         httpGet(params1) { resp1 ->
             resp1.headers.each {
@@ -134,60 +152,77 @@ def ForcePoll()
             if(logSet == true){  
            
             log.debug "params1: ${params1}"
-            log.debug "params2: ${params2}"
- 		    log.debug "response contentType: ${resp1.contentType}"
+            log.debug "response contentType: ${resp1.contentType}"
  		    log.debug "response data: ${resp1.data}"
             } 
             if(logSet == false){ 
-            log.info "Further WU detailed data logging disabled (params1)"    
+            log.info "Further WU detailed data logging disabled"    
             }    
             
+            
+            // test
+            def newVar = (resp1.data.current_observation.precip_today_metric)
+            log.info "Todays's Rain Variable = $newVar"
+            
+            // end test
+            
+            sendEvent(name: "Polls_Since_Reset", value: state.NumOfPolls, isStateChange: true)
              sendEvent(name: "Driver_NameSpace", value: "Cobra", isStateChange: true)
              sendEvent(name: "Driver_Version", value: state.version, isStateChange: true)
              sendEvent(name: "Station_ID", value: resp1.data.current_observation.station_id, isStateChange: true)
              sendEvent(name: "Station_City", value: resp1.data.current_observation.display_location.city, isStateChange: true)
              sendEvent(name: "Chance_Of_Rain", value: resp1.data.forecast.simpleforecast.forecastday[0].pop + "%", isStateChange: true)
-            
+            sendEvent(name: "Station_State", value: resp1.data.current_observation.display_location.state, isStateChange: true)
             
             
            def WeatherSummeryFormat = weatherFormat
             
             if (WeatherSummeryFormat == "Celsius, Miles & MPH"){
-                         sendEvent(name: "Weather_Summary", value: "Weather summary for" + " " + resp1.data.current_observation.display_location.city + ", " + resp1.data.current_observation.observation_time+ ". " +" - " 
+                		 sendEvent(name: "Display_Summary_Format", value: "Celsius, Miles & MPH", isStateChange: true)
+                         sendEvent(name: "Weather_Summary", value: "Weather summary for" + " " + resp1.data.current_observation.display_location.city + ", " + resp1.data.current_observation.observation_time+ ". "   
                        + resp1.data.forecast.simpleforecast.forecastday[0].conditions + " with a high of " + resp1.data.forecast.simpleforecast.forecastday[0].high.celsius + " degrees, " + "and a low of " 
                        + resp1.data.forecast.simpleforecast.forecastday[0].low.celsius  + " degrees. " + "Humidity is currently around " + resp1.data.current_observation.relative_humidity + " and temperature is " 
                        + resp1.data.current_observation.temp_c + " degrees. " + " The temperature feels like it's " + resp1.data.current_observation.feelslike_c + " degrees. " + "Wind is from the " + resp1.data.current_observation.wind_dir
-                       + " at " + resp1.data.current_observation.wind_mph + " mph" + ", with gusts up to " + resp1.data.current_observation.wind_gust_mph + " mph" + ". Visibility today is around " 
-                       + resp1.data.current_observation.visibility_mi + " miles" + ". " + "There is a "+resp1.data.forecast.simpleforecast.forecastday[0].pop + "% chance of rain today" , isStateChange: true
+                       + " at " + resp1.data.current_observation.wind_mph + " mph" + ", with gusts up to " + resp1.data.current_observation.wind_gust_mph + " mph" + ". Visibility is around " 
+                       + resp1.data.current_observation.visibility_mi + " miles" + ". " + "There is a "+resp1.data.forecast.simpleforecast.forecastday[0].pop + "% chance of rain today." , isStateChange: true
                       )  
             }
                 
              if (WeatherSummeryFormat == "Fahrenheit, Miles & MPH"){
-                         sendEvent(name: "Weather_Summary", value: "Weather summary for" + " " + resp1.data.current_observation.display_location.city + ", " + resp1.data.current_observation.observation_time+ ". " +" - " 
+                 		 sendEvent(name: "Display_Summary_Format", value: "Fahrenheit, Miles & MPH", isStateChange: true)
+                         sendEvent(name: "Weather_Summary", value: "Weather summary for" + " " + resp1.data.current_observation.display_location.city + ", " + resp1.data.current_observation.observation_time+ ". "  
                        + resp1.data.forecast.simpleforecast.forecastday[0].conditions + " with a high of " + resp1.data.forecast.simpleforecast.forecastday[0].high.fahrenheit + " degrees, " + "and a low of " 
                        + resp1.data.forecast.simpleforecast.forecastday[0].low.fahrenheit  + " degrees. " + "Humidity is currently around " + resp1.data.current_observation.relative_humidity + " and temperature is " 
                        + resp1.data.current_observation.temp_f + " degrees. " + " The temperature feels like it's " + resp1.data.current_observation.feelslike_f + " degrees. " + "Wind is from the " + resp1.data.current_observation.wind_dir
-                       + " at " + resp1.data.current_observation.wind_mph + " mph" + ", with gusts up to: " + resp1.data.current_observation.wind_gust_mph + " mph" + ". Visibility today is around " 
-                       + resp1.data.current_observation.visibility_mi + " miles" + ". " + "There is a "+resp1.data.forecast.simpleforecast.forecastday[0].pop + "% chance of rain today" , isStateChange: true
+                       + " at " + resp1.data.current_observation.wind_mph + " mph" + ", with gusts up to: " + resp1.data.current_observation.wind_gust_mph + " mph" + ". Visibility is around " 
+                       + resp1.data.current_observation.visibility_mi + " miles" + ". " + "There is a "+resp1.data.forecast.simpleforecast.forecastday[0].pop + "% chance of rain today." , isStateChange: true
                       )  
             }    
             
              if (WeatherSummeryFormat == "Celsius, Kilometres & KPH"){
-                         sendEvent(name: "Weather_Summary", value: "Weather summary for" + " " + resp1.data.current_observation.display_location.city + ", " + resp1.data.current_observation.observation_time+ ". " +" - " 
+                 		 sendEvent(name: "Display_Summary_Format", value: "Celsius, Kilometres & KPH", isStateChange: true)
+                         sendEvent(name: "Weather_Summary", value: "Weather summary for" + " " + resp1.data.current_observation.display_location.city + ", " + resp1.data.current_observation.observation_time+ ". "  
                        + resp1.data.forecast.simpleforecast.forecastday[0].conditions + " with a high of " + resp1.data.forecast.simpleforecast.forecastday[0].high.celsius + " degrees, " + "and a low of " 
                        + resp1.data.forecast.simpleforecast.forecastday[0].low.celsius  + " degrees. " + "Humidity is currently around " + resp1.data.current_observation.relative_humidity + " and temperature is " 
                        + resp1.data.current_observation.temp_c + " degrees. " + " The temperature feels like it's " + resp1.data.current_observation.feelslike_c + " degrees. " + "Wind is from the " + resp1.data.current_observation.wind_dir
-                       + " at " + resp1.data.current_observation.wind_kph + " kph" + ", with gusts up to " + resp1.data.current_observation.wind_gust_kph + " kph" + ". Visibility today is around " 
-                       + resp1.data.current_observation.visibility_km + " kilometres" + ". " + "There is a "+resp1.data.forecast.simpleforecast.forecastday[0].pop + "% chance of rain today" , isStateChange: true
+                       + " at " + resp1.data.current_observation.wind_kph + " kph" + ", with gusts up to " + resp1.data.current_observation.wind_gust_kph + " kph" + ". Visibility is around " 
+                       + resp1.data.current_observation.visibility_km + " kilometres" + ". " + "There is a "+resp1.data.forecast.simpleforecast.forecastday[0].pop + "% chance of rain today." , isStateChange: true
                       )  
             }
                 
-                
-            sendEvent(name: "Illuminance", value: resp1.data.current_observation.solarradiation, unit: "lux")  
+            def illume = (resp1.data.current_observation.solarradiation)
+            if(illume){
+            	 sendEvent(name: "Illuminance", value: resp1.data.current_observation.solarradiation, unit: "lux")
+                 sendEvent(name: "Solar_Radiation", value: resp1.data.current_observation.solarradiation, unit: "W")
+            }
+            if(!illume){
+                 sendEvent(name: "Illuminance", value: "This station does not send Illumination data")
+            	 sendEvent(name: "Solar_Radiation", value: "This station does not send Solar Radiation data")
+            }   
+            
             sendEvent(name: "Observation_Time", value: resp1.data.current_observation.observation_time)
             sendEvent(name: "Weather", value: resp1.data.current_observation.weather)
    //         sendEvent(name: "Wind_String", value: resp1.data.current_observation.wind_string)
-            sendEvent(name: "Solar_Radiation", value: resp1.data.current_observation.solarradiation, unit: "W")
             sendEvent(name: "Humidity", value: resp1.data.current_observation.relative_humidity, unit: "%")
             sendEvent(name: "UV", value: resp1.data.current_observation.UV)
             sendEvent(name: "Forecast_Conditions", value: resp1.data.forecast.simpleforecast.forecastday[0].conditions)
@@ -197,10 +232,16 @@ def ForcePoll()
             if(rainFormat == "Inches"){
             sendEvent(name: "Precip_Last_Hour", value: resp1.data.current_observation.precip_1hr_in, unit: "IN")
             sendEvent(name: "Precip_Today", value: resp1.data.current_observation.precip_today_in, unit: "IN")
+            sendEvent(name: "Expected_Rain_Tomorrow", value: resp1.data.forecast.simpleforecast.forecastday[1].qpf_allday.in, unit: "IN")
+            sendEvent(name: "Expected_Rain_Day_After_Tomorrow", value: resp1.data.forecast.simpleforecast.forecastday[2].qpf_allday.in, unit: "IN")
+            sendEvent(name: "Display_Unit_Precipitation", value: "Inches")
             }
             if(rainFormat == "Millimetres"){   
             sendEvent(name: "Precip_Today", value: resp1.data.current_observation.precip_today_metric, unit: "MM")
             sendEvent(name: "Precip_Last_Hour", value: resp1.data.current_observation.precip_1hr_metric, unit: "MM")
+            sendEvent(name: "Expected_Rain_Tomorrow", value: resp1.data.forecast.simpleforecast.forecastday[1].qpf_allday.mm, unit: "MM")
+            sendEvent(name: "Expected_Rain_Day_After_Tomorrow", value: resp1.data.forecast.simpleforecast.forecastday[2].qpf_allday.mm, unit: "MM")
+            sendEvent(name: "Display_Unit_Precipitation", value: "Millimetres")
             }
             
             if(tempFormat == "Celsius"){
@@ -223,17 +264,14 @@ def ForcePoll()
            }  
             
           if(distanceFormat == "Miles (mph)"){  
-               state.speed = " mph"
-              state.distance = " Miles"
             sendEvent(name: "Visibility", value: resp1.data.current_observation.visibility_mi, unit: "mi")
             sendEvent(name: "Wind_Speed", value: resp1.data.current_observation.wind_mph, unit: "MPH")
             sendEvent(name: "Wind_Gust", value: resp1.data.current_observation.wind_gust_mph)  
+   //          sendEvent(name: "Wind_Gust_Tomorrow", value: resp1.data.forecast.simpleforecast.forecastday[1].avewind)  
             sendEvent(name: "Display_Unit_Distance", value: "Miles (mph)")  
           }  
             
           if(distanceFormat == "Kilometres (kph)"){
-               state.speed = " kph"
-              state.distance = " Kilometres"
            sendEvent(name: "Visibility", value: resp1.data.current_observation.visibility_km, unit: "km")
            sendEvent(name: "Wind_Speed", value: resp1.data.current_observation.wind_kph, unit: "KPH")  
            sendEvent(name: "Wind_Gust", value: resp1.data.current_observation.wind_gust_kph)  
@@ -241,6 +279,7 @@ def ForcePoll()
           }
                       
             if(pressureFormat == "Inches"){
+                
             sendEvent(name: "Pressure", value: resp1.data.current_observation.pressure_in, unit: "mi")
             sendEvent(name: "Display_Unit_Pressure", value: "Inches")  
             }
@@ -250,26 +289,17 @@ def ForcePoll()
             sendEvent(name: "Display_Unit_Pressure", value: "Millibar")  
             }
             
-         state.lastPoll = now()   
-           httpGet(params2) { resp2 ->
-            resp2.headers.each {
-            log.debug "Response2: ${it.name} : ${it.value}"
-        }
-            if(logSet == true){  
-            log.debug "params2: ${params2}"
-            
- 		    log.debug "response2 contentType: ${resp2.contentType}"
- 		    log.debug "response2 data: ${resp2.data}"
-            } 
-            if(logSet == false){ 
-            log.info "Further WU detailed data logging disabled (params2)"    
-            }     
-               
-            sendEvent(name: "Alert", value: resp2.data.alerts.level_meteoalarm_description)   
+   
+             def possAlert = (resp1.data.alerts.description)
+               if (possAlert){
+               sendEvent(name: "Alert", value: resp1.data.alerts.description)  
+               }
+                if (!possAlert){
+               sendEvent(name: "Alert", value: " No current weather alerts for this area")
+                }
                
           state.lastPoll = now()     
-            
-        }
+
         } 
         
     } catch (e) {
