@@ -33,13 +33,13 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 27/04/2018
+ *  Last Update: 01/05/2018
  *
  *  Changes:
  *
  * 
- *  V1.4.0.200 - driver update
- *  V1.4.0.190 - Added 'Chance Of Rain' as a trigger for use with a new driver (v1.9.0)
+ *  V1.4.0.211 - Added rain for tomorrow & the day after as triggers for use with driver v2.1.1
+ *  V1.3.0.190 - Added 'Chance Of Rain' as a trigger for use with a new driver (v1.9.0)
  *  V1.3.0.180 - New versioning to incorporate required driver version
  *  V1.2.1 - Debug & added driver version checking
  *  V1.1.0 - additional data logging
@@ -79,6 +79,7 @@ preferences {
     section() {
   input "trigger", "enum", title: "Action to trigger switch", required: true, submitOnChange: true, 
       options: [
+          
           "Chance Of Rain",
           "Dewpoint",
           "Forecast High",
@@ -86,6 +87,8 @@ preferences {
           "Illuminance",
           "Precipitation in Last Hour",
           "Precipitation Today",
+          "Precipitation Tomorrow",
+          "Precipitation The Day After Tomorrow",
           "Pressure",
           "Solar Radiation",
           "Temperature Feels Like",
@@ -94,6 +97,7 @@ preferences {
   //      "Wind Direction",
           "Wind Gust",
           "Wind Speed"
+          
           ]       
           
           
@@ -197,6 +201,7 @@ def initialize() {
     subscribe(sensor1, "Forecast_Conditions", forecastConditionsHandler)
     subscribe(sensor1, "Alert", alertHandler)
     subscribe(sensor1, "Station_City", cityHandler)
+    subscribe(sensor1, "Station_State", stateHandler)
     subscribe(sensor1, "Station_ID", stationHandler)
 //  subscribe(sensor1, "Wind_String", wind_stringHandler)
    
@@ -219,7 +224,8 @@ def initialize() {
     if(state.selection == "Forecast High"){subscribe(sensor1, "Forecast_High", forecastHighHandler)}
     if(state.selection == "Forecast Low"){subscribe(sensor1, "Forecast_Low", forecastLowHandler)}
 	if(state.selection == "Chance Of Rain"){subscribe(sensor1, "Chance_Of_Rain", rainHandler)}
-  	
+    if(state.selection == "Precipitation Tomorrow"){subscribe(sensor1, "Expected_Rain_Tomorrow", rainTomorrowHandler)}
+  	if(state.selection == "Precipitation The Day After Tomorrow"){subscribe(sensor1, "Expected_Rain_Day_After_Tomorrow", rainDayAfterTomorrowHandler)}
 }
 
 def enableSwitch1Handler(evt){
@@ -307,6 +313,11 @@ LOGDEBUG("Weather Alert is $state.alert1")
 def  cityHandler(evt){
 state.city1 = evt.value
 LOGDEBUG("City is $state.city1")    
+   
+}
+def  stateHandler(evt){
+state.state1 = evt.value
+LOGDEBUG("State is $state.state1")    
    
 }
 def  stationHandler(evt){
@@ -439,9 +450,30 @@ def rainHandler(evt){
    def removePercent = (evt.value.minus('%')) 
    def event15 = removePercent
     def evt15 = event15.toDouble()
-    def call15 = 'Wind Gust'
+    def call15 = 'Chance Of Rain'
     LOGDEBUG("Chance Of Rain =  $evt15 %")
     actionNow(call15, evt15)     
+    
+    
+    
+}
+def rainDayAfterTomorrowHandler(evt){
+     def event16 = evt.value
+    def evt16 = event16.toDouble()
+    def call16 = 'Rain The Day After Tomorrow'
+    LOGDEBUG("Rain The Day After Tomorrow =  $evt16 %")
+    actionNow(call16, evt16)     
+    
+    
+    
+}
+
+def rainTomorrowHandler(evt){
+      def event17 = evt.value
+    def evt17 = event17.toDouble()
+    def call17 = 'Rain Tomorrow'
+    LOGDEBUG("Rain Tomorrow =  $evt17 %")
+    actionNow(call17, evt17)     
     
     
     
@@ -458,7 +490,7 @@ LOGDEBUG("Forecast Conditions = $state.forecastCond1")
 
 
 def signOff(){
-LOGDEBUG("Observation Time: $state.observe1 - City: $state.city - Station: $state.station")   
+LOGDEBUG("Observation Time: $state.observe1 - City: $state.city1 - Station: $state.station1")   
     
     
 }
@@ -687,7 +719,7 @@ def LOGDEBUG(txt){
 
 // App & Driver Version   *********************************************************************************
 def setAppVersion(){
-    state.appversion = "1.4.0.200"
-    state.reqdriverversion = "2.0.0"  // required driver version for this app
+    state.appversion = "1.4.0.211"
+    state.reqdriverversion = "2.1.1"  // required driver version for this app
     state.reqNameSpace = "Cobra"   // check to confirm Cobra's driver is being used
 }
