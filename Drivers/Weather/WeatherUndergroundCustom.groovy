@@ -106,7 +106,7 @@ metadata {
 
 def updated() {
     log.debug "updated called"
-    state.version = "2.1.1"    // ************************* Update as required *************************************
+    state.version = "2.3.0"    // ************************* Update as required *************************************
     unschedule()
     state.NumOfPolls = 0
     ForcePoll()
