@@ -14,8 +14,9 @@
  *
  *  - Last Update 01/05/2018
  *
- *
- *  V2.1.1 - Added defaultValue to "pollIntervalLimit" to prevent errors on new installs
+ *  V2.3.0 - Added Moon phase and illumination percentage - @Cobra 01/05/2018
+ *  V2.2.0 - Added 'Sunrise' and 'Sunset' - Thanks to: @Scottma61 for this one - @Cobra 01/05/2018
+ *  V2.1.1 - Added defaultValue to "pollIntervalLimit" to prevent errors on new installs - @Cobra 01/05/2018
  *  V2.1.0 - Added 3 attributes - Rain tomorrow & the day after and Station_State also added poll counter and reset button @Cobra 01/05/2018
  *  V2.0.1 - Changed to one call to WU for Alerts, Conditions and Forecast - Thanks to: @Scottma61 for this one
  *  V2.0.0 - version alignment with lowercase version - @Cobra 27/04/2018 
@@ -50,7 +51,6 @@ metadata {
         attribute "Precip_Last_Hour", "number"
         attribute "Precip_Today", "number"
         attribute "Wind_Speed", "number"
-   //     attribute "Wind_String", "string"
         attribute "Pressure", "number"
         attribute "Dewpoint", "number"
         attribute "UV", "number"
@@ -78,8 +78,12 @@ metadata {
         attribute "Chance_Of_Rain", "string"
         attribute "Expected_Rain_Tomorrow", "string"
         attribute "Expected_Rain_Day_After_Tomorrow", "string"
-    //    attribute "Wind_Gust_Tomorrow", "string"
-        
+   		attribute "Sunrise", "string"
+        attribute "Sunset", "string"
+        attribute "Moon_Phase", "string"
+        attribute "Moon_Illumination", "string"
+       
+     
         
     }
     preferences() {
@@ -141,7 +145,7 @@ def ForcePoll()
    
     log.debug "WU: ForcePoll called"
     def params1 = [
-        uri: "http://api.wunderground.com/api/${apiKey}/alerts/conditions/forecast/q/${pollLocation}.json"
+        uri: "http://api.wunderground.com/api/${apiKey}/alerts/astronomy/conditions/forecast/q/${pollLocation}.json"
     ]
     
     try {
@@ -162,7 +166,7 @@ def ForcePoll()
             
             // test
             def newVar = (resp1.data.current_observation.precip_today_metric)
-            log.info "Todays's Rain Variable = $newVar"
+            log.info "Todays's Test Rain Variable = $newVar"
             
             // end test
             
@@ -173,8 +177,12 @@ def ForcePoll()
              sendEvent(name: "Station_City", value: resp1.data.current_observation.display_location.city, isStateChange: true)
              sendEvent(name: "Chance_Of_Rain", value: resp1.data.forecast.simpleforecast.forecastday[0].pop + "%", isStateChange: true)
             sendEvent(name: "Station_State", value: resp1.data.current_observation.display_location.state, isStateChange: true)
-            
-            
+            sendEvent(name: "Sunrise", value: resp1.data.sun_phase.sunrise.hour + ":" + resp1.data.sun_phase.sunrise.minute, isStateChange: true)
+        	sendEvent(name: "Sunset", value: resp1.data.sun_phase.sunset.hour + ":" + resp1.data.sun_phase.sunset.minute, isStateChange: true)
+   			sendEvent(name: "Moon_Phase", value: resp1.data.moon_phase.phaseofMoon , isStateChange: true)
+            sendEvent(name: "Moon_Illumination", value: resp1.data.moon_phase.percentIlluminated  + "%" , isStateChange: true)
+   
+           
            def WeatherSummeryFormat = weatherFormat
             
             if (WeatherSummeryFormat == "Celsius, Miles & MPH"){
