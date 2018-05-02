@@ -7,7 +7,7 @@
  *  
  *  This SmartApp is free!
  *
- *  Donations to support development efforts are accepted via: 
+ *  Donations to support development efforts are welcomed via: 
  *
  *  Paypal at: https://www.paypal.me/smartcobra
  *  
@@ -33,11 +33,11 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 01/05/2018
+ *  Last Update: 02/05/2018
  *
  *  Changes:
  *
- * 
+ *  V1.5.0.240 - Added Triggers: 'Sunrise', 'Sunset', 'Wind Direction' & 'Forcast Conditions' for use with driver 2.4.0
  *  V1.4.0.211 - Added rain for tomorrow & the day after as triggers for use with driver v2.1.1
  *  V1.3.0.190 - Added 'Chance Of Rain' as a trigger for use with a new driver (v1.9.0)
  *  V1.3.0.180 - New versioning to incorporate required driver version
@@ -82,6 +82,7 @@ preferences {
           
           "Chance Of Rain",
           "Dewpoint",
+          "Forecast Conditions",
           "Forecast High",
           "Forecast Low",
           "Illuminance",
@@ -91,10 +92,12 @@ preferences {
           "Precipitation The Day After Tomorrow",
           "Pressure",
           "Solar Radiation",
+          "Sunrise",
+          "Sunset",
           "Temperature Feels Like",
           "UV Radiation",
           "Visibility",
-  //      "Wind Direction",
+          "Wind Direction",
           "Wind Gust",
           "Wind Speed"
           
@@ -102,11 +105,23 @@ preferences {
           
           
           
-          
-      
-   input(name: "action1", type: "bool", title: "Turn switch On or Off when trigger active", required: true, defaultValue: true)      
-   input(name: "threshold1", type: "number", title: "Threshold", required: true, description: "Trigger above or below this number", defaultValue: '0')
-   input(name: "switchMode1", type: "bool", title: "On = Trigger Above Threshold - Off = Trigger Below Threshold", required: true, defaultValue: true ) 
+      state.selection = trigger    
+              
+        if(state.selection == "Wind Direction"){
+     input(name: "actionMatch", type: "test", title: "Wind direction to match", required: true, description: "MUST match case e.g WEST or west") 
+     input(name: "action1", type: "bool", title: "Turn switch On or Off when direction matches", required: true, defaultValue: true)   
+        }
+        
+        else if(state.selection == "Forecast Conditions"){
+     input(name: "actionMatch", type: "test", title: "Condition to match", required: true, description: "MUST match case e.g RAIN, rain") 
+     input(name: "action1", type: "bool", title: "Turn switch On or Off when condition matches", required: true, defaultValue: true)   
+        }
+        
+        else{
+     input(name: "threshold1", type: "number", title: "Threshold", required: true, description: "Trigger above or below this number", defaultValue: '0')
+   	 input(name: "switchMode1", type: "bool", title: "On = Trigger Above Threshold - Off = Trigger Below Threshold", required: true, defaultValue: true )      
+     input(name: "action1", type: "bool", title: "Turn switch On or Off when trigger active", required: true, defaultValue: true)         
+        }
      
      }
     } 
@@ -188,17 +203,13 @@ def initialize() {
         
 	subscribe(enableswitch1, "switch", enableSwitch1Handler)
     subscribe(sensorSwitch1, "switch", sensorSwitch1Handler)
-    
     subscribe(sensor1, "Driver_NameSpace", checkNameHandler)
     subscribe(sensor1, "Driver_Version", checkDriverVerHandler)
-    
     subscribe(sensor1, "Display_Unit_Temperature", displayTempUnitHandler)
     subscribe(sensor1,  "Display_Unit_Pressure", displayPressureUnitHandler)
     subscribe(sensor1, "Display_Unit_Distance", displayDistanceUnitHandler)
-    subscribe(sensor1, "Wind_Direction", wind_dirHandler)
     subscribe(sensor1, "Observation_Time", observation_timeHandler)
     subscribe(sensor1, "Weather", weatherHandler)
-    subscribe(sensor1, "Forecast_Conditions", forecastConditionsHandler)
     subscribe(sensor1, "Alert", alertHandler)
     subscribe(sensor1, "Station_City", cityHandler)
     subscribe(sensor1, "Station_State", stateHandler)
@@ -217,6 +228,7 @@ def initialize() {
     if(state.selection == "Precipitation Today"){subscribe(sensor1, "Precip_Today", precip_todayHandler)}
     if(state.selection == "Wind Speed"){subscribe(sensor1, "Wind_Speed", windHandler)}
     if(state.selection == "Wind Gust"){subscribe(sensor1, "Wind_Gust", wind_gustHandler)}
+    if(state.selection == "Wind Direction"){subscribe(sensor1, "Wind_Direction", wind_dirHandler)}
     if(state.selection == "Pressure"){subscribe(sensor1, "Pressure", pressureHandler)}
     if(state.selection ==  "Dewpoint"){subscribe(sensor1, "Dewpoint", dewpointHandler)}
     if(state.selection == "UV Radiation"){subscribe(sensor1, "UV", uvHandler)}
@@ -226,6 +238,9 @@ def initialize() {
 	if(state.selection == "Chance Of Rain"){subscribe(sensor1, "Chance_Of_Rain", rainHandler)}
     if(state.selection == "Precipitation Tomorrow"){subscribe(sensor1, "Expected_Rain_Tomorrow", rainTomorrowHandler)}
   	if(state.selection == "Precipitation The Day After Tomorrow"){subscribe(sensor1, "Expected_Rain_Day_After_Tomorrow", rainDayAfterTomorrowHandler)}
+    if(state.selection == "Forecast Conditions"){subscribe(sensor1, "Forecast_Conditions", forecastConditionsHandler)}
+    if(state.selection == "Sunrise"){subscribe(sensor1, "Sunrise", sunriseHandler)}
+    if(state.selection == "Sunset"){subscribe(sensor1, "Sunset", sunsetHandler)}
 }
 
 def enableSwitch1Handler(evt){
@@ -308,22 +323,21 @@ LOGDEBUG("Weather is $state.weather1")
 def  alertHandler(evt){
 state.alert1 = evt.value
 LOGDEBUG("Weather Alert is $state.alert1")    
-   
 }
+
 def  cityHandler(evt){
 state.city1 = evt.value
 LOGDEBUG("City is $state.city1")    
-   
 }
+
 def  stateHandler(evt){
 state.state1 = evt.value
 LOGDEBUG("State is $state.state1")    
-   
 }
+
 def  stationHandler(evt){
 state.station1 = evt.value
 LOGDEBUG("Station is $state.station1")    
-   
 }
 
 
@@ -347,7 +361,6 @@ def precip_1hrHandler(evt){
     def call4 = 'Precipitation in last hour'
 	LOGDEBUG("Precipitation in last hour is $evt4")
     actionNow(call4, evt4)
-
 }
 
 def precip_todayHandler(evt){
@@ -356,17 +369,14 @@ def precip_todayHandler(evt){
     def call5 = 'Precipitation Today'
 	LOGDEBUG("Precipitation Today is $evt5")
     actionNow(call5, evt5)
-
-
 }
 
 def windHandler(evt){ 
-def event6 = evt.value
+    def event6 = evt.value
     def evt6 = event6.toDouble() 
     def call6 = 'Wind Speed'
     LOGDEBUG("Wind =  $evt6.value")
     actionNow(call6, evt6.value)
-
 }
 
 def wind_stringHandler(evt){
@@ -379,7 +389,6 @@ def pressureHandler(evt){
     def call7 = 'Pressure'
     LOGDEBUG("Pressure =  $evt7")
     actionNow(call7, evt7)
-
 }
 
 def dewpointHandler(evt){
@@ -388,7 +397,6 @@ def dewpointHandler(evt){
     def call8 = 'Dewpoint'
     LOGDEBUG("Dewpoint =  $evt8")
     actionNow(call8, evt8)
-
 }
 
 def uvHandler(evt){
@@ -397,7 +405,6 @@ def uvHandler(evt){
     def call9 = 'UV'
     LOGDEBUG("UV =  $evt9")
     actionNow(call8, evt9)
-
 }
 
 def visibilityHandler(evt){
@@ -406,7 +413,6 @@ def visibilityHandler(evt){
     def call10 = 'Visibility'
     LOGDEBUG("Visibility =  $evt10")
     actionNow(call10, evt10)
-
 }
 
 
@@ -416,7 +422,6 @@ def forecastHighHandler(evt){
     def call11 = 'Forecast High'
     LOGDEBUG("Forecast High =  $evt11")
     actionNow(call11, evt11)
-
 }
 
 
@@ -429,17 +434,15 @@ def forecastLowHandler(evt){
 }
 
 def wind_dirHandler(evt){
-  def event13 = evt.value
-   
+    def event13 = evt.value
     def evt13 = event13
     def call13 = 'Wind Direction'
     LOGDEBUG("Wind Direction =  $evt13")
-//    actionNow(call13, evt13)
-
+    altSwitch(call13, evt13)
 }
 
 def wind_gustHandler(evt){
-  def event14 = evt.value
+  	def event14 = evt.value
     def evt14 = event14.toDouble()
     def call14 = 'Wind Gust'
     LOGDEBUG("Wind Direction =  $evt14")
@@ -447,46 +450,66 @@ def wind_gustHandler(evt){
 }   
     
 def rainHandler(evt){
-   def removePercent = (evt.value.minus('%')) 
-   def event15 = removePercent
+    def removePercent = (evt.value.minus('%')) 
+    def event15 = removePercent
     def evt15 = event15.toDouble()
     def call15 = 'Chance Of Rain'
     LOGDEBUG("Chance Of Rain =  $evt15 %")
-    actionNow(call15, evt15)     
-    
-    
-    
 }
+
 def rainDayAfterTomorrowHandler(evt){
-     def event16 = evt.value
+LOGDEBUG(" Rain day after tomorrow is $evt.value")
+    def event16 = evt.value
     def evt16 = event16.toDouble()
     def call16 = 'Rain The Day After Tomorrow'
     LOGDEBUG("Rain The Day After Tomorrow =  $evt16 %")
     actionNow(call16, evt16)     
-    
-    
-    
 }
 
 def rainTomorrowHandler(evt){
+LOGDEBUG("Rain tomorrow is $evt.value")
       def event17 = evt.value
     def evt17 = event17.toDouble()
     def call17 = 'Rain Tomorrow'
     LOGDEBUG("Rain Tomorrow =  $evt17 %")
     actionNow(call17, evt17)     
-    
-    
-    
 }
 
-
-
- 
 
 def forecastConditionsHandler(evt){
-state.forecastCond1 = evt.value
-LOGDEBUG("Forecast Conditions = $state.forecastCond1")
+LOGDEBUG("Forecast Conditions =  $evt.value")
+    def event18 = evt.value
+    def evt18 = event18
+    def call18 = 'Forecast Conditions'
+    LOGDEBUG("Forecast Conditions =  $evt18")
+    altSwitch(call18, evt18)
 }
+
+def sunriseHandler(evt){
+LOGDEBUG("Sunrise =  $evt.value")
+    def event19 = evt.value
+    def evt19 = event19.toString()
+    def call19 = 'Sunrise'
+    LOGDEBUG("Sunrise =  $evt19")
+    altSwitch(call19, evt19)
+}
+
+def sunsetHandler(evt){
+LOGDEBUG("Sunset =  $evt.value")
+    def event20 = evt.value
+    def evt20 = event20.toString()
+    def call20 = 'Sunset'
+    LOGDEBUG("Sunset =  $evt20")
+    altSwitch(call20, evt20)
+}         
+
+
+
+
+
+
+
+
 
 
 def signOff(){
@@ -497,13 +520,65 @@ LOGDEBUG("Observation Time: $state.observe1 - City: $state.city1 - Station: $sta
 
 // Switch Actions
 
+def altSwitch(call, evt){
+ LOGDEBUG("Calling altSwitch")   
+state.evtNow = evt.value.toString()
+   LOGDEBUG(" state.evtNow = $state.evtNow")
+state.match = actionMatch.toString()
+    LOGDEBUG(" state.match = $state.match")
+state.action = action1
+
+   LOGDEBUG("Calling event: $call") 
+LOGDEBUG("Calling.. CheckTime")
+checkTime()
+LOGDEBUG("Calling.. CheckDay")
+checkDay()
+LOGDEBUG("Calling.. CheckPresence")
+checkPresence()
+LOGDEBUG("Calling.. CheckPresence1")
+checkPresence1()   
+    
+    
+    LOGDEBUG("state.evtNow = $state.evtNow -- state.match = $state.match -- state.action = $state.action -- state.presenceRestriction = $state.presenceRestriction -- state.presenceRestriction1 = $state.presenceRestriction1")
+ if(state.timeOK == true && state.dayCheck == true && state.presenceRestriction == true && state.presenceRestriction1 == true){
+
+      if(state.action == true){   
+        LOGDEBUG("state.action = $state.action")
+         
+    if(state.evtNow == state.match){ 
+       LOGDEBUG("Content Match - Sent on command..")  
+        on()}
+          if(state.evtNow != state.match){
+        LOGDEBUG("Content Not Matched - Sent off command..")       
+        off()}
+                                                       
+	
+    }
+    
+    if(state.action == false){ 
+        LOGDEBUG("state.action = $state.action")
+        
+	if(state.evtNow != state.match){
+        LOGDEBUG("Content Match - Sent off command..")  
+        off()}
+	if(state.evtNow == state.match){ 
+        LOGDEBUG("Content Not Matched - Sent on command..")  
+        on()}
+	
+    }
+     
+
+ }  
+    
+}    
     
 def actionNow(call, evt){
+    LOGDEBUG("Calling actionNow")
 state.evtNow = evt.value as int
 state.thresh = threshold1
 state.action = action1
 state.mode = switchMode1
-   LOGDEBUG("Calling event = $call") 
+   LOGDEBUG("Calling event: $call") 
 LOGDEBUG("Calling.. CheckTime")
 checkTime()
 LOGDEBUG("Calling.. CheckDay")
@@ -516,8 +591,15 @@ checkPresence1()
     
     LOGDEBUG("state.evtNow = $state.evtNow -- state.thresh = $state.thresh -- state.action = $state.action -- state.mode = $state.mode - state.presenceRestriction = $state.presenceRestriction - state.presenceRestriction1 = $state.presenceRestriction1")
  if(state.timeOK == true && state.dayCheck == true && state.presenceRestriction == true && state.presenceRestriction1 == true){
-    if(state.action == true){   
+   
+        
+
+        
+           
+        
+     if(state.action == true){   
         LOGDEBUG("state.action = $state.action")
+         
     if(state.evtNow > state.thresh && state.mode == true){ on()}
 	if(state.evtNow > state.thresh && state.mode == false){ off()}
 	if(state.evtNow < state.thresh && state.mode == true){ off()}
@@ -526,11 +608,15 @@ checkPresence1()
     
     if(state.action == false){ 
         LOGDEBUG("state.action = $state.action")
+        
     if(state.evtNow > state.thresh && state.mode == true){ off()}
 	if(state.evtNow > state.thresh && state.mode == false){ on()}
 	if(state.evtNow < state.thresh && state.mode == true){ on()}
     if(state.evtNow < state.thresh && state.mode == false){ off()}
-    }    
+    }
+     
+    
+    
  }
     else{
      LOGDEBUG("One or more restrictions are active so cannot continue")
@@ -719,7 +805,7 @@ def LOGDEBUG(txt){
 
 // App & Driver Version   *********************************************************************************
 def setAppVersion(){
-    state.appversion = "1.4.0.211"
-    state.reqdriverversion = "2.1.1"  // required driver version for this app
+    state.appversion = "1.5.0.240"
+    state.reqdriverversion = "2.4.0"  // required driver version for this app
     state.reqNameSpace = "Cobra"   // check to confirm Cobra's driver is being used
 }
