@@ -33,10 +33,13 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 02/05/2018
+ *  Last Update: 03/05/2018
  *
  *  Changes:
  *
+ *
+ *
+ *  V1.5.0.241 - Driver requirement updated
  *  V1.5.0.240 - Added Triggers: 'Sunrise', 'Sunset', 'Wind Direction' & 'Forcast Conditions' for use with driver 2.4.0
  *  V1.4.0.211 - Added rain for tomorrow & the day after as triggers for use with driver v2.1.1
  *  V1.3.0.190 - Added 'Chance Of Rain' as a trigger for use with a new driver (v1.9.0)
@@ -805,7 +808,7 @@ def LOGDEBUG(txt){
 
 // App & Driver Version   *********************************************************************************
 def setAppVersion(){
-    state.appversion = "1.5.0.240"
-    state.reqdriverversion = "2.4.0"  // required driver version for this app
+    state.appversion = "1.5.0.241"
+    state.reqdriverversion = "2.4.1"  // required driver version for this app
     state.reqNameSpace = "Cobra"   // check to confirm Cobra's driver is being used
 }
