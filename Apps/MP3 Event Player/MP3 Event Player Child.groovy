@@ -68,7 +68,7 @@ def updated() {
 def initialize() {
 	
     state.timer = 'yes'
-    state.currS1 =  true
+    state.currS1 =  'on'
     setAppVersion()
     logCheck()
     if(acceleration){subscribe(acceleration, "acceleration.active", eventHandler)}
@@ -309,7 +309,7 @@ goNow(evt)
 
 def goNow(evt){
 LOGDEBUG("goNow evt = $evt.value - state.currS1 = $state.currS1")
- if (state.currS1 == null || state.currS1 == true) {
+ if (state.currS1 == null || state.currS1 == 'on') {
     LOGDEBUG("state.currS1 = $state.currS1") 
 if (allOk) {
     LOGDEBUG("Playing: $soundURI " )
