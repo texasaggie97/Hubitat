@@ -18,7 +18,7 @@
  *
  *  Last Update 03/05/2018
  *
-
+ *  V1.1.0 - Added ability to set time to calculate rainfall
  *  V1.0.0 - Original POC
  *
  */
@@ -32,11 +32,15 @@ metadata {
         
         command "Poll"
         command "ForcePoll"
-    //    command "PollCountReset"
-         command "createHistory"
-    
-
         
+        
+    //     command "PollCountReset"
+         command "createHistory"
+         command "calculateNow"
+           
+     
+
+        attribute "Polls_Since_Reset", "string"
         attribute "Run_Time", "string"
         attribute "Running_Today", "string"
         attribute "Todays_Calculation", "string"
@@ -44,7 +48,7 @@ metadata {
         attribute "Driver_Version", "string"
         attribute "Driver_NameSpace", "string"
         attribute "Station_ID", "string"
-       
+        attribute "NumberOfPolls", "string"
         attribute "Expected_Rain_Tomorrow", "string"
         attribute "Expected_Rain_Day_After_Tomorrow", "string"
    		attribute "Sunrise", "string"
@@ -69,6 +73,7 @@ metadata {
                    options: ["5 Minutes", "10 Minutes", "15 Minutes", "30 Minutes", "1 Hour", "3 Hours"]
             input "logSet", "bool", title: "Log All WU Response Data", required: true, defaultValue: false
             input "cutOff", "time", title: "Day Cutoff", required: true
+            input "checkTime", "time", title: "Check Criteria Time", required: true
             input "runTime", "time", title: "Time to turn ON switch (If criteria matched)", required: true
             input "stopTime", "time", title: "Time to turn OFF switch ", required: true
             input "dbyWeight", "enum", required: true, title: "Importance Weighting: The Day Before Yesterday",  options: ["1", "2", "3", "4", "5"]
@@ -76,15 +81,17 @@ metadata {
             input "tdWeight", "enum", required: true, title: "Importance Weighting: Today",  options: ["1", "2", "3", "4", "5"]
             input "tmWeight", "enum", required: true, title: "Importance Weighting: Tomorrow",  options: ["1", "2", "3", "4", "5"]
             input "datWeight", "enum", required: true, title: "Importance Weighting: The Day After Tomorrow",  options: ["1", "2", "3", "4", "5"]
-             input "goNogo", "number", required: true, title: "Only Switch If this Number Reached (Or exceeded)",  options: ["1", "2", "3", "4", "5"]
+            input "goNogo", "number", required: true, title: "Only Switch If this Number Reached (Or exceeded)",  options: ["1", "2", "3", "4", "5"]
             input "enableAction", "bool", title: "Enable Actions", required: true, defaultValue: true
+           
         }
     }
 }
 
 def updated() {
     log.debug "updated called - $settings"
-    state.version = "2.4.1"    // ************************* Update as required *************************************
+   state.version = "1.1.0" 
+    // *******************************************************************************************************************************************
     unschedule()
     state.NumOfPolls = 0
     ForcePoll()
@@ -92,10 +99,13 @@ def updated() {
     if(autoPoll)
         "runEvery${pollIntervalCmd}"(pollSchedule)
     
-     def changeOver = cutOff
+    def changeOver = cutOff
     schedule(changeOver, createHistory)
+    def processTime = checkTime
+    schedule(processTime, processNow)
     schedule(runTime, runNow)
-     schedule(stopTime, offNow)
+    schedule(stopTime, offNow)
+    
     state.rainTmp3 = 0  // default for rain the day before yesterday
 	state.rainTmp2 = 0  // default for rain yesterday
 	state.rainTmp1 = 0  // default for rain today
@@ -113,8 +123,24 @@ def offNow(evt){
     
 }
 
-def runNow(evt){
+def calculateNow(evt){
+    log.info "Manual 'Calculate Now called..."
     calculateFinal()
+    
+}
+
+
+
+def  processNow(evt){
+    log.info "Calling processNow"
+     calculateFinal()
+  
+    
+}
+
+
+def runNow(evt){
+   
     if(enableAction == true){
     if(state.canRun == true){
     log.info " Not enough rain so turning on switch"
@@ -129,13 +155,13 @@ def runNow(evt){
     }
 }    
 def on() {
- log.debug "****************** $version - ON **********************"  
+ log.debug "****************** ON **********************"  
 sendEvent(name: "switch", value: "on")
     
 }
 
 def off() {
- log.debug "****************** $version - OFF *********************"   
+ log.debug "******************  OFF *********************"   
 sendEvent(name: "switch", value: "off")
     
 }
@@ -206,19 +232,6 @@ state.rainTmp1 = state.rainToday.toDouble()
 }
 
 
-
-def RainYesterday(evt){
-    state.yesterdaysRain = evt.value.toDouble()
-    log.info "Recieved rain for yesterday - $state.yesterdaysRain"
-    
-    
-}
-
-def RainDayBeforeYesterday(evt){
-    log.info "Recieved rain for day before yesterday - $evt.value"
-    
-    
-}
 
 
 
@@ -319,6 +332,3 @@ def ForcePoll()
     
 }
 
-private getVersion() {
-	"  Irrigation Driver Version 1.0 "
-}
