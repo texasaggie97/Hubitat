@@ -12,7 +12,7 @@
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
  *  for the specific language governing permissions and limitations under the License.
  *
- *  Last Update: 21/04/2018
+ *  Last Update: 04/05/2018
  *
  *  Changes:
  *
@@ -68,7 +68,7 @@ def updated() {
 def initialize() {
 	
     state.timer = 'yes'
-    state.currS1 = true
+    state.currS1 =  true
     setAppVersion()
     logCheck()
     if(acceleration){subscribe(acceleration, "acceleration.active", eventHandler)}
@@ -308,9 +308,11 @@ goNow(evt)
 
 
 def goNow(evt){
-LOGDEBUG("goNow evt = $evt.value")
- if (state.currS1 == null || state.currS1 == 'on') {
+LOGDEBUG("goNow evt = $evt.value - state.currS1 = $state.currS1")
+ if (state.currS1 == null || state.currS1 == true) {
+    LOGDEBUG("state.currS1 = $state.currS1") 
 if (allOk) {
+    LOGDEBUG("Playing: $soundURI " )
 def soundURI = pathURI + "/" + sound 
 
 LOGDEBUG("Playing: $soundURI " )
