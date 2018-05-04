@@ -33,12 +33,12 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 03/05/2018
+ *  Last Update: 04/05/2018
  *
  *  Changes:
  *
  *
- *
+ *  V1.6.0.250 - New driver and changed attributes to lowercase to match driver
  *  V1.5.0.241 - Driver requirement updated
  *  V1.5.0.240 - Added Triggers: 'Sunrise', 'Sunset', 'Wind Direction' & 'Forcast Conditions' for use with driver 2.4.0
  *  V1.4.0.211 - Added rain for tomorrow & the day after as triggers for use with driver v2.1.1
@@ -206,44 +206,45 @@ def initialize() {
         
 	subscribe(enableswitch1, "switch", enableSwitch1Handler)
     subscribe(sensorSwitch1, "switch", sensorSwitch1Handler)
-    subscribe(sensor1, "Driver_NameSpace", checkNameHandler)
-    subscribe(sensor1, "Driver_Version", checkDriverVerHandler)
-    subscribe(sensor1, "Display_Unit_Temperature", displayTempUnitHandler)
-    subscribe(sensor1,  "Display_Unit_Pressure", displayPressureUnitHandler)
-    subscribe(sensor1, "Display_Unit_Distance", displayDistanceUnitHandler)
-    subscribe(sensor1, "Observation_Time", observation_timeHandler)
-    subscribe(sensor1, "Weather", weatherHandler)
-    subscribe(sensor1, "Alert", alertHandler)
-    subscribe(sensor1, "Station_City", cityHandler)
-    subscribe(sensor1, "Station_State", stateHandler)
-    subscribe(sensor1, "Station_ID", stationHandler)
-//  subscribe(sensor1, "Wind_String", wind_stringHandler)
+    subscribe(sensor1, "pollsSinceReset", checkPollHandler)
+    subscribe(sensor1, "driverNameSpace", checkNameHandler)
+    subscribe(sensor1, "driverVersion", checkDriverVerHandler)
+    subscribe(sensor1, "temperatureUnit", displayTempUnitHandler)
+    subscribe(sensor1,  "pressureUnit", displayPressureUnitHandler)
+    subscribe(sensor1, "distanceUnit", displayDistanceUnitHandler)
+    subscribe(sensor1, "observation_time", observation_timeHandler)
+    subscribe(sensor1, "weather", weatherHandler)
+    subscribe(sensor1, "alert", alertHandler)
+    subscribe(sensor1, "city", cityHandler)
+    subscribe(sensor1, "state", stateHandler)
+    subscribe(sensor1, "stationID", stationHandler)
+    subscribe(sensor1, "wind_string", wind_stringHandler)
    
     if (restrictPresenceSensor){subscribe(restrictPresenceSensor, "presence", restrictPresenceSensorHandler)}
 	if (restrictPresenceSensor1){subscribe(restrictPresenceSensor1, "presence", restrictPresence1SensorHandler)}
         
     state.selection = trigger
     
-    if(state.selection == "Illuminance"){ subscribe(sensor1, "Illuminance", illuminanceHandler)}
-    if(state.selection ==  "Solar Radiation"){subscribe(sensor1, "Solar_Radiation", solarradiationHandler)}
-    if(state.selection == "Temperature Feels Like"){subscribe(sensor1, "Feels_Like", feelsLikeHandler)}
-    if(state.selection == "Precipitation in Last Hour"){subscribe(sensor1, "Precip_Last_Hour", precip_1hrHandler)}
-    if(state.selection == "Precipitation Today"){subscribe(sensor1, "Precip_Today", precip_todayHandler)}
-    if(state.selection == "Wind Speed"){subscribe(sensor1, "Wind_Speed", windHandler)}
-    if(state.selection == "Wind Gust"){subscribe(sensor1, "Wind_Gust", wind_gustHandler)}
-    if(state.selection == "Wind Direction"){subscribe(sensor1, "Wind_Direction", wind_dirHandler)}
-    if(state.selection == "Pressure"){subscribe(sensor1, "Pressure", pressureHandler)}
-    if(state.selection ==  "Dewpoint"){subscribe(sensor1, "Dewpoint", dewpointHandler)}
+    if(state.selection == "Illuminance"){ subscribe(sensor1, "illuminance", illuminanceHandler)}
+    if(state.selection ==  "Solar Radiation"){subscribe(sensor1, "solarradiation", solarradiationHandler)}
+    if(state.selection == "Temperature Feels Like"){subscribe(sensor1, "feelsLike", feelsLikeHandler)}
+    if(state.selection == "Precipitation in Last Hour"){subscribe(sensor1, "precip_1hr", precip_1hrHandler)}
+    if(state.selection == "Precipitation Today"){subscribe(sensor1, "precip_today", precip_todayHandler)}
+    if(state.selection == "Wind Speed"){subscribe(sensor1, "wind", windHandler)}
+    if(state.selection == "Wind Gust"){subscribe(sensor1, "wind_gust", wind_gustHandler)}
+    if(state.selection == "Wind Direction"){subscribe(sensor1, "wind_dir", wind_dirHandler)}
+    if(state.selection == "Pressure"){subscribe(sensor1, "pressure", pressureHandler)}
+    if(state.selection ==  "Dewpoint"){subscribe(sensor1, "dewpoint", dewpointHandler)}
     if(state.selection == "UV Radiation"){subscribe(sensor1, "UV", uvHandler)}
-    if(state.selection == "Visibility"){subscribe(sensor1, "Visibility", visibilityHandler)}
-    if(state.selection == "Forecast High"){subscribe(sensor1, "Forecast_High", forecastHighHandler)}
-    if(state.selection == "Forecast Low"){subscribe(sensor1, "Forecast_Low", forecastLowHandler)}
-	if(state.selection == "Chance Of Rain"){subscribe(sensor1, "Chance_Of_Rain", rainHandler)}
-    if(state.selection == "Precipitation Tomorrow"){subscribe(sensor1, "Expected_Rain_Tomorrow", rainTomorrowHandler)}
+    if(state.selection == "Visibility"){subscribe(sensor1, "visibility", visibilityHandler)}
+    if(state.selection == "Forecast High"){subscribe(sensor1, "forecastHigh", forecastHighHandler)}
+    if(state.selection == "Forecast Low"){subscribe(sensor1, "forecastLow", forecastLowHandler)}
+	if(state.selection == "Chance Of Rain"){subscribe(sensor1, "chanceOfRain", rainHandler)}
+    if(state.selection == "Precipitation Tomorrow"){subscribe(sensor1, "rainTomorrow", rainTomorrowHandler)}
   	if(state.selection == "Precipitation The Day After Tomorrow"){subscribe(sensor1, "Expected_Rain_Day_After_Tomorrow", rainDayAfterTomorrowHandler)}
-    if(state.selection == "Forecast Conditions"){subscribe(sensor1, "Forecast_Conditions", forecastConditionsHandler)}
-    if(state.selection == "Sunrise"){subscribe(sensor1, "Sunrise", sunriseHandler)}
-    if(state.selection == "Sunset"){subscribe(sensor1, "Sunset", sunsetHandler)}
+    if(state.selection == "Forecast Conditions"){subscribe(sensor1, "forecastConditions", forecastConditionsHandler)}
+    if(state.selection == "Sunrise"){subscribe(sensor1, "localSunrise", sunriseHandler)}
+    if(state.selection == "Sunset"){subscribe(sensor1, "localSunset", sunsetHandler)}
 }
 
 def enableSwitch1Handler(evt){
@@ -299,7 +300,7 @@ def  illuminanceHandler(evt){
     def evt1 = event1.toDouble()
     def call1 = 'Illuminance'
 	LOGDEBUG("Illuminance is $evt1")
- 	actionNow(Illuminance, evt1)
+ 	actionNow(call1, evt1)
 }
         
     
@@ -343,8 +344,10 @@ state.station1 = evt.value
 LOGDEBUG("Station is $state.station1")    
 }
 
-
-
+def checkPollHandler(evt){
+state.pollCount1 = evt.value
+LOGDEBUG("Poll Count from driver is $state.pollCount1")    
+}
 
 
 
@@ -407,7 +410,7 @@ def uvHandler(evt){
     def evt9 = event9.toInteger() 
     def call9 = 'UV'
     LOGDEBUG("UV =  $evt9")
-    actionNow(call8, evt9)
+    actionNow(call9, evt9)
 }
 
 def visibilityHandler(evt){
@@ -458,6 +461,7 @@ def rainHandler(evt){
     def evt15 = event15.toDouble()
     def call15 = 'Chance Of Rain'
     LOGDEBUG("Chance Of Rain =  $evt15 %")
+    actionNow(call15, evt15)
 }
 
 def rainDayAfterTomorrowHandler(evt){
@@ -581,7 +585,8 @@ state.evtNow = evt.value as int
 state.thresh = threshold1
 state.action = action1
 state.mode = switchMode1
-   LOGDEBUG("Calling event: $call") 
+state.callNow = call.value
+   LOGDEBUG("Calling event: $state.callNow") 
 LOGDEBUG("Calling.. CheckTime")
 checkTime()
 LOGDEBUG("Calling.. CheckDay")
@@ -808,7 +813,7 @@ def LOGDEBUG(txt){
 
 // App & Driver Version   *********************************************************************************
 def setAppVersion(){
-    state.appversion = "1.5.0.241"
-    state.reqdriverversion = "2.4.1"  // required driver version for this app
+    state.appversion = "1.6.0.250"
+    state.reqdriverversion = "2.5.0"  // required driver version for this app
     state.reqNameSpace = "Cobra"   // check to confirm Cobra's driver is being used
 }
