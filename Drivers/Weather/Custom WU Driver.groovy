@@ -16,8 +16,10 @@
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
  *  for the specific language governing permissions and limitations under the License.
  *
- *  Last Update 03/05/2018
+ *  Last Update 04/05/2018
  *
+ *
+ *  V2.5.0 - Removed capabilitis/attributes switch and reformatted all in lowercase - @Cobra 04/05/2018
  *  V2.4.1 - Debug - Changed the switchable capabilities to allow them to be seen by 'rule machine'- @Cobra 03/05/2018
  *  V2.4.0 - Added switchable 'Capabilities & Lowercase Data' for use with dashboards & Rule Machine - @Cobra 02/05/2018
  *  V2.3.0 - Added Moon phase and illumination percentage - @Cobra 01/05/2018
@@ -49,64 +51,16 @@ metadata {
         capability "Illuminance Measurement"
         capability "Relative Humidity Measurement"
         
-        if(lowerCase == true){
-            log.info "Lowercase data: ON"
-         }
-        if(lowerCase == false){ 
-            log.info "Lowercase data: OFF"
-        }
-    
+       
 
         
         command "Poll"
         command "ForcePoll"
-        command "ResetPollCount"
+ //     command "ResetPollCount"
         
-    
-    
-        attribute "Polls_Since_Reset", "number"
-        attribute "Solar_Radiation", "number"
-        attribute "Observation_Time", "string"
-        attribute "Weather", "string"
-        attribute "Temperature_Feels_Like", "number"
-        attribute "Precip_Last_Hour", "number"
-        attribute "Precip_Today", "number"
-        attribute "Wind_Speed", "number"
-        attribute "Pressure", "number"
-        attribute "Dewpoint", "number"
-        attribute "UV", "number"
-        attribute "Visibility", "number"
-        attribute "Forecast_High", "number"
-        attribute "Forecast_Low", "number"
-        attribute "Forecast_Conditions", "string"
-        attribute "Display_Unit_Temperature", "string"
-        attribute "Display_Unit_Distance", "string"
-        attribute "Display_Unit_Pressure", "string"
-        attribute "Display_Unit_Precipitation", "sting"
-        attribute "Display_Summary_Format", "string"
-        attribute "Wind_Direction", "string"
-        attribute "Wind_Gust", "string"
-        attribute "Temperature", "string"
-        attribute "Illuminance", "string"
-        attribute "Humidity", "string"
-        attribute "Alert", "string"
-        attribute "Driver_Version", "string"
-        attribute "Driver_NameSpace", "string"
-        attribute "Station_ID", "string"
-        attribute "Weather_Summary", "string"
-        attribute "Station_City", "string"
-        attribute "Station_State", "string"
-        attribute "Chance_Of_Rain", "string"
-        attribute "Expected_Rain_Tomorrow", "string"
-        attribute "Expected_Rain_Day_After_Tomorrow", "string"
-   		attribute "Sunrise", "string"
-        attribute "Sunset", "string"
-        attribute "Moon_Phase", "string"
-        attribute "Moon_Illumination", "string"
- 
-        // Lowercase attributes
- if(lowerCase == true){
-		attribute "localSunrise", "string"
+        attribute "solarradiation", "number"
+        attribute "observation_time", "string"
+        attribute "localSunrise", "string"
         attribute "localSunset", "string"
         attribute "weather", "string"
         attribute "feelsLike", "number"
@@ -114,7 +68,40 @@ metadata {
 		attribute "city", "string"
         attribute "state", "string"
         attribute "percentPrecip", "string"
-   }        
+        attribute "wind_string", "string"
+        attribute "pressure", "number"
+        attribute "dewpoint", "number"
+        attribute "visibility", "number"
+        attribute "forecastHigh", "number"
+        attribute "forecastLow", "number"
+        attribute "forecastConditions", "string"
+        attribute "wind_dir", "string"
+        attribute "wind_gust", "string"
+        attribute "precip_1hr", "number"
+        attribute "precip_today", "number"
+        attribute "wind", "number"
+        attribute "UV", "number"
+       
+        attribute "pollsSinceReset", "number"
+        attribute "temperatureUnit", "string"
+        attribute "distanceUnit", "string"
+        attribute "pressureUnit", "string"
+        attribute "rainUnit", "string"
+        attribute "summaryFormat", "string"
+        attribute "Alert", "string"
+        attribute "driverVersion", "string"
+        attribute "driverNameSpace", "string"
+        attribute "stationID", "string"
+        attribute "weatherSummary", "string"
+        attribute "weatherSummaryFormat", "string"
+        attribute "chanceOfRain", "string"
+        attribute "rainTomorrow", "string"
+        attribute "rainDayAfterTomorrow", "string"
+        attribute "moonPhase", "string"
+        attribute "moonIllumination", "string"
+ 
+
+
      
         
     }
@@ -128,10 +115,9 @@ metadata {
             input "rainFormat", "enum", required: true, title: "Display Unit - Precipitation: Inches or Millimetres",  options: ["Inches", "Millimetres"]
             input "pollIntervalLimit", "number", title: "Poll Interval Limit:", required: true, defaultValue: 1
             input "autoPoll", "bool", required: false, title: "Enable Auto Poll"
-            input "pollInterval", "enum", title: "Auto Poll Interval:", required: false, defaultValue: "5 Minutes",
-                   options: ["5 Minutes", "10 Minutes", "15 Minutes", "30 Minutes", "1 Hour", "3 Hours"]
+            input "pollInterval", "enum", title: "Auto Poll Interval:", required: false, defaultValue: "5 Minutes", options: ["5 Minutes", "10 Minutes", "15 Minutes", "30 Minutes", "1 Hour", "3 Hours"]
             input "logSet", "bool", title: "Log All WU Response Data", required: true, defaultValue: false
-            input "lowerCase", "bool", title: "Enable 'Lowercase data", required: true, defaultValue: false
+            input "cutOff", "time", title: "New Day Starts", required: true
             input "summaryType", "bool", title: "Full Weather Summary", required: true, defaultValue: false
             input "iconType", "bool", title: "Icon: On = Current - Off = Forecast", required: true, defaultValue: false
             input "weatherFormat", "enum", required: true, title: "How to format weather summary",  options: ["Celsius, Miles & MPH", "Fahrenheit, Miles & MPH", "Celsius, Kilometres & KPH"]
@@ -141,13 +127,16 @@ metadata {
 
 def updated() {
     log.debug "updated called"
-    state.version = "2.4.1"    // ************************* Update as required *************************************
+    state.version = "2.5.0"    // ************************* Update as required *************************************
     unschedule()
     state.NumOfPolls = 0
     ForcePoll()
     def pollIntervalCmd = (settings?.pollInterval ?: "5 Minutes").replace(" ", "")
     if(autoPoll)
         "runEvery${pollIntervalCmd}"(pollSchedule)
+    
+     def changeOver = cutOff
+    schedule(changeOver, ResetPollCount)
 }
 
 def ResetPollCount(){
@@ -198,23 +187,15 @@ def ForcePoll()
             log.info "Further WU detailed data logging disabled"    
             }    
             
-       state.IncludeLowerCase = 'No'
-            
-            sendEvent(name: "Polls_Since_Reset", value: state.NumOfPolls, isStateChange: true)
-             sendEvent(name: "Driver_NameSpace", value: "Cobra", isStateChange: true)
-             sendEvent(name: "Driver_Version", value: state.version, isStateChange: true)
-             sendEvent(name: "Station_ID", value: resp1.data.current_observation.station_id, isStateChange: true)
-             sendEvent(name: "Station_City", value: resp1.data.current_observation.display_location.city, isStateChange: true)
-             sendEvent(name: "Chance_Of_Rain", value: resp1.data.forecast.simpleforecast.forecastday[0].pop + "%", isStateChange: true)
-            sendEvent(name: "Station_State", value: resp1.data.current_observation.display_location.state, isStateChange: true)
-            sendEvent(name: "Sunrise", value: resp1.data.sun_phase.sunrise.hour + ":" + resp1.data.sun_phase.sunrise.minute, isStateChange: true)
-        	sendEvent(name: "Sunset", value: resp1.data.sun_phase.sunset.hour + ":" + resp1.data.sun_phase.sunset.minute, isStateChange: true)
-   			sendEvent(name: "Moon_Phase", value: resp1.data.moon_phase.phaseofMoon , isStateChange: true)
-            sendEvent(name: "Moon_Illumination", value: resp1.data.moon_phase.percentIlluminated  + "%" , isStateChange: true)
-            
-// lowercase events
-            if(lowerCase == true){
-                state.IncludeLowerCase = 'Yes'
+    
+            sendEvent(name: "pollsSinceReset", value: state.NumOfPolls, isStateChange: true)
+             sendEvent(name: "driverNameSpace", value: "Cobra", isStateChange: true)
+             sendEvent(name: "driverVersion", value: state.version, isStateChange: true)
+             sendEvent(name: "stationID", value: resp1.data.current_observation.station_id, isStateChange: true)
+             sendEvent(name: "chanceOfRain", value: resp1.data.forecast.simpleforecast.forecastday[0].pop + "%", isStateChange: true)
+             sendEvent(name: "moonPhase", value: resp1.data.moon_phase.phaseofMoon , isStateChange: true)
+             sendEvent(name: "moonIllumination", value: resp1.data.moon_phase.percentIlluminated  + "%" , isStateChange: true)
+
             sendEvent(name: "weather", value: resp1.data.current_observation.weather, isStateChange: true)
             sendEvent(name: "humidity", value: resp1.data.current_observation.relative_humidity.replaceFirst("%", ""), isStateChange: true)
 	    	sendEvent(name: "illuminance", value: resp1.data.current_observation.solarradiation, unit: "lux", isStateChange: true)
@@ -232,15 +213,15 @@ def ForcePoll()
                 if(iconType == true){ 
 			       sendEvent(name: "weatherIcon", value: resp1.data.current_observation.icon, isStateChange: true)
                 }    
-            }
+           
            
            def WeatherSummeryFormat = weatherFormat
             
             if(summaryType == true){
             
             if (WeatherSummeryFormat == "Celsius, Miles & MPH"){
-                		 sendEvent(name: "Display_Summary_Format", value: "Celsius, Miles & MPH", isStateChange: true)
-                         sendEvent(name: "Weather_Summary", value: "Weather summary for" + " " + resp1.data.current_observation.display_location.city + ", " + resp1.data.current_observation.observation_time+ ". "   
+                		 sendEvent(name: "weatherSummaryFormat", value: "Celsius, Miles & MPH", isStateChange: true)
+                         sendEvent(name: "weatherSummary", value: "Weather summary for" + " " + resp1.data.current_observation.display_location.city + ", " + resp1.data.current_observation.observation_time+ ". "   
                        + resp1.data.forecast.simpleforecast.forecastday[0].conditions + " with a high of " + resp1.data.forecast.simpleforecast.forecastday[0].high.celsius + " degrees, " + "and a low of " 
                        + resp1.data.forecast.simpleforecast.forecastday[0].low.celsius  + " degrees. " + "Humidity is currently around " + resp1.data.current_observation.relative_humidity + " and temperature is " 
                        + resp1.data.current_observation.temp_c + " degrees. " + " The temperature feels like it's " + resp1.data.current_observation.feelslike_c + " degrees. " + "Wind is from the " + resp1.data.current_observation.wind_dir
@@ -250,8 +231,8 @@ def ForcePoll()
             }
                 
             if (WeatherSummeryFormat == "Fahrenheit, Miles & MPH"){
-                 		 sendEvent(name: "Display_Summary_Format", value: "Fahrenheit, Miles & MPH", isStateChange: true)
-                         sendEvent(name: "Weather_Summary", value: "Weather summary for" + " " + resp1.data.current_observation.display_location.city + ", " + resp1.data.current_observation.observation_time+ ". "  
+                 		 sendEvent(name: "weatherSummaryFormat", value: "Fahrenheit, Miles & MPH", isStateChange: true)
+                         sendEvent(name: "weatherSummary", value: "Weather summary for" + " " + resp1.data.current_observation.display_location.city + ", " + resp1.data.current_observation.observation_time+ ". "  
                        + resp1.data.forecast.simpleforecast.forecastday[0].conditions + " with a high of " + resp1.data.forecast.simpleforecast.forecastday[0].high.fahrenheit + " degrees, " + "and a low of " 
                        + resp1.data.forecast.simpleforecast.forecastday[0].low.fahrenheit  + " degrees. " + "Humidity is currently around " + resp1.data.current_observation.relative_humidity + " and temperature is " 
                        + resp1.data.current_observation.temp_f + " degrees. " + " The temperature feels like it's " + resp1.data.current_observation.feelslike_f + " degrees. " + "Wind is from the " + resp1.data.current_observation.wind_dir
@@ -261,8 +242,8 @@ def ForcePoll()
             }   
                 
              if (WeatherSummeryFormat == "Celsius, Kilometres & KPH"){
-                 		 sendEvent(name: "Display_Summary_Format", value: "Celsius, Kilometres & KPH", isStateChange: true)
-                         sendEvent(name: "Weather_Summary", value: "Weather summary for" + " " + resp1.data.current_observation.display_location.city + ", " + resp1.data.current_observation.observation_time+ ". "  
+                 		 sendEvent(name: "weatherSummaryFormat", value: "Celsius, Kilometres & KPH", isStateChange: true)
+                         sendEvent(name: "weatherSummary", value: "Weather summary for" + " " + resp1.data.current_observation.display_location.city + ", " + resp1.data.current_observation.observation_time+ ". "  
                        + resp1.data.forecast.simpleforecast.forecastday[0].conditions + " with a high of " + resp1.data.forecast.simpleforecast.forecastday[0].high.celsius + " degrees, " + "and a low of " 
                        + resp1.data.forecast.simpleforecast.forecastday[0].low.celsius  + " degrees. " + "Humidity is currently around " + resp1.data.current_observation.relative_humidity + " and temperature is " 
                        + resp1.data.current_observation.temp_c + " degrees. " + " The temperature feels like it's " + resp1.data.current_observation.feelslike_c + " degrees. " + "Wind is from the " + resp1.data.current_observation.wind_dir
@@ -283,8 +264,8 @@ def ForcePoll()
             if(summaryType == false){
                 
              if (WeatherSummeryFormat == "Celsius, Miles & MPH"){
-                		 sendEvent(name: "Display_Summary_Format", value: "Celsius, Miles & MPH", isStateChange: true)
-                         sendEvent(name: "Weather_Summary", value: resp1.data.forecast.simpleforecast.forecastday[0].conditions + ". " + " Forecast High:" + resp1.data.forecast.simpleforecast.forecastday[0].high.celsius + ", Forecast Low:" 
+                		 sendEvent(name: "weatherSummaryFormat", value: "Celsius, Miles & MPH", isStateChange: true)
+                         sendEvent(name: "weatherSummary", value: resp1.data.forecast.simpleforecast.forecastday[0].conditions + ". " + " Forecast High:" + resp1.data.forecast.simpleforecast.forecastday[0].high.celsius + ", Forecast Low:" 
                        + resp1.data.forecast.simpleforecast.forecastday[0].low.celsius  +  ". Humidity: " + resp1.data.current_observation.relative_humidity + " Temperature: " 
                        + resp1.data.current_observation.temp_c  + ". Wind Direction: " + resp1.data.current_observation.wind_dir + ". Wind Speed: " + resp1.data.current_observation.wind_mph + " mph" 
                        + ", Gust: " + resp1.data.current_observation.wind_gust_mph + " mph. Rain: "  +resp1.data.forecast.simpleforecast.forecastday[0].pop + "%" , isStateChange: true
@@ -292,8 +273,8 @@ def ForcePoll()
             }
             
             if (WeatherSummeryFormat == "Fahrenheit, Miles & MPH"){
-                		 sendEvent(name: "Display_Summary_Format", value: "Fahrenheit, Miles & MPH", isStateChange: true)
-                         sendEvent(name: "Weather_Summary", value: resp1.data.forecast.simpleforecast.forecastday[0].conditions + ". " + " Forecast High:" + resp1.data.forecast.simpleforecast.forecastday[0].high.fahrenheit + ", Forecast Low:" 
+                		 sendEvent(name: "weatherSummaryFormat", value: "Fahrenheit, Miles & MPH", isStateChange: true)
+                         sendEvent(name: "weatherSummary", value: resp1.data.forecast.simpleforecast.forecastday[0].conditions + ". " + " Forecast High:" + resp1.data.forecast.simpleforecast.forecastday[0].high.fahrenheit + ", Forecast Low:" 
                        + resp1.data.forecast.simpleforecast.forecastday[0].low.fahrenheit  +  ". Humidity: " + resp1.data.current_observation.relative_humidity + " Temperature: " 
                        + resp1.data.current_observation.temp_f  + ". Wind Direction: " + resp1.data.current_observation.wind_dir + ". Wind Speed: " + resp1.data.current_observation.wind_mph + " mph" 
                        + ", Gust: " + resp1.data.current_observation.wind_gust_mph + " mph. Rain:"  +resp1.data.forecast.simpleforecast.forecastday[0].pop + "%", isStateChange: true
@@ -301,8 +282,8 @@ def ForcePoll()
             }
             
              if (WeatherSummeryFormat ==  "Celsius, Kilometres & KPH"){
-                		 sendEvent(name: "Display_Summary_Format", value:  "Celsius, Kilometres & KPH", isStateChange: true)
-                         sendEvent(name: "Weather_Summary", value: resp1.data.forecast.simpleforecast.forecastday[0].conditions + ". " + " Forecast High:" + resp1.data.forecast.simpleforecast.forecastday[0].high.celsius + ", Forecast Low:" 
+                		 sendEvent(name: "weatherSummaryFormat", value:  "Celsius, Kilometres & KPH", isStateChange: true)
+                         sendEvent(name: "weatherSummary", value: resp1.data.forecast.simpleforecast.forecastday[0].conditions + ". " + " Forecast High:" + resp1.data.forecast.simpleforecast.forecastday[0].high.celsius + ", Forecast Low:" 
                        + resp1.data.forecast.simpleforecast.forecastday[0].low.celsius  +  ". Humidity: " + resp1.data.current_observation.relative_humidity + " Temperature: " 
                        + resp1.data.current_observation.temp_c  + ". Wind Direction: " + resp1.data.current_observation.wind_dir + ". Wind Speed: " + resp1.data.current_observation.wind_kph + " kph" 
                        + ", Gust: " + resp1.data.current_observation.wind_gust_kph + " kph. Rain:"  +resp1.data.forecast.simpleforecast.forecastday[0].pop + "%", isStateChange: true
@@ -318,91 +299,83 @@ def ForcePoll()
                 
             def illume = (resp1.data.current_observation.solarradiation)
             if(illume){
-            	 sendEvent(name: "Illuminance", value: resp1.data.current_observation.solarradiation, unit: "lux", isStateChange: true)
-                 sendEvent(name: "Solar_Radiation", value: resp1.data.current_observation.solarradiation, unit: "W", isStateChange: true)
+            	 sendEvent(name: "illuminance", value: resp1.data.current_observation.solarradiation, unit: "lux", isStateChange: true)
+                 sendEvent(name: "solarradiation", value: resp1.data.current_observation.solarradiation, unit: "W", isStateChange: true)
             }
             if(!illume){
-                 sendEvent(name: "Illuminance", value: "This station does not send Illumination data", isStateChange: true)
-            	 sendEvent(name: "Solar_Radiation", value: "This station does not send Solar Radiation data", isStateChange: true)
+                 sendEvent(name: "illuminance", value: "This station does not send Illumination data", isStateChange: true)
+            	 sendEvent(name: "solarradiation", value: "This station does not send Solar Radiation data", isStateChange: true)
             }   
             
-            sendEvent(name: "Observation_Time", value: resp1.data.current_observation.observation_time, isStateChange: true)
-            sendEvent(name: "Weather", value: resp1.data.current_observation.weather, isStateChange: true)
-   //         sendEvent(name: "Wind_String", value: resp1.data.current_observation.wind_string)
-            sendEvent(name: "Humidity", value: resp1.data.current_observation.relative_humidity, unit: "%", isStateChange: true)
+            sendEvent(name: "observation_time", value: resp1.data.current_observation.observation_time, isStateChange: true)
+            sendEvent(name: "weather", value: resp1.data.current_observation.weather, isStateChange: true)
+  		    sendEvent(name: "wind_string", value: resp1.data.current_observation.wind_string)
+            sendEvent(name: "humidity", value: resp1.data.current_observation.relative_humidity, unit: "%", isStateChange: true)
             sendEvent(name: "UV", value: resp1.data.current_observation.UV, isStateChange: true)
-            sendEvent(name: "Forecast_Conditions", value: resp1.data.forecast.simpleforecast.forecastday[0].conditions, isStateChange: true)
-            sendEvent(name: "Wind_Direction", value: resp1.data.current_observation.wind_dir, isStateChange: true)
+            sendEvent(name: "forecastConditions", value: resp1.data.forecast.simpleforecast.forecastday[0].conditions, isStateChange: true)
+            sendEvent(name: "wind_dir", value: resp1.data.current_observation.wind_dir, isStateChange: true)
             
             
             if(rainFormat == "Inches"){
-            sendEvent(name: "Precip_Last_Hour", value: resp1.data.current_observation.precip_1hr_in, unit: "IN", isStateChange: true)
-            sendEvent(name: "Precip_Today", value: resp1.data.current_observation.precip_today_in, unit: "IN", isStateChange: true)
-            sendEvent(name: "Expected_Rain_Tomorrow", value: resp1.data.forecast.simpleforecast.forecastday[1].qpf_allday.in, unit: "IN", isStateChange: true)
-            sendEvent(name: "Expected_Rain_Day_After_Tomorrow", value: resp1.data.forecast.simpleforecast.forecastday[2].qpf_allday.in, unit: "IN", isStateChange: true)
-            sendEvent(name: "Display_Unit_Precipitation", value: "Inches", isStateChange: true)
+            sendEvent(name: "precip_1hr", value: resp1.data.current_observation.precip_1hr_in, unit: "IN", isStateChange: true)
+            sendEvent(name: "precip_today", value: resp1.data.current_observation.precip_today_in, unit: "IN", isStateChange: true)
+            sendEvent(name: "rainTomorrow", value: resp1.data.forecast.simpleforecast.forecastday[1].qpf_allday.in, unit: "IN", isStateChange: true)
+            sendEvent(name: "rainDayAfterTomorrow", value: resp1.data.forecast.simpleforecast.forecastday[2].qpf_allday.in, unit: "IN", isStateChange: true)
+            sendEvent(name: "rainUnit", value: "Inches", isStateChange: true)
             }
             if(rainFormat == "Millimetres"){   
-            sendEvent(name: "Precip_Today", value: resp1.data.current_observation.precip_today_metric, unit: "MM", isStateChange: true)
-            sendEvent(name: "Precip_Last_Hour", value: resp1.data.current_observation.precip_1hr_metric, unit: "MM", isStateChange: true)
-            sendEvent(name: "Expected_Rain_Tomorrow", value: resp1.data.forecast.simpleforecast.forecastday[1].qpf_allday.mm, unit: "MM", isStateChange: true)
-            sendEvent(name: "Expected_Rain_Day_After_Tomorrow", value: resp1.data.forecast.simpleforecast.forecastday[2].qpf_allday.mm, unit: "MM", isStateChange: true)
-            sendEvent(name: "Display_Unit_Precipitation", value: "Millimetres", isStateChange: true)
+            sendEvent(name: "precip_today", value: resp1.data.current_observation.precip_today_metric, unit: "MM", isStateChange: true)
+            sendEvent(name: "precip_1hr", value: resp1.data.current_observation.precip_1hr_metric, unit: "MM", isStateChange: true)
+            sendEvent(name: "rainTomorrow", value: resp1.data.forecast.simpleforecast.forecastday[1].qpf_allday.mm, unit: "MM", isStateChange: true)
+            sendEvent(name: "rainDayAfterTomorrow", value: resp1.data.forecast.simpleforecast.forecastday[2].qpf_allday.mm, unit: "MM", isStateChange: true)
+            sendEvent(name: "rainUnit", value: "Millimetres", isStateChange: true)
             }
             
             if(tempFormat == "Celsius"){
-            sendEvent(name: "Temperature", value: resp1.data.current_observation.temp_c, unit: "C", isStateChange: true)
-            sendEvent(name: "Temperature_Feels_Like", value: resp1.data.current_observation.feelslike_c, unit: "C", isStateChange: true)
-            sendEvent(name: "Dewpoint", value: resp1.data.current_observation.dewpoint_c, unit: "C", isStateChange: true)
-            sendEvent(name: "Forecast_High", value: resp1.data.forecast.simpleforecast.forecastday[0].high.celsius, unit: "C", isStateChange: true)
-            sendEvent(name: "Forecast_Low", value: resp1.data.forecast.simpleforecast.forecastday[0].low.celsius, unit: "C", isStateChange: true)
-            sendEvent(name: "Display_Unit_Temperature", value: "Celsius", isStateChange: true)
-                
- // lowercase
-        if(lowerCase == true){
+            sendEvent(name: "dewpoint", value: resp1.data.current_observation.dewpoint_c, unit: "C", isStateChange: true)
+            sendEvent(name: "forecastHigh", value: resp1.data.forecast.simpleforecast.forecastday[0].high.celsius, unit: "C", isStateChange: true)
+            sendEvent(name: "forecastLow", value: resp1.data.forecast.simpleforecast.forecastday[0].low.celsius, unit: "C", isStateChange: true)
+            sendEvent(name: "temperatureUnit", value: "Celsius", isStateChange: true)
             sendEvent(name: "feelsLike", value: resp1.data.current_observation.feelslike_c, unit: "C", isStateChange: true)   
             sendEvent(name: "temperature", value: resp1.data.current_observation.temp_c, unit: "C", isStateChange: true)
-                 }
+         
             	
         }
            if(tempFormat == "Fahrenheit"){ 
-           sendEvent(name: "Temperature", value: resp1.data.current_observation.temp_f, unit: "F", isStateChange: true)
-           sendEvent(name: "Temperature_Feels_Like", value: resp1.data.current_observation.feelslike_f, unit: "F", isStateChange: true)
-           sendEvent(name: "Dewpoint", value: resp1.data.current_observation.dewpoint_f, unit: "F", isStateChange: true)
-           sendEvent(name: "Forecast_High", value: resp1.data.forecast.simpleforecast.forecastday[0].high.fahrenheit, unit: "F", isStateChange: true)
-           sendEvent(name: "Forecast_Low", value: resp1.data.forecast.simpleforecast.forecastday[0].low.fahrenheit, unit: "F", isStateChange: true)
-           sendEvent(name: "Display_Unit_Temperature", value: "Fahrenheit", isStateChange: true)
-
-// lowercase
-         if(lowerCase == true){
+           sendEvent(name: "temperature", value: resp1.data.current_observation.temp_f, unit: "F", isStateChange: true)
+           sendEvent(name: "feelsLike", value: resp1.data.current_observation.feelslike_f, unit: "F", isStateChange: true)
+           sendEvent(name: "dewpoint", value: resp1.data.current_observation.dewpoint_f, unit: "F", isStateChange: true)
+           sendEvent(name: "forecastHigh", value: resp1.data.forecast.simpleforecast.forecastday[0].high.fahrenheit, unit: "F", isStateChange: true)
+           sendEvent(name: "forecastLow", value: resp1.data.forecast.simpleforecast.forecastday[0].low.fahrenheit, unit: "F", isStateChange: true)
+           sendEvent(name: "temperatureUnit", value: "Fahrenheit", isStateChange: true)
            sendEvent(name: "feelsLike", value: resp1.data.current_observation.feelslike_f, unit: "F", isStateChange: true)    
            sendEvent(name: "temperature", value: resp1.data.current_observation.temp_f, unit: "F", isStateChange: true)	
-                }          	
+    	
            }  
             
           if(distanceFormat == "Miles (mph)"){  
-            sendEvent(name: "Visibility", value: resp1.data.current_observation.visibility_mi, unit: "mi", isStateChange: true)
-            sendEvent(name: "Wind_Speed", value: resp1.data.current_observation.wind_mph, unit: "MPH", isStateChange: true)
-            sendEvent(name: "Wind_Gust", value: resp1.data.current_observation.wind_gust_mph, isStateChange: true) 
-            sendEvent(name: "Display_Unit_Distance", value: "Miles (mph)", isStateChange: true)
+            sendEvent(name: "visibility", value: resp1.data.current_observation.visibility_mi, unit: "mi", isStateChange: true)
+            sendEvent(name: "wind", value: resp1.data.current_observation.wind_mph, unit: "MPH", isStateChange: true)
+            sendEvent(name: "wind_gust", value: resp1.data.current_observation.wind_gust_mph, isStateChange: true) 
+            sendEvent(name: "distanceUnit", value: "Miles (mph)", isStateChange: true)
           }  
             
           if(distanceFormat == "Kilometres (kph)"){
-           sendEvent(name: "Visibility", value: resp1.data.current_observation.visibility_km, unit: "km", isStateChange: true)
-           sendEvent(name: "Wind_Speed", value: resp1.data.current_observation.wind_kph, unit: "KPH", isStateChange: true)  
-           sendEvent(name: "Wind_Gust", value: resp1.data.current_observation.wind_gust_kph, isStateChange: true) 
-           sendEvent(name: "Display_Unit_Distance", value: "Kilometres (kph)", isStateChange: true)  
+           sendEvent(name: "visibility", value: resp1.data.current_observation.visibility_km, unit: "km", isStateChange: true)
+           sendEvent(name: "wind", value: resp1.data.current_observation.wind_kph, unit: "KPH", isStateChange: true)  
+           sendEvent(name: "wind_gust", value: resp1.data.current_observation.wind_gust_kph, isStateChange: true) 
+           sendEvent(name: "distanceUnit", value: "Kilometres (kph)", isStateChange: true)  
           }
                       
             if(pressureFormat == "Inches"){
                 
-            sendEvent(name: "Pressure", value: resp1.data.current_observation.pressure_in, unit: "mi", isStateChange: true)
-            sendEvent(name: "Display_Unit_Pressure", value: "Inches")  
+            sendEvent(name: "pressure", value: resp1.data.current_observation.pressure_in, unit: "mi", isStateChange: true)
+            sendEvent(name: "pressureUnit", value: "Inches")  
             }
             
             if(pressureFormat == "Millibar"){
-            sendEvent(name: "Pressure", value: resp1.data.current_observation.pressure_mb, unit: "mb", isStateChange: true)
-            sendEvent(name: "Display_Unit_Pressure", value: "Millibar", isStateChange: true) 
+            sendEvent(name: "pressure", value: resp1.data.current_observation.pressure_mb, unit: "mb", isStateChange: true)
+            sendEvent(name: "pressureUnit", value: "Millibar", isStateChange: true) 
             }
             
    
