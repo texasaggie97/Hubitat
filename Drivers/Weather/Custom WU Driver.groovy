@@ -88,7 +88,7 @@ metadata {
         attribute "pressureUnit", "string"
         attribute "rainUnit", "string"
         attribute "summaryFormat", "string"
-        attribute "Alert", "string"
+        attribute "alert", "string"
         attribute "driverVersion", "string"
         attribute "driverNameSpace", "string"
         attribute "stationID", "string"
@@ -381,10 +381,10 @@ def ForcePoll()
    
              def possAlert = (resp1.data.alerts.description)
                if (possAlert){
-               sendEvent(name: "Alert", value: resp1.data.alerts.description, isStateChange: true)  
+               sendEvent(name: "alert", value: resp1.data.alerts.description, isStateChange: true)  
                }
                 if (!possAlert){
-               sendEvent(name: "Alert", value: " No current weather alerts for this area")
+               sendEvent(name: "alert", value: " No current weather alerts for this area")
                 }
                
           state.lastPoll = now()     
