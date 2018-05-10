@@ -1,7 +1,7 @@
 /**
  *  ****************  Presence Central.  ****************
  *
- *  Credits: I have to credit Brian Gudauskas (Reliable Presence) & Eric Roberts (Everyones Presence) for stealing some of their code for multiple presence sensor determinations
+ *  Credits: I have to credit Brian Gudauskas (ST Reliable Presence) & Eric Roberts (ST Everyones Presence) for stealing some of their code for multiple presence sensor determinations
  *
  *
  *  Design Usage:
@@ -36,10 +36,11 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 20/03/2018
+ *  Last Update: 10/05/2018
  *
  *  Changes:
  *
+ *  V2.4.0 - Re-enabled TTS talking as an action option
  *  V2.3.1 - Added ability to configure Pushover priority from GUI
  *  V2.3.0 - Added 'PushOver' messaging option
  *  V2.2.0 - Debug SMS and added 5 slots for phone numbers
@@ -57,8 +58,8 @@
  *  V1.0.1 - debug
  *  V1.0.0 - POC
  *
- *  Features to come.... Speak a message, control a door
- *  NOTE: Currently the 'send a message' feature only works with US numbers
+ *  Features to come....  control a garage door
+ *  
  */
 
  
@@ -291,10 +292,10 @@ def presenceActions(){
 
 
 def outputActions(){
-input "presenceAction", "enum", title: "What action to take?",required: true, submitOnChange: true, options: ["Control A Switch", "Change Mode",  "Control a Lock", "Send An SMS Message", "PushOver Message", "Flash Lights", "Set Safety Monitor Mode"]
+input "presenceAction", "enum", title: "What action to take?",required: true, submitOnChange: true, options: ["Control A Switch", "Change Mode",  "Control a Lock", "Send An SMS Message", "PushOver Message", "Speak A Message", "Flash Lights", "Set Safety Monitor Mode"]
 
     // Removed from 'action' options until active/re-coded  ********************************************************************************************************************************
-    // "Speak A Message", "Control a Door", 
+    // , "Control a Door", 
     
     
 if (presenceAction) {
@@ -1226,7 +1227,8 @@ checkVolume()
 
     if ( state.timer1 == true && state.msg1 != null){
 	LOGDEBUG("Speaking now - Message: '$state.msg1'")
-	speaker.speak(state.msg1)
+	speaker.playTextAndRestore(state.msg1)
+ //   speaker.speak(state.msg1)
    	startTimerSpeak()  
  } 
 	else if ( state.timer1 == false){
@@ -1621,6 +1623,6 @@ def LOGDEBUG(txt){
 
 // App Version   ***********************************************
 def setAppVersion(){
-    state.appversion = "2.3.1"
+    state.appversion = "2.4.0"
 }
 // end app version *********************************************
