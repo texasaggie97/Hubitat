@@ -279,10 +279,10 @@ def variablesPage() {
      
      section() { 
    input "preMsg1", "text", title: " %group1% -  message 1",  required: false, defaultValue: "Hey! ,,,"   
-   input "preMsg2", "text", title: " %group1% -  message 2",  required: false, defaultValue: "Information! ,,,"        
-   input "preMsg3", "text", title: " %group1% -  message 3",  required: false, defaultValue: "I thought you might like to know ,,, "        
-   input "preMsg4", "text", title: " %group1% -  message 4",  required: false, defaultValue: "I'm sorry to disturb you but "        
-   input "preMsg5", "text", title: " %group1% -  message 5",  required: false, defaultValue:  "Hey! but I thought you might like to know "        
+   input "preMsg2", "text", title: " %group1% -  message 2",  required: false, defaultValue: "Information!,"        
+   input "preMsg3", "text", title: " %group1% -  message 3",  required: false, defaultValue: "I thought you might like to know ,"        
+   input "preMsg4", "text", title: " %group1% -  message 4",  required: false, defaultValue: "I'm sorry to disturb you but,"        
+   input "preMsg5", "text", title: " %group1% -  message 5",  required: false, defaultValue:  "Hey! but I thought you might like to know,"        
         }  
     }
 }    
@@ -293,7 +293,7 @@ def variablesPage() {
      section() { 
    input "postMsg1", "text", title: " %group2% -  message 1",  required: false, defaultValue: "I'm telling you this ,,, because I just thought you might like to know!"   
    input "postMsg2", "text", title: " %group2% -  message 2",  required: false, defaultValue:  "I just thought you might like to know this"        
-   input "postMsg3", "text", title: "  %group2%-  message 3",  required: false, defaultValue: "I thought you might like to know."        
+   input "postMsg3", "text", title: " %group2%-  message 3",  required: false, defaultValue: "I thought you might like to know"        
    input "postMsg4", "text", title: " %group2% -  message 4",  required: false, defaultValue:  "I just thought you might like to know this, that's all!"
    input "postMsg5", "text", title: " %group2% -  message 5",  required: false, defaultValue:  "I'm only telling you this because I love you"       
   
@@ -309,8 +309,8 @@ def variablesPage() {
    input "wakeMsg1", "text", title: " %group3% -  message 1",  required: false, defaultValue: "It's time to wake up!"
    input "wakeMsg2", "text", title: " %group3% -  message 2",  required: false, defaultValue: "Please Wake Up!"       
    input "wakeMsg3", "text", title: " %group3% -  message 3",  required: false, defaultValue: "Come on!,,, It's time to wake up!"        
-   input "wakeMsg4", "text", title: " %group3% -  message 4",  required: false, defaultValue: "Get out of bed! ,,, NOW! "       
-   input "wakeMsg5", "text", title: " %group3% -  message 5",  required: false, defaultValue:  "Come on! it's time to get up!"        
+   input "wakeMsg4", "text", title: " %group3% -  message 4",  required: false, defaultValue: "Get out of bed!,NOW!"       
+   input "wakeMsg5", "text", title: " %group3% -  message 5",  required: false, defaultValue:  "Come on! It's time to get up!"        
   
       }  
     }
@@ -326,14 +326,14 @@ def pageHelpVariables(){
 
 	AvailableVariables += " %time% 			-		Replaced with current time in 12 or 24 hour format (Switchable)\n\n"
 	AvailableVariables += " %day% 			- 		Replaced with current day of the week\n\n"
-	AvailableVariables += " %date% 			- 		Replaced with current day number & month\n\n"
-	AvailableVariables += " %year% 			- 		Replaced with the current year\n\n"
+//	AvailableVariables += " %date% 			- 		Replaced with current day number & month\n\n"
+//	AvailableVariables += " %year% 			- 		Replaced with the current year\n\n"
     AvailableVariables += " %greeting% 		- 		Replaced with 'Good Morning', 'Good Afternoon' or 'Good Evening' (evening starts at 6pm)\n\n"
  
 
-    AvailableVariables += " %group1%			- 		Replaced with the a random message from Group1\n\n"
-    AvailableVariables += " %group2%			- 		Replaced with the a random message from Group1\n\n"
-    AvailableVariables += " %group3%			- 		Replaced with the a random message from Group1\n\n"
+    AvailableVariables += " %group1%		- 		Replaced with the a random message from Group1\n\n"
+    AvailableVariables += " %group2%		- 		Replaced with the a random message from Group2\n\n"
+    AvailableVariables += " %group3%		- 		Replaced with the a random message from Group3\n\n"
       
 //	AvailableVariables += " %weather% 		- 		Replaced with the current weather forcast\n\n"
 	AvailableVariables += " %opencontact% 	- 		Replaced with a list of configured contacts if they are open\n\n"
@@ -352,9 +352,9 @@ section(){
 	href "pageHelpVariables", title:"Message Variables Help", description:"Tap here to view the available variables"
 
 
-href "prePostPage1", title:"Pre Random Messages", description:"Tap here to configure 'PRE' random messages"
-href "prePostPage2", title:"Post Random Messages", description:"Tap here to configure 'POST' random messages"
-href "wakeUpPage", title:"WakeUp Random Messages", description:"Tap here to configure 'WAKEUP' random messages"
+href "prePostPage1", title:"Group1 Random Messages", description:"Tap here to configure 'Group1' random messages"
+href "prePostPage2", title:"Group2 Random Messages", description:"Tap here to configure 'Group2 random messages"
+href "wakeUpPage", title:"Group3 Random Messages", description:"Tap here to configure 'Group3' random messages"
     
     }
   }
@@ -2406,8 +2406,8 @@ private compileMsg(msg) {
     
     if (msgComp.contains("%TIME%")) {msgComp = msgComp.toUpperCase().replace('%TIME%', getTime(false,true))}  
     if (msgComp.contains("%DAY%")) {msgComp = msgComp.toUpperCase().replace('%DAY%', getDay() )}  
-	if (msgComp.contains("%DATE%")) {msgComp = msgComp.toUpperCase().replace('%DATE%', getdate() )}  
-    if (msgComp.contains("%YEAR%")) {msgComp = msgComp.toUpperCase().replace('%YEAR%', getyear() )}  
+//	if (msgComp.contains("%DATE%")) {msgComp = msgComp.toUpperCase().replace('%DATE%', getdate() )}  
+//    if (msgComp.contains("%YEAR%")) {msgComp = msgComp.toUpperCase().replace('%YEAR%', getyear() )}  
  
 //    if (msgComp.contains("%WEATHER%")) {msgComp = msgComp.toUpperCase().replace('%WEATHER%', getWeatherReport() )}  
     
@@ -2415,9 +2415,9 @@ private compileMsg(msg) {
 	if (msgComp.contains("%DEVICE%")) {msgComp = msgComp.toUpperCase().replace('%DEVICE%', getNameofDevice() )}  
 	if (msgComp.contains("%EVENT%")) {msgComp = msgComp.toUpperCase().replace('%EVENT%', getWhatHappened() )}  
     if (msgComp.contains("%GREETING%")) {msgComp = msgComp.toUpperCase().replace('%GREETING%', getGreeting() )}      
-    if (msgComp.contains("%GROUP1%")) {msgComp = msgComp.toUpperCase().replace('%RAND1%', getPre() )}
-    if (msgComp.contains("%GROUP2%")) {msgComp = msgComp.toUpperCase().replace('%RAND2%', getPost() )}
-     if (msgComp.contains("%GROUP3%")) {msgComp = msgComp.toUpperCase().replace('%RAND3%', getWakeUp() )}
+    if (msgComp.contains("%GROUP1%")) {msgComp = msgComp.toUpperCase().replace('%GROUP1%', getPre() )}
+    if (msgComp.contains("%GROUP2%")) {msgComp = msgComp.toUpperCase().replace('%GROUP2%', getPost() )}
+     if (msgComp.contains("%GROUP3%")) {msgComp = msgComp.toUpperCase().replace('%GROUP3%', getWakeUp() )}
 
 
     
