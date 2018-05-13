@@ -16,9 +16,9 @@
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
  *  for the specific language governing permissions and limitations under the License.
  *
- *  Last Update 11/05/2018
+ *  Last Update 13/05/2018
  *
- *
+ *  V1.3.0 - Debug - I mixed up day1 & day3 in calculation 
  *  V1.2.0 - cleanup of commented out code - put 'manual poll' in dropdown (removed autopoll switch) - Added WU_Update attribute & code - Fixed error in calculation formula
  *  V1.1.0 - Added ability to set time to calculate rainfall
  *  V1.0.0 - Original POC
@@ -35,7 +35,7 @@ metadata {
 
         command "ManualPoll"
 //      command "PollCountReset"
-//      command "createHistory"
+ //     command "createHistory"
 //      command "calculateNow"
            
      	attribute "WU_Update", "string"
@@ -52,7 +52,7 @@ metadata {
         attribute "NumberOfPolls", "string"
         attribute "Expected_Rain_Tomorrow", "string"
         attribute "Expected_Rain_Day_After_Tomorrow", "string"
-   	attribute "Sunrise", "string"
+   		attribute "Sunrise", "string"
         attribute "Sunset", "string"
         attribute "Illuminance", "string"
         attribute "Rain_Chance", "string"
@@ -77,7 +77,7 @@ metadata {
             input "tdWeight", "enum", required: true, title: "Weighting: Today",  options: ["1", "2", "3", "4", "5"]
             input "tmWeight", "enum", required: true, title: "Weighting: Tomorrow",  options: ["1", "2", "3", "4", "5"]
             input "datWeight", "enum", required: true, title: "Weighting: The Day After Tomorrow",  options: ["1", "2", "3", "4", "5"]
- 	    input "cutOff", "time", title: "Day Reset Time", required: true
+ 			input "cutOff", "time", title: "Day Reset Time", required: true
             input "checkTime", "time", title: "Check Criteria Time", required: true
             input "runTime", "time", title: "Time to switch ON ", required: true
             input "stopTime", "time", title: "Time to switch OFF ", required: true
@@ -89,7 +89,7 @@ metadata {
 
 def updated() {
     log.debug "updated called - $settings"
-   state.version = "1.2.0"     // *******************************************************************************************************************************************
+   state.version = "1.3.0"     // *******************************************************************************************************************************************
     unschedule()
     state.NumOfPolls = 0
     ForcePoll()
@@ -109,8 +109,8 @@ def updated() {
     
     
     state.rainTmp3 = 0  // default for rain the day before yesterday
-    state.rainTmp2 = 0  // default for rain yesterday
-    state.rainTmp1 = 0  // default for rain today
+	state.rainTmp2 = 0  // default for rain yesterday
+	state.rainTmp1 = 0  // default for rain today
     state.rainTmp4 = 0  // default for rain tomorrow
     state.rainTmp5 = 0  // default for rain the day after tomorrow
     state.finalCalc = 0 // default for final calculation
@@ -176,11 +176,11 @@ def calculateFinal(){
     log.info " Running calculations for today... "
     
     /** 
-	Day1 = The Day Before Yesterday
-	Day2 = Yesterday
-	Day3 = Today
-	Day4 = Tomorrow
-	Day5 = Day After Tomorrow
+Day1 = Today
+Day2 = Yesterday
+Day3 = The Day Before Yesterday
+Day4 = Tomorrow
+Day5 = Day After Tomorrow
     
     */
     
@@ -196,10 +196,12 @@ def calculateFinal(){
     def day3Stat = state.rainTmp3.toDouble()
     def day4Stat = state.rainTmp4.toDouble()
     def day5Stat = state.rainTmp5.toDouble()
+    
+    
 	
-    def day1Calc = (day1Stat * dbyWeight1)
+    def day1Calc = (day1Stat * tdWeight1)
     def day2Calc = (day2Stat * yWeight1)
-    def day3Calc = (day3Stat * tdWeight1)
+    def day3Calc = (day3Stat * dbyWeight1)
     def day4Calc = (day4Stat * tmWeight1)
     def day5Calc = (day5Stat * datWeight1)
     
@@ -223,9 +225,9 @@ def createHistory(evt){
     ForcePoll()
     PollCountReset()
     log.info "Calling CreatHistory"
-	state.rainTmp3 = state.rainTmp2
-	state.rainTmp2 = state.rainTmp1
-	state.rainTmp1 = state.rainToday.toDouble()
+state.rainTmp3 = state.rainTmp2
+state.rainTmp2 = state.rainTmp1
+// state.rainTmp1 = state.rainToday.toDouble()
 
     ForcePoll() 
 }
@@ -284,7 +286,7 @@ def ForcePoll()
             
             sendEvent(name: "WU_Update", value: resp1.data.current_observation.observation_time, isStateChange: true)
             sendEvent(name: "Run_Today", value: "$state.canRun", isStateChange: true)
-     	    sendEvent(name: "Todays_Calculation", value: state.finalCalc, isStateChange: true)
+     		sendEvent(name: "Todays_Calculation", value: state.finalCalc, isStateChange: true)
             sendEvent(name: "Rain_TheDayBeforeYesterday", value: state.rainTmp3, isStateChange: true)
             sendEvent(name: "Rain_Yesterday", value: state.rainTmp2, isStateChange: true)
             sendEvent(name: "Polls_Since_Reset", value: state.NumOfPolls, isStateChange: true)
@@ -293,7 +295,7 @@ def ForcePoll()
             sendEvent(name: "Station_ID", value: resp1.data.current_observation.station_id, isStateChange: true)
             sendEvent(name: "Rain_Chance", value: resp1.data.forecast.simpleforecast.forecastday[0].pop + "%", isStateChange: true)
             sendEvent(name: "Sunrise", value: resp1.data.sun_phase.sunrise.hour + ":" + resp1.data.sun_phase.sunrise.minute, isStateChange: true)
-            sendEvent(name: "Sunset", value: resp1.data.sun_phase.sunset.hour + ":" + resp1.data.sun_phase.sunset.minute, isStateChange: true)
+        	sendEvent(name: "Sunset", value: resp1.data.sun_phase.sunset.hour + ":" + resp1.data.sun_phase.sunset.minute, isStateChange: true)
    			
            if(tempFormat == "Celsius"){
             sendEvent(name: "Temperature", value: resp1.data.current_observation.temp_c, unit: "C", isStateChange: true)  
@@ -310,7 +312,7 @@ def ForcePoll()
             if(rainFormat == "Inches"){
                   log.info "rainFormat = Inches"
             sendEvent(name: "Rain_Today", value: resp1.data.current_observation.precip_today_in, unit: "IN", isStateChange: true)
-            state.rainToday = (resp1.data.current_observation.precip_today_in)
+            state.rainTmp1 = (resp1.data.current_observation.precip_today_in)
             state.rainTmp4 = (resp1.data.forecast.simpleforecast.forecastday[1].qpf_allday.in)
             state.rainTmp5 = (resp1.data.forecast.simpleforecast.forecastday[2].qpf_allday.in)
             sendEvent(name: "Expected_Rain_Tomorrow", value: resp1.data.forecast.simpleforecast.forecastday[1].qpf_allday.in, unit: "IN", isStateChange: true)
@@ -320,7 +322,7 @@ def ForcePoll()
             if(rainFormat == "Millimetres"){  
                  log.info "rainFormat = Millimetres"
             sendEvent(name: "Rain_Today", value: resp1.data.current_observation.precip_today_metric, unit: "MM", isStateChange: true)
-            state.rainToday = (resp1.data.current_observation.precip_today_metric)
+            state.rainTmp1 = (resp1.data.current_observation.precip_today_metric)
             state.rainTmp4 = (resp1.data.forecast.simpleforecast.forecastday[1].qpf_allday.mm)
             state.rainTmp5 = (resp1.data.forecast.simpleforecast.forecastday[2].qpf_allday.mm)   
             sendEvent(name: "Expected_Rain_Tomorrow", value: resp1.data.forecast.simpleforecast.forecastday[1].qpf_allday.mm, unit: "MM", isStateChange: true)
