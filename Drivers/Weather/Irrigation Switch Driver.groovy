@@ -16,8 +16,9 @@
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
  *  for the specific language governing permissions and limitations under the License.
  *
- *  Last Update 13/05/2018
+ *  Last Update 14/05/2018
  *
+ *  V1.4.0 - Added  ForcePoll() to line 178 to force an update before calculations
  *  V1.3.0 - Debug - I mixed up day1 & day3 in calculation 
  *  V1.2.0 - cleanup of commented out code - put 'manual poll' in dropdown (removed autopoll switch) - Added WU_Update attribute & code - Fixed error in calculation formula
  *  V1.1.0 - Added ability to set time to calculate rainfall
@@ -89,7 +90,7 @@ metadata {
 
 def updated() {
     log.debug "updated called - $settings"
-   state.version = "1.3.0"     // *******************************************************************************************************************************************
+   state.version = "1.4.0"   // *******************************************************************************************************************************************
     unschedule()
     state.NumOfPolls = 0
     ForcePoll()
@@ -174,7 +175,9 @@ sendEvent(name: "switch", value: "off")
 
 def calculateFinal(){
     log.info " Running calculations for today... "
-    
+     ForcePoll()
+
+
     /** 
 Day1 = Today
 Day2 = Yesterday
