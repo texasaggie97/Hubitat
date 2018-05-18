@@ -16,8 +16,11 @@
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
  *  for the specific language governing permissions and limitations under the License.
  *
- *  Last Update 14/05/2018
+ *  Last Update 17/05/2018
  *
+ *
+ *
+ *  V1.5.0 - Changed goNogo input to allow decimal point input
  *  V1.4.0 - Added  ForcePoll() to line 178 to force an update before calculations
  *  V1.3.0 - Debug - I mixed up day1 & day3 in calculation 
  *  V1.2.0 - cleanup of commented out code - put 'manual poll' in dropdown (removed autopoll switch) - Added WU_Update attribute & code - Fixed error in calculation formula
@@ -36,7 +39,7 @@ metadata {
 
         command "ManualPoll"
 //      command "PollCountReset"
- //     command "createHistory"
+//      command "createHistory"
 //      command "calculateNow"
            
      	attribute "WU_Update", "string"
@@ -69,7 +72,7 @@ metadata {
         section("Query Inputs"){
             input "apiKey", "text", required: true, title: "API Key"
             input "pollLocation", "text", required: true, title: "ZIP Code or Location" 
-            input "goNogo", "number", required: true, title: " Switch on if calculation below" 
+            input "goNogo", "decimal", required: true, title: " Switch on if calculation below" 
             input "rainFormat", "enum", required: true, title: "Display Unit - Rain: Inches or Millimetres",  options: ["Inches", "Millimetres"]
             input "tempFormat", "enum", required: true, title: "Display Unit - Temp: Fahrenheit or Celsius",  options: ["Fahrenheit", "Celsius"]
             input "pollInterval", "enum", title: "Poll Interval:", required: true, defaultValue: "5 Minutes", options: ["Manual Poll Only", "5 Minutes", "10 Minutes", "15 Minutes", "30 Minutes", "1 Hour", "3 Hours"]
@@ -90,7 +93,7 @@ metadata {
 
 def updated() {
     log.debug "updated called - $settings"
-   state.version = "1.4.0"   // *******************************************************************************************************************************************
+   state.version = "1.5.0"   // *******************************************************************************************************************************************
     unschedule()
     state.NumOfPolls = 0
     ForcePoll()
@@ -176,8 +179,6 @@ sendEvent(name: "switch", value: "off")
 def calculateFinal(){
     log.info " Running calculations for today... "
      ForcePoll()
-
-
     /** 
 Day1 = Today
 Day2 = Yesterday
