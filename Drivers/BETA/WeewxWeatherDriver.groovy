@@ -198,7 +198,7 @@ def parse(String description) {
 def PollNow()
 {
     units()
-    state.driverversion = "1.0.0"   
+    state.driverversion = "1.1.0"   
     // ************************* Update as required *************************************
     
  
