@@ -21,7 +21,7 @@
  *  Last Update 31/05/2018
  *
  *
- *  V1.1.2 - Changed single speechmarks for double
+ *  V1.1.2 - Changed single speechmarks for double & some code cleanup
  *  V1.1.1 - debug
  *  V1.1.0 - Added error checking for 'N/A' and 'No Station Data' when N/A is returned
  *  V1.0.0 - Original POC
