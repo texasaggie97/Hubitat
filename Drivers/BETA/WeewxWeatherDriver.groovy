@@ -18,9 +18,10 @@
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
  *  for the specific language governing permissions and limitations under the License.
  *
- *  Last Update 30/05/2018
+ *  Last Update 31/05/2018
  *
  *
+ *  V1.1.2 - Changed single speechmarks for double
  *  V1.1.1 - debug
  *  V1.1.0 - Added error checking for 'N/A' and 'No Station Data' when N/A is returned
  *  V1.0.0 - Original POC
@@ -121,14 +122,8 @@ metadata {
             input "temperatureUnit", "enum", title: "Temperature Unit", required:true, defaultValue: "Fahrenheit (°F)", options: ["Fahrenheit (°F)", "Celsius (°C)"]
             input "decimalUnit", "enum", title: "Max Decimal Places", required:true, defaultValue: "2", options: ["1", "2", "3", "4", "5"]
             
-     //       input "tempFormat", "enum", required: true, title: "Display Unit - Temperature: Fahrenheit or Celsius",  options: ["Fahrenheit", "Celsius"]
-   //         input "distanceFormat", "enum", required: true, title: "Display Unit - Distance/Speed: Miles or Kilometres",  options: ["Miles (mph)", "Kilometres (kph)"]
-   //         input "pressureFormat", "enum", required: true, title: "Display Unit - Pressure: Inches or Millibar",  options: ["Inches", "Millibar"]
-   //         input "rainFormat", "enum", required: true, title: "Display Unit - Precipitation: Inches or Millimetres",  options: ["Inches", "Millimetres"]
-   //         input "pollIntervalLimit", "number", title: "Poll Interval Limit:", required: true, defaultValue: 1
-      //    input "autoPoll", "bool", required: false, title: "Enable Auto Poll"
-     //       input "pollInterval", "enum", title: "Auto Poll Interval:", required: false, defaultValue: "5 Minutes", options: ["5 Minutes", "10 Minutes", "15 Minutes", "30 Minutes", "1 Hour", "3 Hours"]
-          
+ 
+  
     //        input "cutOff", "time", title: "New Day Starts", required: true
     //        input "summaryType", "bool", title: "Full Weather Summary", required: true, defaultValue: false
     //        input "iconType", "bool", title: "Icon: On = Current - Off = Forecast", required: true, defaultValue: false
@@ -242,11 +237,12 @@ def PollNow()
             
 // Collect Data
             // Sometimes, after saving, Hubitat changes some characters that we don't want changing!
-            // &#176;F = degrees F
-            //  W/m&#178; = W/m²
+            // & # 1 7 6 ; F = degrees F (remove spaces before replacing on lines: 258, 288, 312 & 324)
+            //  W/m & # 1 7 8 ; = W/m² (remove spaces before replacing on lines: 246 & 252)
+
             
               def illuminanceRaw1 = (resp1.data.stats.current.solarRadiation.replaceFirst("W/m&#178;", ""))
-               	if(illuminanceRaw1 == 'N/A'){
+               	if(illuminanceRaw1 == "N/A" | illuminanceRaw1 == null){
                 	state.illuminanceRaw = "0"
                 	state.illuminenceNow = 'No Data'}
             	else{
@@ -256,7 +252,7 @@ def PollNow()
            
             
               def solarradiationRaw1 = (resp1.data.stats.current.solarRadiation.replaceFirst("W/m&#178;", ""))
-            	if(solarradiationRaw1 == 'N/A'){
+            	if(solarradiationRaw1 == "N/A" | solarradiationRaw1 == null){
                     state.solarradiationRaw = "0"
                 	state.solarradiationNow = 'No Data'}
             	else{
@@ -265,7 +261,7 @@ def PollNow()
                 }
             
               def dewpointRaw1 = (resp1.data.stats.current.dewpoint.replaceFirst("&#176;F", ""))
-            	if(dewpointRaw1 == 'N/A'){
+            	if(dewpointRaw1 == "N/A" | dewpointRaw1 == null){
                     state.dewpointRaw = "0"
                 	state.dewpointNow = 'No Data'}
             	else{
@@ -274,7 +270,7 @@ def PollNow()
                 }
             
               def humidityRaw1 = (resp1.data.stats.current.humidity.replaceFirst("%", ""))
-            	if(humidityRaw1 == 'N/A'){
+            	if(humidityRaw1 == "N/A" | humidityRaw1 == null){
                     state.humidityRaw = "0"
                 	state.humidityNow = 'No Data'}
             	else{
@@ -283,7 +279,7 @@ def PollNow()
                 }
             
               def pressureRaw1 = (resp1.data.stats.current.barometer.replaceFirst("inHg", ""))
-            	if(pressureRaw1 == 'N/A'){
+            	if(pressureRaw1 == "N/A" | pressureRaw1 == null){
                     state.pressureRaw = "0"
                 	state.pressureNow = 'No Data'}
             	else{
@@ -292,7 +288,7 @@ def PollNow()
                 }
             
     		  def windSpeedRaw1 = (resp1.data.stats.current.windSpeed.replaceFirst("mph", "")) 
-            	if(windSpeedRaw1 == 'N/A'){
+            	if(windSpeedRaw1 == "N/A" | windSpeedRaw1 == null){
                     state.windSpeedRaw = "0" 
                     state.windNow = 'No Data'}
             	else{
@@ -301,7 +297,7 @@ def PollNow()
                 }
                                                                 
               def windGustRaw1 = (resp1.data.stats.current.windGust.replaceFirst("mph", ""))  
-            	if(windGustRaw1 == 'N/A'){
+            	if(windGustRaw1 == "N/A" | windGustRaw1 == null){
                     state.windGustRaw = "0"
                 	state.windgustNow = 'No Data'}
            		else{
@@ -310,7 +306,7 @@ def PollNow()
                 }
                                                     
               def insideTemperatureRaw1 = (resp1.data.stats.current.insideTemp.replaceFirst("&#176;F", "")) 
-            	if(insideTemperatureRaw1 == 'N/A'){
+            	if(insideTemperatureRaw1 == "N/A" | insideTemperatureRaw1 == null){
                     state.insideTemperatureRaw = "0"
                 	state.insideTempNow = 'No Data'}
             	else{
@@ -319,7 +315,7 @@ def PollNow()
                 }
             
               def rainRateRaw1 = (resp1.data.stats.current.rainRate.replaceFirst("in/hr", "")) 
-            	if(rainRateRaw1 == 'N/A'){
+            	if(rainRateRaw1 == "N/A" | rainRateRaw1 == null){
                     state.rainRateRaw = "0"
                 	state.rainRateNow = 'No Data'}
             	else{
@@ -328,7 +324,7 @@ def PollNow()
                 }
             
               def rainTodayRaw1 = (resp1.data.stats.sinceMidnight.rainSum.replaceFirst("in", ""))
-            	if(rainTodayRaw1 == 'N/A'){
+            	if(rainTodayRaw1 == "N/A" | rainTodayRaw1 == null){
                     state.rainTodayRaw = "0"
                 	state.rainTodayNow = 'No Data'}
             	else{
@@ -337,7 +333,7 @@ def PollNow()
                 }
             
               def inHumidRaw1 = (resp1.data.stats.current.insideHumidity.replaceFirst("%", "")) 
-            	if(inHumidRaw1 == 'N/A'){
+            	if(inHumidRaw1 == "N/A" | inHumidRaw1 ==null){
                     state.inHumidRaw = "0"
                 	state.inHumidNow = 'No Data'}
             	else{
@@ -346,7 +342,7 @@ def PollNow()
                 }
             
               def temperatureRaw1 = (resp1.data.stats.current.outTemp.replaceFirst("&#176;F", "")) 
-            	if(temperatureRaw1 == 'N/A'){
+            	if(temperatureRaw1 == "N/A" | temperatureRaw1 ==null){
                     state.temperatureRaw = "0"
                 	state.tempNow = 'No Data'}
             	else{
@@ -355,7 +351,7 @@ def PollNow()
                 }
             
               def UVRaw1 = (resp1.data.stats.current.UV)
-            	if(UVRaw1 == 'N/A'){
+            	if(UVRaw1 == "N/A" | UVRaw1 ==null){
                     state.UVRaw = "0"
                 	state.uvNow = 'No Data'}
             	else{
@@ -364,7 +360,7 @@ def PollNow()
                 }
                
               def windChillRaw1 = (resp1.data.stats.current.windchill.replaceFirst("&#176;F", ""))
-            	if(windChillRaw1 == 'N/A'){
+            	if(windChillRaw1 == "N/A" | windChillRaw1 ==null){
                     state.windChillRaw = "0"
                 	state.windChillNow = 'No Data'}
            		else{
@@ -373,9 +369,8 @@ def PollNow()
                 }
             
              def obsTime1 = (resp1.data.time)
-            if(obsTime1 == 'N/A'){
-                
-                state.obsTimeNow = 'No Data'}
+                if(obsTime1 == "N/A" | obsTime1 ==null){
+                     state.obsTimeNow = 'No Data'}
             	else{
                     state.obsTimeNow = 'OK'
                 	state.obsTime = obsTime1
@@ -474,7 +469,7 @@ def PollNow()
              sendEvent(name: "DriverCreatedBy", value: "Cobra", isStateChange: true)
              sendEvent(name: "DriverVersion", value: state.driverversion, isStateChange: true)
              sendEvent(name: "ServerUptime", value: resp1.data.serverUptime, isStateChange: true)
-             sendEvent(name: "ServerLocation", value: resp1.data.location, isStateChange: true)
+      //       sendEvent(name: "ServerLocation", value: resp1.data.location, isStateChange: true)
             
             if(state.obsTimeNow == 'No Data'){sendEvent(name: "observation_time", value:"No Station Data", isStateChange: true)}
             else{sendEvent(name: "observation_time", value: state.obsTime, isStateChange: true)}
@@ -638,38 +633,9 @@ def PollNow()
             
             if(summaryType == true){
             
-            if (WeatherSummeryFormat == "Celsius, Miles & MPH"){
-                		 sendEvent(name: "weatherSummaryFormat", value: "Celsius, Miles & MPH", isStateChange: true)
-                         sendEvent(name: "weatherSummary", value: "Weather summary for" + " " + resp1.data.current_observation.display_location.city + ", " + resp1.data.current_observation.observation_time+ ". "   
-                       + resp1.data.forecast.simpleforecast.forecastday[0].conditions + " with a high of " + resp1.data.forecast.simpleforecast.forecastday[0].high.celsius + " degrees, " + "and a low of " 
-                       + resp1.data.forecast.simpleforecast.forecastday[0].low.celsius  + " degrees. " + "Humidity is currently around " + resp1.data.current_observation.relative_humidity + " and temperature is " 
-                       + resp1.data.current_observation.temp_c + " degrees. " + " The temperature feels like it's " + resp1.data.current_observation.feelslike_c + " degrees. " + "Wind is from the " + resp1.data.current_observation.wind_dir
-                       + " at " + resp1.data.current_observation.wind_mph + " mph" + ", with gusts up to " + resp1.data.current_observation.wind_gust_mph + " mph" + ". Visibility is around " 
-                       + resp1.data.current_observation.visibility_mi + " miles" + ". " + "There is a "+resp1.data.forecast.simpleforecast.forecastday[0].pop + "% chance of rain today." , isStateChange: true
-                      )  
-            }
+          
                 
-            if (WeatherSummeryFormat == "Fahrenheit, Miles & MPH"){
-                 		 sendEvent(name: "weatherSummaryFormat", value: "Fahrenheit, Miles & MPH", isStateChange: true)
-                         sendEvent(name: "weatherSummary", value: "Weather summary for" + " " + resp1.data.current_observation.display_location.city + ", " + resp1.data.current_observation.observation_time+ ". "  
-                       + resp1.data.forecast.simpleforecast.forecastday[0].conditions + " with a high of " + resp1.data.forecast.simpleforecast.forecastday[0].high.fahrenheit + " degrees, " + "and a low of " 
-                       + resp1.data.forecast.simpleforecast.forecastday[0].low.fahrenheit  + " degrees. " + "Humidity is currently around " + resp1.data.current_observation.relative_humidity + " and temperature is " 
-                       + resp1.data.current_observation.temp_f + " degrees. " + " The temperature feels like it's " + resp1.data.current_observation.feelslike_f + " degrees. " + "Wind is from the " + resp1.data.current_observation.wind_dir
-                       + " at " + resp1.data.current_observation.wind_mph + " mph" + ", with gusts up to: " + resp1.data.current_observation.wind_gust_mph + " mph" + ". Visibility is around " 
-                       + resp1.data.current_observation.visibility_mi + " miles" + ". " + "There is a "+resp1.data.forecast.simpleforecast.forecastday[0].pop + "% chance of rain today." , isStateChange: true
-                      )  
-            }   
-                
-             if (WeatherSummeryFormat == "Celsius, Kilometres & KPH"){
-                 		 sendEvent(name: "weatherSummaryFormat", value: "Celsius, Kilometres & KPH", isStateChange: true)
-                         sendEvent(name: "weatherSummary", value: "Weather summary for" + " " + resp1.data.current_observation.display_location.city + ", " + resp1.data.current_observation.observation_time+ ". "  
-                       + resp1.data.forecast.simpleforecast.forecastday[0].conditions + " with a high of " + resp1.data.forecast.simpleforecast.forecastday[0].high.celsius + " degrees, " + "and a low of " 
-                       + resp1.data.forecast.simpleforecast.forecastday[0].low.celsius  + " degrees. " + "Humidity is currently around " + resp1.data.current_observation.relative_humidity + " and temperature is " 
-                       + resp1.data.current_observation.temp_c + " degrees. " + " The temperature feels like it's " + resp1.data.current_observation.feelslike_c + " degrees. " + "Wind is from the " + resp1.data.current_observation.wind_dir
-                       + " at " + resp1.data.current_observation.wind_kph + " kph" + ", with gusts up to " + resp1.data.current_observation.wind_gust_kph + " kph" + ". Visibility is around " 
-                       + resp1.data.current_observation.visibility_km + " kilometres" + ". " + "There is a "+resp1.data.forecast.simpleforecast.forecastday[0].pop + "% chance of rain today." , isStateChange: true
-                      )  
-            }
+            
                 
                 
         }    
@@ -799,5 +765,5 @@ def PollNow()
 }
 
 def setVer(){
-        state.driverversion = "1.1.1"   // ************************* Update as required *************************************
+        state.driverversion = "1.1.2"   // ************************* Update as required *************************************
 }
