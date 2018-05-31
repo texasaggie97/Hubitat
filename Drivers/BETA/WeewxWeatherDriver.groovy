@@ -48,10 +48,14 @@ metadata {
         attribute "ServerLocation", "string"
         
 // Units
-        attribute "distanceUnit", "string"
-        attribute "pressureUnit", "string"
-        attribute "rainUnit", "string"
-        attribute "summaryFormat", "string"
+        attribute "Unit-Distance(Speed)", "string"
+        attribute "Unit-Pressure", "string"
+        attribute "Unit-Temperature", "string"
+        attribute "Unit-Rain", "string"
+        attribute "Unit-Rainrate", "string"
+        
+        
+ //       attribute "summaryFormat", "string"
         
 // Collected Data       
         attribute "solarradiation", "string"
@@ -64,7 +68,7 @@ metadata {
         attribute "wind_gust", "string"
         attribute "wind_dir", "string"
         attribute "rain_rate", "string"
-        attribute "UV", "string"
+        attribute "uv", "string"
         attribute "feelsLike", "string"
         attribute "observation_time", "string"
         attribute "precip_1hr", "string"
@@ -73,35 +77,12 @@ metadata {
         
         
         
-        attribute "localSunrise", "string"
-        attribute "localSunset", "string"
-        attribute "weather", "string"
+  //      attribute "localSunrise", "string"
+  //      attribute "localSunset", "string"
+
        
-        attribute "weatherIcon", "string"
-		attribute "city", "string"
-        attribute "state", "string"
-        attribute "percentPrecip", "string"
-        attribute "wind_string", "string"
-       
-       
-        
-        attribute "visibility", "number"
-        attribute "forecastHigh", "number"
-        attribute "forecastLow", "number"
-        attribute "forecastConditions", "string"
-       
-     //   attribute "wind_gust_dir", "string"
-      
-        
-        
-        attribute "weatherSummary", "string"
-        attribute "weatherSummaryFormat", "string"
-        attribute "chanceOfRain", "string"
-        attribute "rainTomorrow", "string"
-        attribute "rainDayAfterTomorrow", "string"
-        attribute "moonPhase", "string"
-        attribute "moonIllumination", "string"
- 
+   //     attribute "moonPhase", "string"
+  
 
 
      
@@ -124,10 +105,7 @@ metadata {
             
  
   
-    //        input "cutOff", "time", title: "New Day Starts", required: true
-    //        input "summaryType", "bool", title: "Full Weather Summary", required: true, defaultValue: false
-    //        input "iconType", "bool", title: "Icon: On = Current - Off = Forecast", required: true, defaultValue: false
-   //         input "weatherFormat", "enum", required: true, title: "How to format weather summary",  options: ["Celsius, Miles & MPH", "Fahrenheit, Miles & MPH", "Celsius, Kilometres & KPH"]
+
         }
     }
 }
@@ -151,20 +129,64 @@ def updated() {
 
 def units(){
     
-    if(pressureUnit == "INHg"){state.PU = " inHg"}
-    if(pressureUnit == "MBAR"){state.PU = " mbar"}
-    if(rainUnit == "IN"){state.RU = " in"}
-    if(rainUnit == "MM"){state.RU = " mm"}
-    if(speedUnit == "MPH"){state.SU = " mph"}
-    if(speedUnit == "KPH"){state.SU = " kph"}
-    if(temperatureUnit == "Fahrenheit (°F)"){state.TU = " °F"}
-    if(temperatureUnit == "Celsius (°C)"){state.TU = " °C"}
-    if(rainRateUnit == "IN/HR"){state.RRU = " in per hour"}
-    if(rainRateUnit == "MM/HR"){state.RRU = " mm per hour"}
+    if(pressureUnit == "INHg"){
+        state.PU = " inHg"
+    sendEvent(name: "Unit-Pressure", value: "Inches")
+    }
+    if(pressureUnit == "MBAR"){
+        state.PU = " mbar"
+    sendEvent(name: "Unit-Pressure", value: "Millibar", isStateChange: true) 
+    }
+    if(rainUnit == "IN"){
+        state.RU = " in"
+    sendEvent(name: "Unit-Rain", value: "Inches", isStateChange: true)
+    }
+    if(rainUnit == "MM"){
+        state.RU = " mm"
+    sendEvent(name: "Unit-Rain", value: "Millimetres", isStateChange: true)
+    }
+    if(speedUnit == "MPH"){
+        state.SU = " mph"
+    sendEvent(name: "Unit-Distance(Speed)", value: "Miles (mph)", isStateChange: true)
+    }
+    if(speedUnit == "KPH"){
+        state.SU = " kph"
+    sendEvent(name: "Unit-Distance(Speed)", value: "Kilometres (kph)", isStateChange: true) 
+    }
+    if(temperatureUnit == "Fahrenheit (°F)"){
+        state.TU = " °F"
+    sendEvent(name: "Unit-Temperature", value: "Fahrenheit", isStateChange: true)
+    }
+    if(temperatureUnit == "Celsius (°C)"){
+        state.TU = " °C"
+    sendEvent(name: "Unit-Temperature", value: "Celsius", isStateChange: true)    
+    }
+    if(rainRateUnit == "IN/HR"){
+        state.RRU = " in per hour"
+    sendEvent(name: "Unit-Rainrate", value: "In/Hr", isStateChange: true)
+    }
+    if(rainRateUnit == "MM/HR"){
+        state.RRU = " mm per hour"
+    sendEvent(name: "Unit-Rainrate", value: "Mm/Hr", isStateChange: true)    
+    }
     state.SRU = " watts"
     state.IU = " watts"
  	state.HU = " %"
     state.decimalPlaces = decimalUnit.toInteger()
+    
+     
+   			  
+			 
+            
+            
+            
+            
+            
+            
+    
+    
+    
+    
 }
 
 
@@ -242,7 +264,7 @@ def PollNow()
 
             
               def illuminanceRaw1 = (resp1.data.stats.current.solarRadiation.replaceFirst("W/m&#178;", ""))
-               	if(illuminanceRaw1 == "N/A" | illuminanceRaw1 == null){
+               	if(illuminanceRaw1 == "   N/A" | illuminanceRaw1 == null){
                 	state.illuminanceRaw = "0"
                 	state.illuminenceNow = 'No Data'}
             	else{
@@ -252,7 +274,7 @@ def PollNow()
            
             
               def solarradiationRaw1 = (resp1.data.stats.current.solarRadiation.replaceFirst("W/m&#178;", ""))
-            	if(solarradiationRaw1 == "N/A" | solarradiationRaw1 == null){
+            	if(solarradiationRaw1 == "   N/A" | solarradiationRaw1 == null){
                     state.solarradiationRaw = "0"
                 	state.solarradiationNow = 'No Data'}
             	else{
@@ -261,7 +283,7 @@ def PollNow()
                 }
             
               def dewpointRaw1 = (resp1.data.stats.current.dewpoint.replaceFirst("&#176;F", ""))
-            	if(dewpointRaw1 == "N/A" | dewpointRaw1 == null){
+            	if(dewpointRaw1 == "   N/A" | dewpointRaw1 == null){
                     state.dewpointRaw = "0"
                 	state.dewpointNow = 'No Data'}
             	else{
@@ -270,7 +292,7 @@ def PollNow()
                 }
             
               def humidityRaw1 = (resp1.data.stats.current.humidity.replaceFirst("%", ""))
-            	if(humidityRaw1 == "N/A" | humidityRaw1 == null){
+            	if(humidityRaw1 == "   N/A" | humidityRaw1 == null){
                     state.humidityRaw = "0"
                 	state.humidityNow = 'No Data'}
             	else{
@@ -279,7 +301,7 @@ def PollNow()
                 }
             
               def pressureRaw1 = (resp1.data.stats.current.barometer.replaceFirst("inHg", ""))
-            	if(pressureRaw1 == "N/A" | pressureRaw1 == null){
+            	if(pressureRaw1 == "   N/A" | pressureRaw1 == null){
                     state.pressureRaw = "0"
                 	state.pressureNow = 'No Data'}
             	else{
@@ -288,7 +310,7 @@ def PollNow()
                 }
             
     		  def windSpeedRaw1 = (resp1.data.stats.current.windSpeed.replaceFirst("mph", "")) 
-            	if(windSpeedRaw1 == "N/A" | windSpeedRaw1 == null){
+            	if(windSpeedRaw1 == "   N/A" | windSpeedRaw1 == null){
                     state.windSpeedRaw = "0" 
                     state.windNow = 'No Data'}
             	else{
@@ -297,7 +319,7 @@ def PollNow()
                 }
                                                                 
               def windGustRaw1 = (resp1.data.stats.current.windGust.replaceFirst("mph", ""))  
-            	if(windGustRaw1 == "N/A" | windGustRaw1 == null){
+            	if(windGustRaw1 == "   N/A" | windGustRaw1 == null){
                     state.windGustRaw = "0"
                 	state.windgustNow = 'No Data'}
            		else{
@@ -306,7 +328,7 @@ def PollNow()
                 }
                                                     
               def insideTemperatureRaw1 = (resp1.data.stats.current.insideTemp.replaceFirst("&#176;F", "")) 
-            	if(insideTemperatureRaw1 == "N/A" | insideTemperatureRaw1 == null){
+            	if(insideTemperatureRaw1 == "   N/A" | insideTemperatureRaw1 == null){
                     state.insideTemperatureRaw = "0"
                 	state.insideTempNow = 'No Data'}
             	else{
@@ -315,7 +337,7 @@ def PollNow()
                 }
             
               def rainRateRaw1 = (resp1.data.stats.current.rainRate.replaceFirst("in/hr", "")) 
-            	if(rainRateRaw1 == "N/A" | rainRateRaw1 == null){
+            	if(rainRateRaw1 == "   N/A" | rainRateRaw1 == null){
                     state.rainRateRaw = "0"
                 	state.rainRateNow = 'No Data'}
             	else{
@@ -324,7 +346,7 @@ def PollNow()
                 }
             
               def rainTodayRaw1 = (resp1.data.stats.sinceMidnight.rainSum.replaceFirst("in", ""))
-            	if(rainTodayRaw1 == "N/A" | rainTodayRaw1 == null){
+            	if(rainTodayRaw1 == "   N/A" | rainTodayRaw1 == null){
                     state.rainTodayRaw = "0"
                 	state.rainTodayNow = 'No Data'}
             	else{
@@ -333,7 +355,7 @@ def PollNow()
                 }
             
               def inHumidRaw1 = (resp1.data.stats.current.insideHumidity.replaceFirst("%", "")) 
-            	if(inHumidRaw1 == "N/A" | inHumidRaw1 ==null){
+            	if(inHumidRaw1 == "   N/A" | inHumidRaw1 ==null){
                     state.inHumidRaw = "0"
                 	state.inHumidNow = 'No Data'}
             	else{
@@ -342,7 +364,7 @@ def PollNow()
                 }
             
               def temperatureRaw1 = (resp1.data.stats.current.outTemp.replaceFirst("&#176;F", "")) 
-            	if(temperatureRaw1 == "N/A" | temperatureRaw1 ==null){
+            	if(temperatureRaw1 == "   N/A" | temperatureRaw1 ==null){
                     state.temperatureRaw = "0"
                 	state.tempNow = 'No Data'}
             	else{
@@ -351,7 +373,7 @@ def PollNow()
                 }
             
               def UVRaw1 = (resp1.data.stats.current.UV)
-            	if(UVRaw1 == "N/A" | UVRaw1 ==null){
+            	if(UVRaw1 == "   N/A" | UVRaw1 ==null){
                     state.UVRaw = "0"
                 	state.uvNow = 'No Data'}
             	else{
@@ -360,7 +382,7 @@ def PollNow()
                 }
                
               def windChillRaw1 = (resp1.data.stats.current.windchill.replaceFirst("&#176;F", ""))
-            	if(windChillRaw1 == "N/A" | windChillRaw1 ==null){
+            	if(windChillRaw1 == "   N/A" | windChillRaw1 ==null){
                     state.windChillRaw = "0"
                 	state.windChillNow = 'No Data'}
            		else{
@@ -369,7 +391,7 @@ def PollNow()
                 }
             
              def obsTime1 = (resp1.data.time)
-                if(obsTime1 == "N/A" | obsTime1 ==null){
+                if(obsTime1 == "   N/A" | obsTime1 ==null){
                      state.obsTimeNow = 'No Data'}
             	else{
                     state.obsTimeNow = 'OK'
@@ -469,13 +491,13 @@ def PollNow()
              sendEvent(name: "DriverCreatedBy", value: "Cobra", isStateChange: true)
              sendEvent(name: "DriverVersion", value: state.driverversion, isStateChange: true)
              sendEvent(name: "ServerUptime", value: resp1.data.serverUptime, isStateChange: true)
-      //       sendEvent(name: "ServerLocation", value: resp1.data.location, isStateChange: true)
+             sendEvent(name: "ServerLocation", value: resp1.data.location, isStateChange: true)
             
             if(state.obsTimeNow == 'No Data'){sendEvent(name: "observation_time", value:"No Station Data", isStateChange: true)}
             else{sendEvent(name: "observation_time", value: state.obsTime, isStateChange: true)}
             
             if(state.uvNow == 'No Data'){sendEvent(name: "UV", value:"No Station Data", isStateChange: true)}
-            else{sendEvent(name: "UV", value: state.UVRaw, isStateChange: true)}
+            else{sendEvent(name: "uv", value: state.UVRaw, isStateChange: true)}
             
             
             def windDirRaw = (resp1.data.stats.current.windDirText)
@@ -606,16 +628,7 @@ def PollNow()
   
              
             
-            
-         //    sendEvent(name: "chanceOfRain", value: resp1.data.forecast.simpleforecast.forecastday[0].pop + "%", isStateChange: true)
-        //     sendEvent(name: "moonPhase", value: resp1.data.moon_phase.phaseofMoon , isStateChange: true)
-        //     sendEvent(name: "moonIllumination", value: resp1.data.moon_phase.percentIlluminated  + "%" , isStateChange: true)
-
-         //   sendEvent(name: "weather", value: resp1.data.current_observation.weather, isStateChange: true)
-     
-	   //		sendEvent(name: "city", value: resp1.data.current_observation.display_location.city, isStateChange: true)
-      //      sendEvent(name: "state", value: resp1.data.current_observation.display_location.state, isStateChange: true)
-     //       sendEvent(name: "percentPrecip", value: resp1.data.forecast.simpleforecast.forecastday[0].pop , isStateChange: true)
+  
        //     sendEvent(name: "localSunrise", value: resp1.data.sun_phase.sunrise.hour + ":" + resp1.data.sun_phase.sunrise.minute, descriptionText: "Sunrise today is at $localSunrise", isStateChange: true)
       //  	sendEvent(name: "localSunset", value: resp1.data.sun_phase.sunset.hour + ":" + resp1.data.sun_phase.sunset.minute, descriptionText: "Sunset today at is $localSunset", isStateChange: true)
              
@@ -751,9 +764,9 @@ def PollNow()
       //      sendEvent(name: "pressure", value: resp1.data.current_observation.pressure_mb, unit: "mb", isStateChange: true)
       //      sendEvent(name: "pressureUnit", value: "Millibar", isStateChange: true) 
       //      }
+           
             
-   
-
+            
                
       //    state.lastPoll = now()     
    } 
