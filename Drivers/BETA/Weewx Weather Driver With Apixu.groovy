@@ -18,7 +18,7 @@
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
  *  for the specific language governing permissions and limitations under the License.
  *
- *  Last Update 01/06/2018
+ *  Last Update 05/06/2018
  *
  *
  *  V1.0.0 - Original POC
@@ -29,7 +29,7 @@
 
 
 metadata {
-    definition (name: "Weewx Weather Driver With Apixu- Beta1", namespace: "Cobra", author: "Andrew Parker") {
+    definition (name: "Weewx Weather Driver - Beta1", namespace: "Cobra", author: "Andrew Parker") {
         capability "Actuator"
         capability "Sensor"
         capability "Temperature Measurement"
@@ -39,7 +39,7 @@ metadata {
 		command "PollApixuNow"
         
 // Base Info        
-        attribute "Author", "string"
+        attribute "DriverAuthor", "string"
         attribute "DriverVersion", "string"
         attribute "WeewxServerUptime", "string"
         attribute "WeewxServerLocation", "string"
@@ -62,6 +62,7 @@ metadata {
         attribute "wind_dir", "string"
         attribute "rain_rate", "string"
         attribute "uv", "string"
+        attribute "uvHarm", "string"
         attribute "feelsLike", "string"
         attribute "LastUpdate-Weewx", "string"
         attribute "precip_1hr", "string"
@@ -90,21 +91,12 @@ metadata {
        
        
        
-       attribute "percentPrecip", "string"
-       attribute "wind_string", "string"
-       
-       
-        
-       
-       attribute "forecastConditions", "string"
-       
-   
-      
-        
-        
-        attribute "weatherSummary", "string"
-        attribute "weatherSummaryFormat", "string"
-        attribute "chanceOfRain", "string"
+//       attribute "percentPrecip", "string"
+//       attribute "wind_string", "string"
+//       attribute "forecastConditions", "string"
+//       attribute "weatherSummary", "string"
+//       attribute "weatherSummaryFormat", "string"
+ 
         
         
 
@@ -121,11 +113,9 @@ metadata {
             input "weewxPath", "text", required: true, title: "path to file", defaultValue: "weewx/daily.json"
             input "unitSet", "bool", title: "Display Data Units", required: true, defaultValue: true
             input "logSet", "bool", title: "Log All Response Data", required: true, defaultValue: false
-           
             input "pollInterval", "enum", title: "Weewx Station Poll Interval", required: true, defaultValue: "5 Minutes", options: ["Manual Poll Only", "5 Minutes", "10 Minutes", "15 Minutes", "30 Minutes", "1 Hour", "3 Hours"]
             input "pressureUnit", "enum", title: "Pressure Unit", required:true, defaultValue: "INHg", options: ["INHg", "MBAR"]
             input "rainUnit", "enum", title: "Rain Unit", required:true, defaultValue: "IN", options: ["IN", "MM"]
-            input "rainRateUnit", "enum", title: "Rain Rate Unit", required:true, defaultValue: "IN/HR", options: ["IN/HR", "MM/HR"]
             input "speedUnit", "enum", title: "Wind Speed Unit", required:true, defaultValue: "MPH", options: ["MPH", "KPH"]
             input "temperatureUnit", "enum", title: "Temperature Unit", required:true, defaultValue: "Fahrenheit (°F)", options: ["Fahrenheit (°F)", "Celsius (°C)"]
             input "decimalUnit", "enum", title: "Max Decimal Places", required:true, defaultValue: "2", options: ["1", "2", "3", "4", "5"]
@@ -133,26 +123,13 @@ metadata {
             if (addData == true){
                 input "apiKey", "text", required: true, title: "Apixu API Key"
                 input "pollLocation1", "text", required: true, title: "ZIP Code or Location"
-                input "markType", "bool", title: "Mark Apixu Data", required: true, defaultValue: false
                 input "iconType", "bool", title: "Apixu Icon: On = Current - Off = Forecast", required: true, defaultValue: false
                 input "pollInterval1", "enum", title: "Apixu Poll Interval", required: true, defaultValue: "3 Hours", options: ["Manual Poll Only", "15 Minutes", "30 Minutes", "1 Hour", "3 Hours"]
-                
-                
-                
-                
             }
                 
             
             
-            
-     //       input "tempFormat", "enum", required: true, title: "Display Unit - Temperature: Fahrenheit or Celsius",  options: ["Fahrenheit", "Celsius"]
-   //         input "distanceFormat", "enum", required: true, title: "Display Unit - Distance/Speed: Miles or Kilometres",  options: ["Miles (mph)", "Kilometres (kph)"]
-   //         input "pressureFormat", "enum", required: true, title: "Display Unit - Pressure: Inches or Millibar",  options: ["Inches", "Millibar"]
-   //         input "rainFormat", "enum", required: true, title: "Display Unit - Precipitation: Inches or Millimetres",  options: ["Inches", "Millimetres"]
-   //         input "pollIntervalLimit", "number", title: "Poll Interval Limit:", required: true, defaultValue: 1
-      //    input "autoPoll", "bool", required: false, title: "Enable Auto Poll"
-     //       input "pollInterval", "enum", title: "Auto Poll Interval:", required: false, defaultValue: "5 Minutes", options: ["5 Minutes", "10 Minutes", "15 Minutes", "30 Minutes", "1 Hour", "3 Hours"]
-          
+ 
     //        input "cutOff", "time", title: "New Day Starts", required: true
     //        input "summaryType", "bool", title: "Full Weather Summary", required: true, defaultValue: false
     //        input "iconType", "bool", title: "Icon: On = Current - Off = Forecast", required: true, defaultValue: false
@@ -167,7 +144,7 @@ def updated() {
     units()
     PollStationNow()
     PollApixuNow()
-    state.unitsOn = unitSet
+    state.DisplayUnits = unitSet
     def pollIntervalCmd = (settings?.pollInterval ?: "3 Hours").replace(" ", "")
     
     if(pollInterval == "Manual Poll Only"){
@@ -177,7 +154,7 @@ def updated() {
     
     def pollIntervalCmd1 = (settings?.pollInterval ?: "3 Hours").replace(" ", "")
     
-    if(pollInterval == "Manual Poll Only"){
+    if(pollInterval1 == "Manual Poll Only"){
         log.info "MANUAL POLLING ONLY"}
     else{
         "runEvery${pollIntervalCmd1}"(pollSchedule1)}
@@ -187,42 +164,11 @@ def updated() {
 
 
 def units(){
-    state.unitsOn = unitSet
-    
-    if(state.unitsOn == false){
-     state.PU = ""   
-     state.RU = ""
-     state.RRU = ""   
-     state.SU = ""
-     state.TU = ""   
-     state.SRU = ""
-     state.IU = ""
- 	 state.HU = ""   
-        
-    }
-    
-    else{
-    
-    if(pressureUnit == "INHg"){state.PU = " inHg"}
-    if(pressureUnit == "MBAR"){state.PU = " mbar"}
-    if(rainUnit == "IN"){state.RU = " in"}
-    if(rainUnit == "MM"){state.RU = " mm"}
-    if(speedUnit == "MPH"){state.SU = " mph"}
-    if(speedUnit == "KPH"){state.SU = " kph"}
-    if(temperatureUnit == "Fahrenheit (°F)"){state.TU = " °F"}
-    if(temperatureUnit == "Celsius (°C)"){state.TU = " °C"}
-    if(rainRateUnit == "IN/HR"){state.RRU = " in per hour"}
-    if(rainRateUnit == "MM/HR"){state.RRU = " mm per hour"}
-     state.SRU = " watts"
+    state.SRU = " watts"
     state.IU = " watts"
  	state.HU = " %"   
-        
-    }    
-        
-        
-    
-    state.decimalPlaces = decimalUnit.toInteger()
-    state.unitsOn = unitSet
+    state.DecimalPlaces = decimalUnit.toInteger()
+    state.DisplayUnits = unitSet
     
     
 }
@@ -262,16 +208,8 @@ def PollApixuNow(){
     
             
             // Apixu No Units ********************
-            if(markType == true){
-              sendEvent(name: "weatherCurrent", value: resp2.data.current.condition.text + " (A)", isStateChange: true)
-              sendEvent(name: "weatherForecast", value: resp2.data.forecast.forecastday.day[1].condition.text + " (A)", isStateChange: true)
-              sendEvent(name: "city", value: resp2.data.location.name + " (A)", isStateChange: true)
-              sendEvent(name: "state", value: resp2.data.location.region + " (A)", isStateChange: true)
-              sendEvent(name: "country", value: resp2.data.location.country + " (A)", isStateChange: true)
-              sendEvent(name: "LastUpdate-Apixu", value: resp2.data.current.last_updated + " (A)", isStateChange: true)      
-            }
-                
-             if(markType == false){
+   
+            
               sendEvent(name: "weatherCurrent", value: resp2.data.current.condition.text, isStateChange: true)
               sendEvent(name: "weatherForecast", value: resp2.data.forecast.forecastday.day[1].condition.text, isStateChange: true)
               sendEvent(name: "city", value: resp2.data.location.name, isStateChange: true)
@@ -279,105 +217,97 @@ def PollApixuNow(){
               sendEvent(name: "country", value: resp2.data.location.country, isStateChange: true)
               sendEvent(name: "LastUpdate-Apixu", value: resp2.data.current.last_updated, isStateChange: true)    
               
-            }   
+             
                 
                 
             
             // Select Apixu Icon
                 if(iconType == false){   
-                sendEvent(name: "weatherIcon", value: resp2.data.forecast.forecastday.day[1].condition.icon + " (A)", isStateChange: true)
+                sendEvent(name: "weatherIcon", value: resp2.data.forecast.forecastday.day[1].condition.icon, isStateChange: true)
                 }
                 if(iconType == true){ 
-		        sendEvent(name: "weatherIcon", value: resp2.data.current.condition.icon + " (A)", isStateChange: true)
+		        sendEvent(name: "weatherIcon", value: resp2.data.current.condition.icon, isStateChange: true)
                 }    
          
             
     // Apixu With Units ***************************************************************
             
-          if(state.unitsOn == true){
+          if(state.DisplayUnits == true){
                        
            if(rainUnit == "IN"){
                 
-               if(markType == true){   
-          sendEvent(name: "rainTomorrow", value: resp2.data.forecast.forecastday.day[1].totalprecip_in +state.RU + " (A)", isStateChange: true)
-          sendEvent(name: "rainDayAfterTomorrow", value: resp2.data.forecast.forecastday.day[2].totalprecip_in +state.RU + " (A)", isStateChange: true)
-            }
+
                
-               if(markType == false){   
+           
           sendEvent(name: "rainTomorrow", value: resp2.data.forecast.forecastday.day[1].totalprecip_in +state.RU, isStateChange: true)
           sendEvent(name: "rainDayAfterTomorrow", value: resp2.data.forecast.forecastday.day[2].totalprecip_in +state.RU, isStateChange: true)
-            }   
+             
            }
                
            
           if(rainUnit == "MM"){ 
-              if(markType == true){ 
-          sendEvent(name: "rainTomorrow", value: resp2.data.forecast.forecastday.day[1].totalprecip_mm +state.RU + " (A)", isStateChange: true)
-          sendEvent(name: "rainDayAfterTomorrow", value: resp2.data.forecast.forecastday.day[2].totalprecip_mm +state.RU + " (A)", isStateChange: true)
-              }
-               if(markType == false){ 
+ 
+           
           sendEvent(name: "rainTomorrow", value: resp2.data.forecast.forecastday.day[1].totalprecip_mm +state.RU, isStateChange: true)
           sendEvent(name: "rainDayAfterTomorrow", value: resp2.data.forecast.forecastday.day[2].totalprecip_mm +state.RU, isStateChange: true)
-              }
+             
            }
             
           if(temperatureUnit == "Celsius (°C)"){
-      		   if(markType == true){ 
-            sendEvent(name: "forecastHigh", value: resp2.data.forecast.forecastday.day[0].maxtemp_c +state.TU + " (A)", isStateChange: true)
-            sendEvent(name: "forecastLow", value: resp2.data.forecast.forecastday.day[0].mintemp_c +state.TU + " (A)", isStateChange: true)
-      }
-      		   if(markType == false){ 
+    
+      	
             sendEvent(name: "forecastHigh", value: resp2.data.forecast.forecastday.day[0].maxtemp_c +state.TU, isStateChange: true)
             sendEvent(name: "forecastLow", value: resp2.data.forecast.forecastday.day[0].mintemp_c +state.TU, isStateChange: true)              
-           }
+           
           }
               
           if(temperatureUnit == "Fahrenheit (°F)"){ 
-              if(markType == true){ 
-         sendEvent(name: "forecastHigh", value: resp2.data.forecast.forecastday.day[0].maxtemp_f +state.TU + " (A)", isStateChange: true)
-   	     sendEvent(name: "forecastLow", value: resp2.data.forecast.forecastday.day[0].mintemp_f +state.TU + " (A)", isStateChange: true)
-              }
-              if(markType == false){ 
+
+               
          sendEvent(name: "forecastHigh", value: resp2.data.forecast.forecastday.day[0].maxtemp_f +state.TU, isStateChange: true)
    	     sendEvent(name: "forecastLow", value: resp2.data.forecast.forecastday.day[0].mintemp_f +state.TU, isStateChange: true)
-              }      
+                    
            }  
             
-   //       if(distanceFormat == "Miles (mph)"){  
-    //      sendEvent(name: "visibility", value: resp2.data.current.vis_miles +state.SU, isStateChange: true)
-     //      }  
-            
-   //       if(distanceFormat == "Kilometres (kph)"){
-    //      sendEvent(name: "visibility", value: resp2.data.current.vis_km +state.SU, isStateChange: true)
-    //       }
+  
               
           }      
               
      // Apixu Without Units ***************************************************************
-          if(state.unitsOn == false){
+          if(state.DisplayUnits == false){
               
-           
            if(rainUnit == "IN"){
-          sendEvent(name: "rainTomorrow", value: resp2.data.forecast.forecastday.day[1].totalprecip_in, unit: "in", isStateChange: true)
-          sendEvent(name: "rainDayAfterTomorrow", value: resp2.data.forecast.forecastday.day[2].totalprecip_in, unit: "in", isStateChange: true)  
-           }
-           
-          if(rainUnit == "MM"){   
-          sendEvent(name: "rainTomorrow", value: resp2.data.forecast.forecastday.day[1].totalprecip_mm, unit: "mm", isStateChange: true)
-          sendEvent(name: "rainDayAfterTomorrow", value: resp2.data.forecast.forecastday.day[2].totalprecip_mm, unit: "mm", isStateChange: true)  
-           }
+
+          
+          sendEvent(name: "rainTomorrow", value: resp2.data.forecast.forecastday.day[1].totalprecip_in, unit:"in", isStateChange: true)
+          sendEvent(name: "rainDayAfterTomorrow", value: resp2.data.forecast.forecastday.day[2].totalprecip_in, unit:"in", isStateChange: true) 
+               }    
+               
+                  
+          if(rainUnit == "MM"){  
+
+          sendEvent(name: "rainTomorrow", value: resp2.data.forecast.forecastday.day[1].totalprecip_mm, unit:"mm", isStateChange: true)
+          sendEvent(name: "rainDayAfterTomorrow", value: resp2.data.forecast.forecastday.day[2].totalprecip_mm, unit:"mm", isStateChange: true)
+              }    
+
             
           if(temperatureUnit == "Celsius (°C)"){
-                        
-          sendEvent(name: "forecastHigh", value: resp2.data.forecast.forecastday.day[0].maxtemp_c, unit: "C", isStateChange: true)
-          sendEvent(name: "forecastLow", value: resp2.data.forecast.forecastday.day[0].mintemp_c, unit: "C", isStateChange: true)
+
+              
+                    
+          sendEvent(name: "forecastHigh", value: resp2.data.forecast.forecastday.day[0].maxtemp_c, unit:"C", isStateChange: true)
+          sendEvent(name: "forecastLow", value: resp2.data.forecast.forecastday.day[0].mintemp_c, unit:"C", isStateChange: true)
+             
            }
               
           if(temperatureUnit == "Fahrenheit (°F)"){ 
-          sendEvent(name: "forecastHigh", value: resp2.data.forecast.forecastday.day[0].maxtemp_f, unit: "F", isStateChange: true)
-           sendEvent(name: "forecastLow", value: resp2.data.forecast.forecastday.day[0].mintemp_f, unit: "F", isStateChange: true)
-           }  
-            
+
+          
+          sendEvent(name: "forecastHigh", value: resp2.data.forecast.forecastday.day[0].maxtemp_f, unit:"F", isStateChange: true)
+           sendEvent(name: "forecastLow", value: resp2.data.forecast.forecastday.day[0].mintemp_f, unit:"F", isStateChange: true)
+            }   
+              
+           
           if(distanceFormat == "Miles (mph)"){  
           sendEvent(name: "visibility", value: resp2.data.current.vis_miles, unit: "mi", isStateChange: true)
            }  
@@ -446,7 +376,7 @@ def parse(String description) {
 def PollStationNow()
 {
     units()
-    state.driverversion = "1.0.0"   
+    state.DriverVersion = "1.0.0"   
     // ************************* Update as required *************************************
     
  
@@ -487,240 +417,462 @@ def PollStationNow()
             // def convertToMbar = inHg1 * 33.8638815
             
 // Collect Data
-            // Sometimes, after saving, Hubitat changes some characters that we don't want changing!
-            // & # 1 7 6 ; F = degrees F (remove spaces before replacing on lines: 258, 288, 312 & 324)
-            //  W/m & # 1 7 8 ; = W/m² (remove spaces before replacing on lines: 246 & 252)
-
-            
-              def illuminanceRaw1 = (resp1.data.stats.current.solarRadiation.replaceFirst("W/m²", ""))
-               	if(illuminanceRaw1 == "   N/A" | illuminanceRaw1 == null){
-                	state.illuminanceRaw = "0"
-                	state.illuminenceNow = 'No Data'}
-            	else{
-                    state.illuminenceNow = 'OK'
-                	state.illuminanceRaw = illuminanceRaw1
-                }
            
+ // ************************ ILLUMINANCE **************************************************************************************           
+              def illuminanceRaw1 = (resp1.data.stats.current.solarRadiation.replaceFirst(wmcode, ""))
+               	if(illuminanceRaw1.contains("N/A") || illuminanceRaw1 == null){
+                state.Illuminance = 'No Station Data'}
+            else{
+                state.Illuminance = illuminanceRaw1
+               
+                }
+// ************************* SOLAR RADIATION*****************************************************************************************           
             
-              def solarradiationRaw1 = (resp1.data.stats.current.solarRadiation.replaceFirst("W/m²", ""))
-            	if(solarradiationRaw1 == "   N/A" | solarradiationRaw1 == null){
-                    state.solarradiationRaw = "0"
-                	state.solarradiationNow = 'No Data'}
+              def solarradiationRaw1 = (resp1.data.stats.current.solarRadiation.replaceFirst(wmcode, ""))
+            	if(solarradiationRaw1.contains("N/A") || solarradiationRaw1 == null ){
+                  	state.SolarRadiation = 'No Station Data'}
             	else{
-                    state.solarradiationNow = 'OK'
-                	state.solarradiationRaw = solarradiationRaw1
+                     state.SolarRadiation = solarradiationRaw1
                 }
             
-              def dewpointRaw1 = (resp1.data.stats.current.dewpoint.replaceFirst("°F", ""))
-            	if(dewpointRaw1 == "   N/A" | dewpointRaw1 == null){
-                    state.dewpointRaw = "0"
-                	state.dewpointNow = 'No Data'}
-            	else{
-                    state.dewpointNow = 'OK'
-                    state.dewpointRaw = dewpointRaw1
-                }
+// ************************** HUMIDITY ***************************************************************************************   
             
               def humidityRaw1 = (resp1.data.stats.current.humidity.replaceFirst("%", ""))
-            	if(humidityRaw1 == "   N/A" | humidityRaw1 == null){
-                    state.humidityRaw = "0"
-                	state.humidityNow = 'No Data'}
+            	if(humidityRaw1.contains("N/A") || humidityRaw1 == null){
+                state.Humidity = 'No Station Data'}
             	else{
-                    state.humidityNow = 'OK'
-                	state.humidityRaw = humidityRaw1
+                   state.Humidity = humidityRaw1
                 }
-            
-              def pressureRaw1 = (resp1.data.stats.current.barometer.replaceFirst("inHg", ""))
-            	if(pressureRaw1 == "   N/A" | pressureRaw1 == null){
-                    state.pressureRaw = "0"
-                	state.pressureNow = 'No Data'}
-            	else{
-                    state.pressureNow = 'OK'
-                	state.pressureRaw = pressureRaw1
-                }
-            
-    		  def windSpeedRaw1 = (resp1.data.stats.current.windSpeed.replaceFirst("mph", "")) 
-            	if(windSpeedRaw1 == "   N/A" | windSpeedRaw1 == null){
-                    state.windSpeedRaw = "0" 
-                    state.windNow = 'No Data'}
-            	else{
-                    state.windNow = 'OK'
-                	state.windSpeedRaw = windSpeedRaw1
-                }
-                                                                
-              def windGustRaw1 = (resp1.data.stats.current.windGust.replaceFirst("mph", ""))  
-            	if(windGustRaw1 == "   N/A" | windGustRaw1 == null){
-                    state.windGustRaw = "0"
-                	state.windgustNow = 'No Data'}
-           		else{
-                    state.windgustNow = 'OK'
-                	state.windGustRaw = windGustRaw1
-                }
-                                                    
-              def insideTemperatureRaw1 = (resp1.data.stats.current.insideTemp.replaceFirst("°F", "")) 
-            	if(insideTemperatureRaw1 == "   N/A" | insideTemperatureRaw1 == null){
-                    state.insideTemperatureRaw = "0"
-                	state.insideTempNow = 'No Data'}
-            	else{
-                    state.insideTempNow = 'OK'
-                	state.insideTemperatureRaw = insideTemperatureRaw1
-                }
-            
-              def rainRateRaw1 = (resp1.data.stats.current.rainRate.replaceFirst("in/hr", "")) 
-            	if(rainRateRaw1 == "   N/A" | rainRateRaw1 == null){
-                    state.rainRateRaw = "0"
-                	state.rainRateNow = 'No Data'}
-            	else{
-                    state.rainRateNow = 'OK'
-                	state.rainRateRaw = rainRateRaw1
-                }
-            
-              def rainTodayRaw1 = (resp1.data.stats.sinceMidnight.rainSum.replaceFirst("in", ""))
-            	if(rainTodayRaw1 == "   N/A" | rainTodayRaw1 == null){
-                    state.rainTodayRaw = "0"
-                	state.rainTodayNow = 'No Data'}
-            	else{
-                    state.rainTodayNow = 'OK'
-                	state.rainTodayRaw = rainTodayRaw1
-                }
+
+// ************************** INSIDE HUMIDITY ************************************************************************************
             
               def inHumidRaw1 = (resp1.data.stats.current.insideHumidity.replaceFirst("%", "")) 
-            	if(inHumidRaw1 == "   N/A" | inHumidRaw1 ==null){
-                    state.inHumidRaw = "0"
-                	state.inHumidNow = 'No Data'}
+            	if(inHumidRaw1.contains("N/A") || inHumidRaw1 ==null){
+                   
+                	state.InsideHumidity = 'No Station Data'}
             	else{
-                    state.inHumidNow = 'OK'
-                	state.inHumidRaw = inHumidRaw1
+                    
+                	state.InsideHumidity = inHumidRaw1
+                }
+                        
+            
+// ************************* DEWPOINT *****************************************************************************************
+            
+                def dewpointRaw1 = (resp1.data.stats.current.dewpoint)
+                 	if(dewpointRaw1.contains("N/A") || dewpointRaw1 == null){
+                    state.Dewpoint = 'No Station Data'}
+            
+            	if (dewpointRaw1.contains("F")) {
+                dewpointRaw1 = dewpointRaw1.replace(fcode, "")
+                    
+                if(temperatureUnit == "Fahrenheit (°F)"){
+            	state.TU = ' °F'
+                state.Dewpoint = dewpointRaw1
+                log.info "Dewpoint Input = F - Output = F -- No conversion required"
+                }    
+                if(temperatureUnit == "Celsius (°C)"){
+                state.TU = ' °C'
+                def dewpoint1 = convertFtoC(dewpointRaw1) 
+                state.Dewpoint = dewpoint1 
+                   
+                }    
+
+            } 
+            
+           		if (dewpointRaw1.contains("C")) {
+                dewpointRaw1 = dewpointRaw1.replace(ccode, "")
+                    
+                 if(temperatureUnit == "Fahrenheit (°F)"){
+            	state.TU = ' °F'
+                def dewpoint1 = convertCtoF(dewpointRaw1)    
+                state.Dewpoint = dewpoint1 
+                }    
+                 if(temperatureUnit == "Celsius (°C)"){
+                state.TU = ' °C'
+                state.Dewpoint = dewpointRaw1
+                 log.info "Dewpoint Input = C - Output = C -- No conversion required"  
+                }        
+
+            } 
+            
+            
+            
+            
+            
+
+// ************************** PRESSURE ****************************************************************************************            
+           
+              def pressureRaw1 = (resp1.data.stats.current.barometer)
+                    if (pressureRaw1.contains("N/A") || insideTemperatureRaw1 == null){
+                    state.Pressure = 'No Station Data'}
+            
+            if (pressureRaw1.contains("inHg")) {
+                pressureRaw1 = pressureRaw1.replace("inHg", "")
+                
+                if(pressureUnit == "INHg"){
+            	state.PU = ' inhg'
+                state.Pressure = pressureRaw1
+                log.info "Pressure Input = INHg - Output = INHg -- No conversion required"
+                }
+                
+                if(pressureUnit == "MBAR"){
+                state.PU = ' mbar'
+                def pressureTemp1 = convertINtoMB(pressureRaw1) 
+                state.Pressure = pressureTemp1 
+                
+                }
+                
+            } 
+            
+            if (pressureRaw1.contains("mbar")) {
+                 pressureRaw1 = pressureRaw1.replace("mbar", "")
+                
+            	if(pressureUnit == "INHg"){
+            	state.PU = ' inhg'
+                def pressureTemp1 = convertMBtoIN(pressureRaw1)
+                state.Pressure = pressureTemp1
+                }
+                 if(pressureUnit == "MBAR"){
+                 state.PU = ' mbar'
+                 state.Pressure = pressureRaw1 
+                 log.info "Pressure Input = MBAR - Output = MBAR --No conversion required"
+                }
+                
+            } 
+            
+            
+         
+            
+// ************************** WIND SPEED ****************************************************************************************
+            
+    		  def windSpeedRaw1 = (resp1.data.stats.current.windSpeed) 
+            if(windSpeedRaw1.contains("N/A") || windSpeedRaw1 == null){
+                    state.WindSpeed = 'No Station Data'}
+            
+            if (windSpeedRaw1.contains("mph")) {
+                windSpeedRaw1 = windSpeedRaw1.replace("mph", "")
+                
+                if(speedUnit == "MPH"){
+            	state.SU = ' mph'
+                state.WindSpeed = windSpeedRaw1
+                log.info "Wind Speed Input = MPH - Output = MPH -- No conversion required"
+                }
+                
+                if(speedUnit == "KPH"){
+                state.SU = ' kph'
+                def speedTemp1 = convertMPHtoKPH(windSpeedRaw1) 
+                state.WindSpeed = speedTemp1 
+            
+                }
+                
+            } 
+            
+            if (windSpeedRaw1.contains("kph")) {
+                 windSpeedRaw1 = windSpeedRaw1.replace("kph", "")
+                
+            	if(speedUnit == "MPH"){
+            	state.SU = ' mph'
+                def speedTemp1 = convertKPHtoMPH(pressureRaw1)
+                state.WindSpeed = speedTemp1
+                }
+                 if(speedUnit == "KPH"){
+                 state.SU = ' kph'
+                 state.WindSpeed = windSpeedRaw1 
+                 log.info "WindSpeed Input = KPH - Output = KPH --No conversion required"
+                }
+                
+            } 
+            
+                   
+// ************************** WIND GUST ****************************************************************************************
+            
+              def windGustRaw1 = (resp1.data.stats.current.windGust)  
+            	 if(windGustRaw1.contains("N/A") || windGustRaw1 == null){
+                    state.WindGust = 'No Station Data'}
+            
+            if (windGustRaw1.contains("mph")) {
+                windGustRaw1 = windGustRaw1.replace("mph", "")
+                
+                if(speedUnit == "MPH"){
+            	state.SU = ' mph'
+                state.WindGust = windGustRaw1
+                log.info "Wind Gust Speed Input = MPH - Output = MPH -- No conversion required"
+                }
+                
+                if(speedUnit == "KPH"){
+                state.SU = ' kph'
+                def speedTemp2 = convertMPHtoKPH(windGustRaw1) 
+                state.WindGust = speedTemp2 
+            
+                }
+                
+            } 
+            
+            if (windGustRaw1.contains("kph")) {
+                 windGustRaw1 = windGustRaw1.replace("kph", "")
+                
+            	if(speedUnit == "MPH"){
+            	state.SU = ' mph'
+                def speedTemp2 = convertKPHtoMPH(windGustRaw1)
+                state.WindGust = speedTemp2
+                }
+                 if(speedUnit == "KPH"){
+                 state.SU = ' kph'
+                 state.WindGust = windGustRaw1 
+                 log.info "Wind Gust Speed Input = KPH - Output = KPH --No conversion required"
+                }
+                
+            } 
+            
+// ************************** INSIDE TEMP **************************************************************************************** 
+          
+              def insideTemperatureRaw1 = (resp1.data.stats.current.insideTemp)
+                    if (insideTemperatureRaw1.contains("N/A") || insideTemperatureRaw1 == null){
+                    state.insideTemp = 'No Station Data'}
+            
+            if (insideTemperatureRaw1.contains("F")) {
+                insideTemperatureRaw1 = insideTemperatureRaw1.replace(fcode, "")
+                
+                if(temperatureUnit == "Fahrenheit (°F)"){
+            	state.TU = ' °F'
+                state.InsideTemp = insideTemperatureRaw1
+                log.info "InsideTemperature Input = F - Output = F -- No conversion required"
+                }
+                
+                if(temperatureUnit == "Celsius (°C)"){
+                state.TU = ' °C'
+                def insideTemp1 = convertFtoC(insideTemperatureRaw1) 
+                state.InsideTemp = insideTemp1 
+                
+                }
+                
+            } 
+            
+            if (insideTemperatureRaw1.contains("C")) {
+                insideTemperatureRaw1 = insideTemperatureRaw1.replace(ccode, "")
+                
+            	if(temperatureUnit == "Fahrenheit (°F)"){
+            	state.TU = ' °F'
+                def insideTemp1 = convertCtoF(insideTemperatureRaw1)
+                state.InsideTemp = insideTemp1
+                }
+                if(temperatureUnit == "Celsius (°C)"){
+                state.TU = ' °C'
+                state.InsideTemp = insideTemperatureRaw1  
+                    log.info "InsideTemperature Input = C - Output = C --No conversion required"
+                }
+                
+            } 
+  
+// ************************** RAIN RATE ****************************************************************************************    
+            
+            
+            def rainRateRaw1 = (resp1.data.stats.current.rainRate) 
+            	if(rainRateRaw1.contains("N/A") || rainRateRaw1 == null){
+                   state.Rainrate = 'No Station Data'}
+            	
+            if(rainRateRaw1.contains("in/hr")){
+                rainRateRaw1 = rainRateRaw1.replace("in/hr", "")
+                
+                if(rainUnit == "IN"){
+                    state.RRU = " in/hr"
+                 	state.Rainrate = rainRateRaw1  
+                     log.info "Rainrate Input = in/hr - Output = in/hr --No conversion required"
                 }
             
-              def temperatureRaw1 = (resp1.data.stats.current.outTemp.replaceFirst("°F", "")) 
-            	if(temperatureRaw1 == "   N/A" | temperatureRaw1 ==null){
-                    state.temperatureRaw = "0"
-                	state.tempNow = 'No Data'}
-            	else{
-                    state.tempNow = 'OK'
-                	state.temperatureRaw = temperatureRaw1
+            	if(rainUnit == "MM"){
+            		state.RRU = " mm/hr"
+                    rrTemp = convertINtoMM(rainRateRaw1)
+                    state.Rainrate = rrTemp
+            }
+            }
+            
+             if(rainRateRaw1.contains("mm/hr")){
+                rainRateRaw1 = rainRateRaw1.replace("mm/hr", "")
+                0.621371
+                if(rainUnit == "IN"){
+                    state.RRU = " in/hr"
+                    rrTemp = convertMMtoIN(rainRateRaw1)
+                 	state.Rainrate = rrTemp 
                 }
+            
+            	if(rainUnit == "MM"){
+            		state.RRU = " mm/hr"
+                   state.Rainrate = rainRateRaw1 
+                   log.info "Rainrate Input = mm/hr - Output = mm/hr --No conversion required"
+            }
+            }
+            
+
+// ************************** RAIN TODAY ****************************************************************************************    
+            
+              def rainTodayRaw1 = (resp1.data.stats.sinceMidnight.rainSum)
+               	if(rainTodayRaw1.contains("N/A") || rainTodayRaw1 == null){
+                   state.RainToday = 'No Station Data'}
+            	
+            if(rainTodayRaw1.contains("in")){
+                rainTodayRaw1 = rainTodayRaw1.replace("in", "")
+                
+                if(rainUnit == "IN"){
+                    state.RU = " in"
+                 	state.RainToday = rainTodayRaw1 
+                     log.info "RainToday Input = in - Output = in --No conversion required"
+                }
+            
+            	if(rainUnit == "MM"){
+            		state.RU = " mm"
+                    rtTemp = convertINtoMM(rainTodayRaw1)
+                    state.RainToday = rtTemp
+            }
+            }
+            
+             if(rainTodayRaw1.contains("mm")){
+                rainTodayRaw1 = rainTodayRaw1.replace("mm", "")
+                
+                if(rainUnit == "IN"){
+                    state.RU = " in"
+                    rtTemp = convertMMtoIN(rainTodayRaw1)
+                 	state.RainToday = rtTemp 
+                }
+            
+            	if(rainUnit == "MM"){
+            		state.RU = " mm"
+                   state.RainToday = rainTodayRaw1 
+                   log.info "RainToday Input = mm - Output = mm --No conversion required"
+            }
+            }
+
+
+// ************************** TEMPERATURE ****************************************************************************************
+            
+              def temperatureRaw1 = (resp1.data.stats.current.outTemp) 
+            	if(temperatureRaw1.contains("N/A") || temperatureRaw1 ==null){
+                state.Temperature = 'No Station Data'}
+            
+            if (temperatureRaw1.contains("F")) {
+                temperatureRaw1 = temperatureRaw1.replace(fcode, "")
+                
+                if(temperatureUnit == "Fahrenheit (°F)"){
+            	state.TU = ' °F'
+                state.Temperature = temperatureRaw1
+                log.info "Temperature Input = F - Output = F -- No conversion required"
+                }
+                
+                if(temperatureUnit == "Celsius (°C)"){
+                state.TU = ' °C'
+                def temp1 = convertFtoC(temperatureRaw1) 
+                state.Temperature = temp1 
+                
+                }
+                
+            } 
+            
+            if (temperatureRaw1.contains("C")) {
+                temperatureRaw1 = temperatureRaw1.replace(ccode, "")
+                
+            	if(temperatureUnit == "Fahrenheit (°F)"){
+            	state.TU = ' °F'
+                    def temp1 = convertCtoF(temperatureRaw1)
+                state.Temperature = temp1
+                }
+                if(temperatureUnit == "Celsius (°C)"){
+                state.TU = ' °C'
+                state.Temperature = temperatureRaw1  
+                    log.info "Temperature Input = C - Output = C --No conversion required"
+                }
+                
+            } 
+           
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+  
+            
+// ************************** uv ************************************************************************************************            
             
               def UVRaw1 = (resp1.data.stats.current.UV)
-            	if(UVRaw1 == "   N/A" | UVRaw1 ==null){
-                    state.UVRaw = "0"
-                	state.uvNow = 'No Data'}
+            	if(UVRaw1.contains("N/A") || UVRaw1 ==null){
+                   
+                	state.UV = 'No Station Data'}
             	else{
-                    state.uvNow = 'OK'
-                	state.UVRaw = UVRaw1
-                }
-               
-              def windChillRaw1 = (resp1.data.stats.current.windchill.replaceFirst("°F", ""))
-            	if(windChillRaw1 == "   N/A" | windChillRaw1 ==null){
-                    state.windChillRaw = "0"
-                	state.windChillNow = 'No Data'}
-           		else{
-                    state.windChillNow = 'OK'
-                	state.windChillRaw = windChillRaw1
-                }
+                    state.UV = UVRaw1
+                
+                    if(state.UV <= '2.9'){state.UVHarm = 'Low'}
+                    if(state.UV >= '3.0' && state.UV <= '5.9'){state.UVHarm = 'Moderate'}
+            		if(state.UV >= '6.0' && state.UV <= '7.9'){state.UVHarm = 'High'}
+ 					if(state.UV >= '8.0' && state.UV <= '10.9'){state.UVHarm = 'Very High'}
+					if(state.UV >= '11.0'){state.UVHarm = 'Extreme'}
+
+
+
+                } 
             
-             def obsTime1 = (resp1.data.time)
-                if(obsTime1 == "   N/A" | obsTime1 ==null){
-                     state.obsTimeNow = 'No Data'}
-            	else{
-                    state.obsTimeNow = 'OK'
-                	state.obsTime = obsTime1
+            
+            
+            
+            
+
+// ************************** WINDCHILL ****************************************************************************************            
+            
+              def windChillRaw1 = (resp1.data.stats.current.windchill)
+            	if(windChillRaw1.contains("N/A") || windChillRaw1 ==null){
+                   state.FeelsLike = 'No Station Data'}
+                	
+            
+ 				if (windChillRaw1.contains("F")) {
+                windChillRaw1 = windChillRaw1.replace(fcode, "")
+                
+                if(temperatureUnit == "Fahrenheit (°F)"){
+            	state.TU = ' °F'
+                state.FeelsLike = windChillRaw1
+                log.info "FeelsLike Input = F - Output = F -- No conversion required"
                 }
-                      
+                
+                if(temperatureUnit == "Celsius (°C)"){
+                state.TU = ' °C'
+                def feelslike1 = convertFtoC(windChillRaw1) 
+                state.FeelsLike = feelslike1
+                
+                }
+                
+            } 
+            
+            if (windChillRaw1.contains("C")) {
+                windChillRaw1 = windChillRaw1.replace(ccode, "")
+                             
+            	if(temperatureUnit == "Fahrenheit (°F)"){
+            	state.TU = ' °F'
+                def feelslike1 = convertCtoF(windChillRaw1)
+                state.FeelsLike = feelslike1
+                }
+                if(temperatureUnit == "Celsius (°C)"){
+                state.TU = ' °C'
+                state.FeelsLike = windChillRaw1 
+                    log.info "FeelsLike Input = C - Output = C --No conversion required"
+                }
+                
+            } 
+           
+                    
+                    
+                    
+            
+   
              //  any more?
                  
              		
-// Calculations ************************************************************************************************************              
-  
-    if(pressureUnit == "INHg"){
-    def pressureFinalTemp = state.pressureRaw.toFloat()    
-    state.pressureFinal = pressureFinalTemp.round(state.decimalPlaces)
-           }
-    
-    if(pressureUnit == "MBAR"){
-    def pressureFinalTemp = state.pressureRaw.toFloat()
-    def pressureFinalAlmost = (pressureFinalTemp * 33.8638815) 
-    state.pressureFinal = pressureFinalAlmost.round(state.decimalPlaces)
-       	   }
-         
-    if(rainUnit == "IN"){
-    def rainTodayAlmostFinal = state.rainTodayRaw.toFloat()     
-    state.rainTodayFinal = rainTodayAlmostFinal.round(state.decimalPlaces)
-        
-    def rainRateAlmostFinal =  state.rainRateRaw.toFloat()   
-    state.rainRateFinal = rainRateAlmostFinal.round(state.decimalPlaces)  
-           }
             
-    if(rainUnit == "MM"){
-    def rainTodayFinalTemp = state.rainTodayRaw.toFloat()
-    def rainTodayAlmostFinal = (rainTodayFinalTemp * 25.4)    
-    state.rainTodayFinal = rainTodayAlmostFinal.round(state.decimalPlaces)
-        
-    def rainRateFinalTemp = state.rainRateRaw.toFloat() 
-    def rainRateAlmostFinal =  (rainRateFinalTemp * 25.4)   
-    state.rainRateFinal = rainRateAlmostFinal.round(state.decimalPlaces)    
-    	  }   
-            
-   
-    if(speedUnit == "MPH"){
-     
-    def windSpeedAlmostFinal = state.windSpeedRaw.toFloat()    
-    state.windSpeedFinal = windSpeedAlmostFinal.round(state.decimalPlaces) 
-        
-    def windGustAlmostFinal = state.windGustRaw.toFloat()    
-    state.windGustFinal = windGustAlmostFinal.round(state.decimalPlaces) 
-    }
-            
-    if(speedUnit == "KPH"){
-    def windSpeedFinalTemp = state.windSpeedRaw.toFloat() 
-    def windSpeedAlmostFinal = (windSpeedFinalTemp * 1.609344)
-    state.windSpeedFinal =  windSpeedAlmostFinal.round(state.decimalPlaces) 
-        
-    def windGustFinalTemp = state.windGustRaw.toFloat()
-    def windGustAlmostFinal = (windGustFinalTemp * 1.609344)   
-    state.windGustFinal =  windGustAlmostFinal.round(state.decimalPlaces)
-    }
-            
-    if(temperatureUnit == "Fahrenheit (°F)"){
-    def insideTemperatureAlmostFinal = state.insideTemperatureRaw.toFloat()    
-    state.insideTemperatureFinal = insideTemperatureAlmostFinal.round(state.decimalPlaces)
-        
-    def temperatureAlmostFinal = state.temperatureRaw.toFloat()    
-    state.temperatureFinal = temperatureAlmostFinal.round(state.decimalPlaces)
-        
-    def windChillAlmostFinal = state.windChillRaw.toFloat()
-    state.windChillFinal = windChillAlmostFinal.round(state.decimalPlaces) 
-        
-    def dewPointAlmostFinal = state.dewpointRaw.toFloat()
-    state.dewPointFinal = dewPointAlmostFinal.round(state.decimalPlaces)     
-        
-    }
-            
-    if(temperatureUnit == "Celsius (°C)"){
-    def insideTemperatureAlmostFinal =  state.insideTemperatureRaw.toFloat()  
-    def insideTemperatureTemp = ((insideTemperatureAlmostFinal - 32) *0.5556)        
-    state.insideTemperatureFinal = insideTemperatureTemp.round(state.decimalPlaces)
-        
-    def temperatureAlmostFinal =  state.temperatureRaw.toFloat()  
-    def temperatureTemp = ((temperatureAlmostFinal - 32) *0.5556)
-    state.temperatureFinal = temperatureTemp.round(state.decimalPlaces)
-        
-    def windChillAlmostFinal = state.windChillRaw.toFloat()
-    def windChillTemp =  ((windChillAlmostFinal - 32) *0.5556)  
-    state.windChillFinal = windChillTemp.round(state.decimalPlaces)  
-        
-    def dewPointAlmostFinal = state.dewpointRaw.toFloat()
-    def dewpointTemp =  ((dewPointAlmostFinal - 32) *0.5556)     
-    state.dewPointFinal = dewpointTemp.round(state.decimalPlaces)         
-        
-        
-    }        
+      
         
     
             
  // Basics - No units ************************************************************************************************
             
-             sendEvent(name: "Author", value: "Cobra", isStateChange: true)
+             sendEvent(name: "DriverAuthor", value: "Cobra", isStateChange: true)
              sendEvent(name: "DriverVersion", value: state.driverversion, isStateChange: true)
              sendEvent(name: "WeewxServerUptime", value: resp1.data.serverUptime, isStateChange: true)
              sendEvent(name: "WeewxServerLocation", value: resp1.data.location, isStateChange: true)
@@ -728,27 +880,26 @@ def PollStationNow()
              sendEvent(name: "sunset", value: resp1.data.almanac.sun.sunset, isStateChange: true)
              sendEvent(name: "moonPhase", value: resp1.data.almanac.moon.phase, isStateChange: true)
              sendEvent(name: "moonRise", value: resp1.data.almanac.moon.rise, isStateChange: true)
+             sendEvent(name: "uv", value: state.UV, isStateChange: true)
+             sendEvent(name: "uvHarm", value: state.UVHarm, isStateChange: true)
+             sendEvent(name: "LastUpdate-Weewx", value: resp1.data.time, isStateChange: true)
             
             
             
             
-            if(state.obsTimeNow == 'No Data'){sendEvent(name: "Last_Weewx_Update", value:"No Station Data", isStateChange: true)}
-            else{sendEvent(name: "LastUpdate-Weewx", value: resp1.data.time, isStateChange: true)}
             
-            if(state.uvNow == 'No Data'){sendEvent(name: "uv", value:"No Station Data", isStateChange: true)}
-            else{sendEvent(name: "uv", value: state.UVRaw, isStateChange: true)}
-            
+                      
             
             def windDirRaw = (resp1.data.stats.current.windDirText)
             	if(windDirRaw){
-                    if(windDirRaw == 'N/A'){sendEvent(name: "wind_dir", value:"No Station Data", isStateChange: true)}
+                    if(windDirRaw.contains("N/A")){sendEvent(name: "wind_dir", value:"No Station Data", isStateChange: true)}
                     else {sendEvent(name: "wind_dir", value: windDirRaw, isStateChange: true)} 
                 
                 }
          
              def pressureTrend = (resp1.data.stats.current.barometerTrendData) 
                   if(pressureTrend){
-                      if(pressureTrend == 'N/A'){sendEvent(name: "pressure_trend", value:"No Station Data", isStateChange: true)}
+                      if(pressureTrend.contains("N/A")){sendEvent(name: "pressure_trend", value:"No Station Data", isStateChange: true)}
                       else if(pressureTrend.contains("-")){sendEvent(name: "pressure_trend", value:"Falling", isStateChange: true)} 
                       else if(pressureTrend.contains("+")){sendEvent(name: "pressure_trend", value:"Rising", isStateChange: true)} 
                       else {sendEvent(name: "pressure_trend", value:"Static", isStateChange: true)} 
@@ -758,137 +909,51 @@ def PollStationNow()
             
             
 // // Send Events  - WITH UNITS ********************************************************************************************            
-              if(state.unitsOn == true){  
-                  if(state.illuminenceNow == 'No Data'){sendEvent(name: "illuminance", value:"No Station Data", isStateChange: true)}              
-                  else{sendEvent(name: "illuminance", value: state.illuminanceRaw + state.IU, isStateChange: true)}
+              if(state.DisplayUnits == true){  
+                         
+                  sendEvent(name: "illuminance", value: state.Illuminance + state.IU, isStateChange: true)
+                  sendEvent(name: "solarradiation", value: state.SolarRadiation + state.SRU, isStateChange: true)
+                  sendEvent(name: "dewpoint", value: state.Dewpoint + state.TU, isStateChange: true)
+                  sendEvent(name: "humidity", value: state.Humidity + state.HU, isStateChange: true)
+                  sendEvent(name: "pressure", value: state.Pressure + state.PU, isStateChange: true) 
+                  sendEvent(name: "wind", value: state.WindSpeed + state.SU, isStateChange: true)
+                  sendEvent(name: "wind_gust", value: state.WindGust + state.SU, isStateChange: true)
+                  sendEvent(name: "inside_temperature", value: state.InsideTemp + state.TU, isStateChange: true)
+                  sendEvent(name: "inside_humidity", value: state.InsideHumidity + state.HU, isStateChange: true)  
+                  sendEvent(name: "temperature", value: state.Temperature + state.TU, isStateChange: true)
+                  sendEvent(name: "rain_rate", value: state.Rainrate + state.RRU, isStateChange: true)
+                  sendEvent(name: "precip_today", value: state.RainToday + state.RU, isStateChange: true) 
+                  sendEvent(name: "precip_1hr", value: state.Rainrate + state.RU, isStateChange: true)
+                  sendEvent(name: "feelsLike", value: state.FeelsLike + state.TU, isStateChange: true)
                   
-                  if(state.solarradiationNow == 'No Data'){sendEvent(name: "solarradiation", value:"No Station Data", isStateChange: true)}  
-                  else{sendEvent(name: "solarradiation", value: state.solarradiationRaw + state.SRU, isStateChange: true)}
                   
-                  if(state.dewpointNow == 'No Data'){sendEvent(name: "dewpoint", value:"No Station Data", isStateChange: true)}  
-                  else{sendEvent(name: "dewpoint", value: state.dewPointFinal + state.TU, isStateChange: true)}
-                  
-                  if(state.humidityNow == 'No Data'){sendEvent(name: "humidity", value:"No Station Data", isStateChange: true)}
-                  else{sendEvent(name: "humidity", value: state.humidityRaw + state.HU, isStateChange: true)}
-                  
-                  if(state.pressureNow == 'No Data'){sendEvent(name: "pressure", value:"No Station Data", isStateChange: true)}
-                  else{sendEvent(name: "pressure", value: state.pressureFinal + state.PU, isStateChange: true)} 
-                  
-                  if(state.windNow == 'No Data'){sendEvent(name: "wind", value:"No Station Data", isStateChange: true)}     
-                  else{ sendEvent(name: "wind", value: state.windSpeedFinal + state.SU, isStateChange: true)}
-                  
-                  if(state.windgustNow == 'No Data'){sendEvent(name: "wind_gust", value:"No Station Data", isStateChange: true)}     
-                  else{sendEvent(name: "wind_gust", value: state.windGustFinal + state.SU, isStateChange: true)}
-                  
-                  if(state.insideTempNow == 'No Data'){sendEvent(name: "inside_temperature", value:"No Station Data", isStateChange: true)} 
-                  else{sendEvent(name: "inside_temperature", value: state.insideTemperatureFinal + state.TU, isStateChange: true)}
-                  
-                  if(state.inHumidNow == 'No Data'){sendEvent(name: "inside_humidity", value:"No Station Data", isStateChange: true)}
-                  else{sendEvent(name: "inside_humidity", value: state.inHumidRaw + state.HU, isStateChange: true)}     
-                  
-                  if(state.tempNow == 'No Data'){sendEvent(name: "temperature", value:"No Station Data", isStateChange: true)}
-                  else{sendEvent(name: "temperature", value: state.temperatureFinal + state.TU, isStateChange: true)}
-                  
-                  if(state.rainRateNow == 'No Data'){sendEvent(name: "rain_rate", value:"No Station Data", isStateChange: true)}
-                  else{sendEvent(name: "rain_rate", value: state.rainRateFinal + state.RRU, isStateChange: true)}  
-           
-                  if(state.rainTodayNow == 'No Data'){sendEvent(name: "precip_today", value:"No Station Data", isStateChange: true)}
-                  else{sendEvent(name: "precip_today", value: state.rainTodayFinal + state.RU, isStateChange: true)}  
-                  
-                  if(state.rainRateNow == 'No Data'){sendEvent(name: "precip_1hr", value:"No Station Data", isStateChange: true)}
-                  else{sendEvent(name: "precip_1hr", value: state.rainRateFinal + state.RU, isStateChange: true)}    
-                 
-                  if(state.windChillNow == 'No Data'){sendEvent(name: "feelsLike", value:"No Station Data", isStateChange: true)}      
-                  else{sendEvent(name: "feelsLike", value: state.windChillFinal + state.TU, isStateChange: true)}      
-            
-           
-                 
-                 
-                 
-                  
+    
                   
               }
             
 // // Send Events  - WITHOUT UNITS *****************************************************************************************               
-             if(state.unitsOn == false){  
-             if(state.illuminenceNow == 'No Data'){sendEvent(name: "illuminance", value:"No Station Data", isStateChange: true)}              
-                  else{sendEvent(name: "illuminance", value: state.illuminanceRaw, isStateChange: true)}
-                  
-                  if(state.solarradiationNow == 'No Data'){sendEvent(name: "solarradiation", value:"No Station Data", isStateChange: true)}  
-                  else{sendEvent(name: "solarradiation", value: state.solarradiationRaw, isStateChange: true)}
-                  
-                  if(state.dewpointNow == 'No Data'){sendEvent(name: "dewpoint", value:"No Station Data", isStateChange: true)}  
-                  else{sendEvent(name: "dewpoint", value: state.dewPointFinal, isStateChange: true)}
-                  
-                  if(state.humidityNow == 'No Data'){sendEvent(name: "humidity", value:"No Station Data", isStateChange: true)}
-                  else{sendEvent(name: "humidity", value: state.humidityRaw, isStateChange: true)}
-                  
-                  if(state.pressureNow == 'No Data'){sendEvent(name: "pressure", value:"No Station Data", isStateChange: true)}
-                  else{sendEvent(name: "pressure", value: state.pressureFinal, isStateChange: true)} 
-                  
-                  if(state.windNow == 'No Data'){sendEvent(name: "wind", value:"No Station Data", isStateChange: true)}     
-                  else{ sendEvent(name: "wind", value: state.windSpeedFinal , isStateChange: true)}
-                  
-                  if(state.windgustNow == 'No Data'){sendEvent(name: "wind_gust", value:"No Station Data", isStateChange: true)}     
-                  else{sendEvent(name: "wind_gust", value: state.windGustFinal, isStateChange: true)}
-                  
-                  if(state.insideTempNow == 'No Data'){sendEvent(name: "inside_temperature", value:"No Station Data", isStateChange: true)} 
-                  else{sendEvent(name: "inside_temperature", value: state.insideTemperatureFinal, isStateChange: true)}
-                  
-                  if(state.inHumidNow == 'No Data'){sendEvent(name: "inside_humidity", value:"No Station Data", isStateChange: true)}
-                  else{sendEvent(name: "inside_humidity", value: state.inHumidRaw, isStateChange: true)}     
-                  
-                  if(state.tempNow == 'No Data'){sendEvent(name: "temperature", value:"No Station Data", isStateChange: true)}
-                  else{sendEvent(name: "temperature", value: state.temperatureFinal, isStateChange: true)}
-                  
-                  if(state.rainRateNow == 'No Data'){sendEvent(name: "rain_rate", value:"No Station Data", isStateChange: true)}
-                  else{sendEvent(name: "rain_rate", value: state.rainRateFinal, isStateChange: true)}  
-           
-                  if(state.rainTodayNow == 'No Data'){sendEvent(name: "precip_today", value:"No Station Data", isStateChange: true)}
-                  else{sendEvent(name: "precip_today", value: state.rainTodayFinal, isStateChange: true)}  
-                  
-                  if(state.rainRateNow == 'No Data'){sendEvent(name: "precip_1hr", value:"No Station Data", isStateChange: true)}
-                  else{sendEvent(name: "precip_1hr", value: state.rainRateFinal, isStateChange: true)}    
-                 
-                  if(state.windChillNow == 'No Data'){sendEvent(name: "feelsLike", value:"No Station Data", isStateChange: true)}      
-                  else{sendEvent(name: "feelsLike", value: state.windChillFinal, isStateChange: true)}      
+             if(state.DisplayUnits == false){  
+                  sendEvent(name: "illuminance", value: state.Illuminance, isStateChange: true)
+                  sendEvent(name: "solarradiation", value: state.SolarRadiation, isStateChange: true)
+                  sendEvent(name: "dewpoint", value: state.Dewpoint, isStateChange: true)
+                  sendEvent(name: "humidity", value: state.Humidity, isStateChange: true)
+                  sendEvent(name: "pressure", value: state.Pressure, isStateChange: true)
+                  sendEvent(name: "wind", value: state.WindSpeed , isStateChange: true)
+                  sendEvent(name: "wind_gust", value: state.WindGust, isStateChange: true)
+                  sendEvent(name: "inside_temperature", value: state.InsideTemp, isStateChange: true)
+                  sendEvent(name: "inside_humidity", value: state.InsideHumidity, isStateChange: true)   
+                  sendEvent(name: "temperature", value: state.Temperature, isStateChange: true)
+                  sendEvent(name: "rain_rate", value: state.Rainrate, isStateChange: true)  
+                  sendEvent(name: "precip_today", value: state.RainToday, isStateChange: true)  
+                  sendEvent(name: "precip_1hr", value: state.Rainrate, isStateChange: true)  
+                  sendEvent(name: "feelsLike", value: state.FeelsLike, isStateChange: true) 
             
-              
-                 
-                 
-                 
-                 
-                 
-                 
-                 
+
         }
             
 // **********************************************************************************************            
   
-             
-            
-            
-         //    sendEvent(name: "chanceOfRain", value: resp1.data.forecast.simpleforecast.forecastday[0].pop + "%", isStateChange: true)
-        //     sendEvent(name: "moonPhase", value: resp1.data.moon_phase.phaseofMoon , isStateChange: true)
-        //     sendEvent(name: "moonIllumination", value: resp1.data.moon_phase.percentIlluminated  + "%" , isStateChange: true)
-
-         //   sendEvent(name: "weather", value: resp1.data.current_observation.weather, isStateChange: true)
-     
-	   //		sendEvent(name: "city", value: resp1.data.current_observation.display_location.city, isStateChange: true)
-      //      sendEvent(name: "state", value: resp1.data.current_observation.display_location.state, isStateChange: true)
-     //       sendEvent(name: "percentPrecip", value: resp1.data.forecast.simpleforecast.forecastday[0].pop , isStateChange: true)
-       //     sendEvent(name: "localSunrise", value: resp1.data.sun_phase.sunrise.hour + ":" + resp1.data.sun_phase.sunrise.minute, descriptionText: "Sunrise today is at $localSunrise", isStateChange: true)
-      //  	sendEvent(name: "localSunset", value: resp1.data.sun_phase.sunset.hour + ":" + resp1.data.sun_phase.sunset.minute, descriptionText: "Sunset today at is $localSunset", isStateChange: true)
-             
-            
- // Select Icon
-                if(iconType == false){   
-           //        sendEvent(name: "weatherIcon", value: resp1.data.forecast.simpleforecast.forecastday[0].icon, isStateChange: true)
-                }
-                if(iconType == true){ 
-			//       sendEvent(name: "weatherIcon", value: resp1.data.current_observation.icon, isStateChange: true)
-                }    
-           
+         
            
            def WeatherSummeryFormat = weatherFormat
             
@@ -1055,3 +1120,139 @@ def PollStationNow()
 }
 
 
+def getFcode(){
+     def charF1 ="&-#-1-7-6-;-F"
+     def charF = charF1.replace("-", "")
+return charF
+}
+
+def getCcode(){
+    def charC1 ="&-#-1-7-6-;-C"
+    def charC = charC1.replace("-", "")
+return charC
+}
+
+def getWmcode(){
+     def wm1 ="W-/-m-&-#-1-7-8;"
+    def wm = wm1.replace("-", "")
+return wm
+}
+
+def convertFtoC(temperatureIn){
+    log.info "Converting F to C"
+    def tempIn = temperatureIn.toFloat()
+    log.info "tempIn = $tempIn"
+    def tempCalc = ((tempIn - 32) *0.5556)  
+    def tempOut1 = tempCalc.round(state.DecimalPlaces)
+    def tempOut = tempOut1
+    log.info "tempOut =  $tempOut"
+	return tempOut
+            }
+            
+            
+def convertCtoF(temperatureIn){
+    log.info "Converting C to F"
+    def tempIn = temperatureIn.toFloat()
+    log.info "tempIn = $tempIn"
+    def tempCalc = ((tempIn * 1.8) + 32)  
+    def tempOut1 = tempCalc.round(state.DecimalPlaces)
+    def tempOut = tempOut1
+    log.info "tempOut =  $tempOut"
+	return tempOut
+            }   
+
+ 
+def convertINtoMM(unitIn){
+      log.info "Converting IN to MM"             
+      def tempIn1 = unitIn.toFloat()           
+      log.info "tempIn1 = $tempIn1" 
+    def tempCalc1 = (tempIn1 * 25.4)
+    def tempOut2 = tempCalc1.round(state.DecimalPlaces)
+    def tempOut1 = tempOut2
+    log.info "tempOut1 =  $tempOut1"
+	return tempOut1              
+               }
+
+def convertMMtoIN(unitIn){
+      log.info "Converting IN to MM"             
+      def tempIn1 = unitIn.toFloat()           
+      log.info "tempIn1 = $tempIn1" 
+    def tempCalc1 = (tempIn1/25.4)
+    def tempOut2 = tempCalc1.round(state.DecimalPlaces)
+    def tempOut1 = tempOut2
+    log.info "tempOut1 =  $tempOut1"
+	return tempOut1              
+               }               
+               
+               
+               
+def convertMBtoIN(pressureIn){
+      log.info "Converting MBAR to INHg"             
+     def pressIn1 = pressureIn.toFloat()           
+      log.info "Pressure In = $pressIn1" 
+    def pressCalc1 = (pressIn1 * 0.02953)
+    def pressOut2 = pressCalc1.round(state.DecimalPlaces)
+    def pressOut1 = pressOut2
+    log.info "Pressure Out =  $pressOut1"
+	return pressOut1              
+               }                              
+               
+def convertINtoMB(pressureIn){
+      log.info "Converting INHg to MBAR"             
+      def pressIn1 = pressureIn.toFloat()           
+      log.info "Pressure In = $pressIn1" 
+    def pressCalc1 = (pressIn1 * 33.8638815)
+    def pressOut2 = pressCalc1.round(state.DecimalPlaces)
+    def pressOut1 = pressOut2
+    log.info "Pressure Out =  $pressOut1"
+	return pressOut1              
+               }                                    
+               
+def convertMPHtoKPH(speed1In) {
+  log.info "Converting MPH to KPH"             
+      def speed1 = speed1In.toFloat()           
+      log.info "Speed In = $speed1In" 
+    def speedCalc1 = (speed1In * 1.60934)
+    def speedOut2 = speedCalc1.round(state.DecimalPlaces)
+    def speedOut1 = speedOut2
+    log.info "Speed Out =  $pressOut1"
+	return speedOut1              
+               }                                    
+               
+   
+
+def convertKPHtoMPH(speed1In) {
+  log.info "Converting KPH to MPH"             
+      def speed1 = speed1In.toFloat()           
+      log.info "Speed In = $speed1In" 
+    def speedCalc1 = (speed1In * 0.621371)
+    def speedOut2 = speedCalc1.round(state.DecimalPlaces)
+    def speedOut1 = speedOut2
+    log.info "Speed Out =  $pressOut1"
+	return speedOut1              
+               }                              
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+               
+               
+               
+               
+               
