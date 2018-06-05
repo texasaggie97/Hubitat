@@ -18,7 +18,7 @@
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
  *  for the specific language governing permissions and limitations under the License.
  *
- *  Last Update 05/06/2018
+ *  Last Update 29/05/2018
  *
  *
  *  V1.0.0 - Original POC
@@ -873,7 +873,7 @@ def PollStationNow()
  // Basics - No units ************************************************************************************************
             
              sendEvent(name: "DriverAuthor", value: "Cobra", isStateChange: true)
-             sendEvent(name: "DriverVersion", value: state.driverversion, isStateChange: true)
+             sendEvent(name: "DriverVersion", value: state.DriverVersion, isStateChange: true)
              sendEvent(name: "WeewxServerUptime", value: resp1.data.serverUptime, isStateChange: true)
              sendEvent(name: "WeewxServerLocation", value: resp1.data.location, isStateChange: true)
              sendEvent(name: "sunrise", value: resp1.data.almanac.sun.sunrise, isStateChange: true)
