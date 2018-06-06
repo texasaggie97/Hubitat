@@ -6,7 +6,7 @@
  *  This driver was originally born from an idea by @mattw01 and @Jhoke and I thank them for that!
  *  
  *  This driver is specifically designed to be used with 'Weewx' and your own PWS
- *  It also has the capability to collect forecast data from Apixu.com (once you have an api key)
+ *  It also has the capability to collect forecast data from an external source (once you have an api key)
  *
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
@@ -18,9 +18,13 @@
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
  *  for the specific language governing permissions and limitations under the License.
  *
- *  Last Update 05/06/2018
+ *  Last Update 06/06/2018
  *
  *
+ *  
+ *  V1.2.0 - Renamed some attributes for 'Dashboard' compliance - Started work on additional external sources
+ *  V1.1.1 - Debug 'UV Harm' indication
+ *  V1.1.0 - Made ALL logging switchable
  *  V1.0.0 - Original POC
  *
  */
@@ -29,14 +33,14 @@
 
 
 metadata {
-    definition (name: "Weewx Weather Driver - Beta1", namespace: "Cobra", author: "Andrew Parker") {
+    definition (name: "Weewx Weather Driver - Beta", namespace: "Cobra", author: "Andrew Parker") {
         capability "Actuator"
         capability "Sensor"
         capability "Temperature Measurement"
         capability "Illuminance Measurement"
         capability "Relative Humidity Measurement"
         command "PollStationNow"
-		command "PollApixuNow"
+		command "PollExternalNow"
         
 // Base Info        
         attribute "DriverAuthor", "string"
@@ -67,21 +71,21 @@ metadata {
         attribute "LastUpdate-Weewx", "string"
         attribute "precip_1hr", "string"
         attribute "precip_today", "string"
-        attribute "sunrise", "string"
-        attribute "sunset", "string"
+        attribute "localSunrise", "string"
+        attribute "localSunset", "string"
         attribute "moonPhase", "string"
         attribute "moonRise", "string"
         
         
-        // Apixu Data (if used)
-        attribute "LastUpdate-Apixu", "string"
+        // External Data (if used)
+        attribute "LastUpdate-External", "string"
         attribute "visibility", "string"
         attribute "forecastHigh", "string"
         attribute "forecastLow", "string"
         attribute "city", "string"
         attribute "state", "string"
         attribute "country", "string"
-        attribute "weatherCurrent", "string"
+        attribute "weather", "string"
         attribute "rainTomorrow", "string"
         attribute "rainDayAfterTomorrow", "string"
         attribute "weatherIcon", "string"
@@ -112,19 +116,19 @@ metadata {
             input "weewxPort", "text", required: true, title: "Connection Port", defaultValue: "80"
             input "weewxPath", "text", required: true, title: "path to file", defaultValue: "weewx/daily.json"
             input "unitSet", "bool", title: "Display Data Units", required: true, defaultValue: true
-            input "logSet", "bool", title: "Log All Response Data", required: true, defaultValue: false
+            input "logSet", "bool", title: "Log All Data", required: true, defaultValue: false
             input "pollInterval", "enum", title: "Weewx Station Poll Interval", required: true, defaultValue: "5 Minutes", options: ["Manual Poll Only", "5 Minutes", "10 Minutes", "15 Minutes", "30 Minutes", "1 Hour", "3 Hours"]
             input "pressureUnit", "enum", title: "Pressure Unit", required:true, defaultValue: "INHg", options: ["INHg", "MBAR"]
             input "rainUnit", "enum", title: "Rain Unit", required:true, defaultValue: "IN", options: ["IN", "MM"]
             input "speedUnit", "enum", title: "Wind Speed Unit", required:true, defaultValue: "MPH", options: ["MPH", "KPH"]
             input "temperatureUnit", "enum", title: "Temperature Unit", required:true, defaultValue: "Fahrenheit (°F)", options: ["Fahrenheit (°F)", "Celsius (°C)"]
             input "decimalUnit", "enum", title: "Max Decimal Places", required:true, defaultValue: "2", options: ["1", "2", "3", "4", "5"]
-            input "addData", "bool", title: "Collect Additional Forecast Data From Apixu.com", required: true, defaultValue: false
+            input "addData", "bool", title: "Collect Forecast Data From External Source", required: true, defaultValue: false
             if (addData == true){
-                input "apiKey", "text", required: true, title: "Apixu API Key"
+                input "extSource", "enum", title: "Select External Source", required:true, defaultValue: "APIXU", options: ["APIXU", "OTHER"]
+                input "pollInterval1", "enum", title: "External Source Poll Interval", required: true, defaultValue: "3 Hours", options: ["Manual Poll Only", "15 Minutes", "30 Minutes", "1 Hour", "3 Hours"]
+                input "apiKey", "text", required: true, title: "API Key"
                 input "pollLocation1", "text", required: true, title: "ZIP Code or Location"
-                input "iconType", "bool", title: "Apixu Icon: On = Current - Off = Forecast", required: true, defaultValue: false
-                input "pollInterval1", "enum", title: "Apixu Poll Interval", required: true, defaultValue: "3 Hours", options: ["Manual Poll Only", "15 Minutes", "30 Minutes", "1 Hour", "3 Hours"]
             }
                 
             
@@ -141,23 +145,21 @@ metadata {
 def updated() {
     log.debug "updated called"
     unschedule()
+    logCheck()
+    setVersion()
     units()
     PollStationNow()
-    PollApixuNow()
-    state.DisplayUnits = unitSet
+    if(extSource == "APIXU"){ PollApixuNow()}
+                            
     def pollIntervalCmd = (settings?.pollInterval ?: "3 Hours").replace(" ", "")
     
-    if(pollInterval == "Manual Poll Only"){
-        log.info "MANUAL POLLING ONLY"}
-    else{
-        "runEvery${pollIntervalCmd}"(pollSchedule)}
+    if(pollInterval == "Manual Poll Only"){LOGINFO( "MANUAL POLLING ONLY")}
+    else{ "runEvery${pollIntervalCmd}"(pollSchedule)}
     
     def pollIntervalCmd1 = (settings?.pollInterval ?: "3 Hours").replace(" ", "")
     
-    if(pollInterval1 == "Manual Poll Only"){
-        log.info "MANUAL POLLING ONLY"}
-    else{
-        "runEvery${pollIntervalCmd1}"(pollSchedule1)}
+    if(pollInterval1 == "Manual Poll Only"){LOGINFO( "MANUAL POLLING ONLY")}
+    else{"runEvery${pollIntervalCmd1}"(pollSchedule1)}
     
 
 }
@@ -169,21 +171,22 @@ def units(){
  	state.HU = " %"   
     state.DecimalPlaces = decimalUnit.toInteger()
     state.DisplayUnits = unitSet
-    
-    
 }
 
-
+def PollExternalNow(){
+ if(extSource == "APIXU"){ PollApixuNow()}                                
+                                
+ }
 
 
 
 // Get APIXU data *******************************************************
-
+                            
 
 
 def PollApixuNow(){
     units()
- log.debug "Apixu: Poll called"
+ LOGDEBUG("Apixu: Poll called")
     def params2 = [
           
           uri: "http://api.apixu.com/v1/forecast.json?key=${apiKey}&q=${pollLocation1}&days=3"
@@ -193,41 +196,31 @@ def PollApixuNow(){
     try {
         httpGet(params2) { resp2 ->
             resp2.headers.each {
-            log.debug "Response2: ${it.name} : ${it.value}"
+            LOGINFO("Response2: ${it.name} : ${it.value}")
         }
             if(logSet == true){  
            
-            log.debug "params2: ${params2}"
-            log.debug "response contentType: ${resp2.contentType}"
- 		    log.debug "response data: ${resp2.data}"
+            LOGINFO( "params2: ${params2}")
+            LOGINFO( "response contentType: ${resp2.contentType}")
+ 		    LOGINFO( "response data: ${resp2.data}")
             } 
             if(logSet == false){ 
-            log.info "Further detailed Apixu data logging disabled"    
+            log.info "Further detailed 'External Source' data logging disabled"    
             }    
             
     
             
             // Apixu No Units ********************
-   
-            
-              sendEvent(name: "weatherCurrent", value: resp2.data.current.condition.text, isStateChange: true)
+
+              sendEvent(name: "weather", value: resp2.data.current.condition.text, isStateChange: true)
               sendEvent(name: "weatherForecast", value: resp2.data.forecast.forecastday.day[1].condition.text, isStateChange: true)
               sendEvent(name: "city", value: resp2.data.location.name, isStateChange: true)
               sendEvent(name: "state", value: resp2.data.location.region, isStateChange: true)
               sendEvent(name: "country", value: resp2.data.location.country, isStateChange: true)
-              sendEvent(name: "LastUpdate-Apixu", value: resp2.data.current.last_updated, isStateChange: true)    
-              
-             
-                
-                
-            
-            // Select Apixu Icon
-                if(iconType == false){   
-                sendEvent(name: "weatherIcon", value: resp2.data.forecast.forecastday.day[1].condition.icon, isStateChange: true)
-                }
-                if(iconType == true){ 
-		        sendEvent(name: "weatherIcon", value: resp2.data.current.condition.icon, isStateChange: true)
-                }    
+              sendEvent(name: "LastUpdate-External", value: resp2.data.current.last_updated, isStateChange: true)    
+              sendEvent(name: "weatherIcon", value: resp2.data.current.condition.icon, isStateChange: true)  // Current Icon
+      //      sendEvent(name: "weatherIcon", value: resp2.data.forecast.forecastday.day[1].condition.icon, isStateChange: true)  // Forecast Icon
+     
          
             
     // Apixu With Units ***************************************************************
@@ -235,118 +228,69 @@ def PollApixuNow(){
           if(state.DisplayUnits == true){
                        
            if(rainUnit == "IN"){
-                
-
-               
-           
-          sendEvent(name: "rainTomorrow", value: resp2.data.forecast.forecastday.day[1].totalprecip_in +state.RU, isStateChange: true)
-          sendEvent(name: "rainDayAfterTomorrow", value: resp2.data.forecast.forecastday.day[2].totalprecip_in +state.RU, isStateChange: true)
-             
+           sendEvent(name: "rainTomorrow", value: resp2.data.forecast.forecastday.day[1].totalprecip_in +state.RU, isStateChange: true)
+           sendEvent(name: "rainDayAfterTomorrow", value: resp2.data.forecast.forecastday.day[2].totalprecip_in +state.RU, isStateChange: true)
            }
-               
-           
-          if(rainUnit == "MM"){ 
- 
-           
-          sendEvent(name: "rainTomorrow", value: resp2.data.forecast.forecastday.day[1].totalprecip_mm +state.RU, isStateChange: true)
-          sendEvent(name: "rainDayAfterTomorrow", value: resp2.data.forecast.forecastday.day[2].totalprecip_mm +state.RU, isStateChange: true)
-             
+          
+           if(rainUnit == "MM"){ 
+           sendEvent(name: "rainTomorrow", value: resp2.data.forecast.forecastday.day[1].totalprecip_mm +state.RU, isStateChange: true)
+           sendEvent(name: "rainDayAfterTomorrow", value: resp2.data.forecast.forecastday.day[2].totalprecip_mm +state.RU, isStateChange: true)
            }
             
-          if(temperatureUnit == "Celsius (°C)"){
-    
-      	
-            sendEvent(name: "forecastHigh", value: resp2.data.forecast.forecastday.day[0].maxtemp_c +state.TU, isStateChange: true)
-            sendEvent(name: "forecastLow", value: resp2.data.forecast.forecastday.day[0].mintemp_c +state.TU, isStateChange: true)              
-           
+           if(temperatureUnit == "Celsius (°C)"){
+           sendEvent(name: "forecastHigh", value: resp2.data.forecast.forecastday.day[0].maxtemp_c +state.TU, isStateChange: true)
+           sendEvent(name: "forecastLow", value: resp2.data.forecast.forecastday.day[0].mintemp_c +state.TU, isStateChange: true)              
           }
-              
-          if(temperatureUnit == "Fahrenheit (°F)"){ 
 
-               
-         sendEvent(name: "forecastHigh", value: resp2.data.forecast.forecastday.day[0].maxtemp_f +state.TU, isStateChange: true)
-   	     sendEvent(name: "forecastLow", value: resp2.data.forecast.forecastday.day[0].mintemp_f +state.TU, isStateChange: true)
-                    
-           }  
-            
-  
+          if(temperatureUnit == "Fahrenheit (°F)"){ 
+          sendEvent(name: "forecastHigh", value: resp2.data.forecast.forecastday.day[0].maxtemp_f +state.TU, isStateChange: true)
+   	      sendEvent(name: "forecastLow", value: resp2.data.forecast.forecastday.day[0].mintemp_f +state.TU, isStateChange: true)
+           } 
               
-          }      
+         if(speedUnit == "MPH"){  
+          sendEvent(name: "visibility", value: resp2.data.current.vis_miles + " Miles", isStateChange: true)
+          }  
+            
+          if(speedUnit == "KPH"){
+          sendEvent(name: "visibility", value: resp2.data.current.vis_km + " KM", isStateChange: true)
+          }    
+
+ }      
               
      // Apixu Without Units ***************************************************************
           if(state.DisplayUnits == false){
               
            if(rainUnit == "IN"){
-
-          
-          sendEvent(name: "rainTomorrow", value: resp2.data.forecast.forecastday.day[1].totalprecip_in, unit:"in", isStateChange: true)
-          sendEvent(name: "rainDayAfterTomorrow", value: resp2.data.forecast.forecastday.day[2].totalprecip_in, unit:"in", isStateChange: true) 
-               }    
+           sendEvent(name: "rainTomorrow", value: resp2.data.forecast.forecastday.day[1].totalprecip_in, unit:"in", isStateChange: true)
+           sendEvent(name: "rainDayAfterTomorrow", value: resp2.data.forecast.forecastday.day[2].totalprecip_in, unit:"in", isStateChange: true) 
+           }    
                
                   
           if(rainUnit == "MM"){  
-
           sendEvent(name: "rainTomorrow", value: resp2.data.forecast.forecastday.day[1].totalprecip_mm, unit:"mm", isStateChange: true)
           sendEvent(name: "rainDayAfterTomorrow", value: resp2.data.forecast.forecastday.day[2].totalprecip_mm, unit:"mm", isStateChange: true)
-              }    
+           }    
 
             
           if(temperatureUnit == "Celsius (°C)"){
-
-              
-                    
           sendEvent(name: "forecastHigh", value: resp2.data.forecast.forecastday.day[0].maxtemp_c, unit:"C", isStateChange: true)
           sendEvent(name: "forecastLow", value: resp2.data.forecast.forecastday.day[0].mintemp_c, unit:"C", isStateChange: true)
-             
-           }
+          }
               
           if(temperatureUnit == "Fahrenheit (°F)"){ 
-
-          
           sendEvent(name: "forecastHigh", value: resp2.data.forecast.forecastday.day[0].maxtemp_f, unit:"F", isStateChange: true)
-           sendEvent(name: "forecastLow", value: resp2.data.forecast.forecastday.day[0].mintemp_f, unit:"F", isStateChange: true)
-            }   
-              
+          sendEvent(name: "forecastLow", value: resp2.data.forecast.forecastday.day[0].mintemp_f, unit:"F", isStateChange: true)
+          }   
            
-          if(distanceFormat == "Miles (mph)"){  
+          if(speedUnit == "MPH"){  
           sendEvent(name: "visibility", value: resp2.data.current.vis_miles, unit: "mi", isStateChange: true)
-           }  
+          }  
             
-          if(distanceFormat == "Kilometres (kph)"){
+          if(speedUnit == "KPH"){
           sendEvent(name: "visibility", value: resp2.data.current.vis_km, unit: "km", isStateChange: true)
-           }
-              
           }
-                  
-              
-              
-              
-              
-              
-              
-              
-              
-              
-              
-              
-              
-              
-              
-              
-              
-              
-              
-              
-              
-         
-     
-// END: Get APIXU data *******************************************************           
-            
-            
-           
+}
 
-        
-    
        } 
         
     } catch (e) {
@@ -354,7 +298,7 @@ def PollApixuNow(){
     }
     
 }
-
+// END: Get APIXU data *******************************************************       
 
 
 
@@ -376,11 +320,10 @@ def parse(String description) {
 def PollStationNow()
 {
     units()
-    state.DriverVersion = "1.0.0"   
-    // ************************* Update as required *************************************
+  
     
  
-    log.debug "Weewx: ForcePoll called"
+    LOGDEBUG("Weewx: ForcePoll called")
     def params1 = [
         uri: "http://${ipaddress}:${weewxPort}/${weewxPath}"
          ]
@@ -388,13 +331,13 @@ def PollStationNow()
     try {
         httpGet(params1) { resp1 ->
             resp1.headers.each {
-            log.debug "Response1: ${it.name} : ${it.value}"
+            LOGINFO( "Response1: ${it.name} : ${it.value}")
         }
             if(logSet == true){  
            
-            log.debug "params1: ${params1}"
-            log.debug "response contentType: ${resp1.contentType}"
- 		    log.debug "response data: ${resp1.data}"
+            LOGINFO( "params1: ${params1}")
+            LOGINFO( "response contentType: ${resp1.contentType}")
+ 		    LOGINFO( "response data: ${resp1.data}")
             } 
             
             
@@ -420,7 +363,7 @@ def PollStationNow()
            
  // ************************ ILLUMINANCE **************************************************************************************           
               def illuminanceRaw1 = (resp1.data.stats.current.solarRadiation.replaceFirst(wmcode, ""))
-               	if(illuminanceRaw1.contains("N/A") || illuminanceRaw1 == null){
+               	if(illuminanceRaw1 == null || illuminanceRaw1.contains("N/A")){
                 state.Illuminance = 'No Station Data'}
             else{
                 state.Illuminance = illuminanceRaw1
@@ -429,7 +372,7 @@ def PollStationNow()
 // ************************* SOLAR RADIATION*****************************************************************************************           
             
               def solarradiationRaw1 = (resp1.data.stats.current.solarRadiation.replaceFirst(wmcode, ""))
-            	if(solarradiationRaw1.contains("N/A") || solarradiationRaw1 == null ){
+            	if(solarradiationRaw1 == null || solarradiationRaw1.contains("N/A")){
                   	state.SolarRadiation = 'No Station Data'}
             	else{
                      state.SolarRadiation = solarradiationRaw1
@@ -438,7 +381,7 @@ def PollStationNow()
 // ************************** HUMIDITY ***************************************************************************************   
             
               def humidityRaw1 = (resp1.data.stats.current.humidity.replaceFirst("%", ""))
-            	if(humidityRaw1.contains("N/A") || humidityRaw1 == null){
+            	if(humidityRaw1 == null || humidityRaw1.contains("N/A")){
                 state.Humidity = 'No Station Data'}
             	else{
                    state.Humidity = humidityRaw1
@@ -447,7 +390,7 @@ def PollStationNow()
 // ************************** INSIDE HUMIDITY ************************************************************************************
             
               def inHumidRaw1 = (resp1.data.stats.current.insideHumidity.replaceFirst("%", "")) 
-            	if(inHumidRaw1.contains("N/A") || inHumidRaw1 ==null){
+            	if(inHumidRaw1 ==null || inHumidRaw1.contains("N/A")){
                    
                 	state.InsideHumidity = 'No Station Data'}
             	else{
@@ -459,7 +402,7 @@ def PollStationNow()
 // ************************* DEWPOINT *****************************************************************************************
             
                 def dewpointRaw1 = (resp1.data.stats.current.dewpoint)
-                 	if(dewpointRaw1.contains("N/A") || dewpointRaw1 == null){
+                 	if(dewpointRaw1 == null || dewpointRaw1.contains("N/A")){
                     state.Dewpoint = 'No Station Data'}
             
             	if (dewpointRaw1.contains("F")) {
@@ -468,7 +411,7 @@ def PollStationNow()
                 if(temperatureUnit == "Fahrenheit (°F)"){
             	state.TU = ' °F'
                 state.Dewpoint = dewpointRaw1
-                log.info "Dewpoint Input = F - Output = F -- No conversion required"
+                LOGINFO("Dewpoint Input = F - Output = F -- No conversion required")
                 }    
                 if(temperatureUnit == "Celsius (°C)"){
                 state.TU = ' °C'
@@ -490,7 +433,7 @@ def PollStationNow()
                  if(temperatureUnit == "Celsius (°C)"){
                 state.TU = ' °C'
                 state.Dewpoint = dewpointRaw1
-                 log.info "Dewpoint Input = C - Output = C -- No conversion required"  
+                 LOGINFO("Dewpoint Input = C - Output = C -- No conversion required" ) 
                 }        
 
             } 
@@ -503,7 +446,7 @@ def PollStationNow()
 // ************************** PRESSURE ****************************************************************************************            
            
               def pressureRaw1 = (resp1.data.stats.current.barometer)
-                    if (pressureRaw1.contains("N/A") || insideTemperatureRaw1 == null){
+                    if (insideTemperatureRaw1 == null || pressureRaw1.contains("N/A")){
                     state.Pressure = 'No Station Data'}
             
             if (pressureRaw1.contains("inHg")) {
@@ -512,7 +455,7 @@ def PollStationNow()
                 if(pressureUnit == "INHg"){
             	state.PU = ' inhg'
                 state.Pressure = pressureRaw1
-                log.info "Pressure Input = INHg - Output = INHg -- No conversion required"
+                LOGINFO("Pressure Input = INHg - Output = INHg -- No conversion required")
                 }
                 
                 if(pressureUnit == "MBAR"){
@@ -535,7 +478,7 @@ def PollStationNow()
                  if(pressureUnit == "MBAR"){
                  state.PU = ' mbar'
                  state.Pressure = pressureRaw1 
-                 log.info "Pressure Input = MBAR - Output = MBAR --No conversion required"
+                 LOGINFO( "Pressure Input = MBAR - Output = MBAR --No conversion required")
                 }
                 
             } 
@@ -546,7 +489,7 @@ def PollStationNow()
 // ************************** WIND SPEED ****************************************************************************************
             
     		  def windSpeedRaw1 = (resp1.data.stats.current.windSpeed) 
-            if(windSpeedRaw1.contains("N/A") || windSpeedRaw1 == null){
+            if(windSpeedRaw1 == null || windSpeedRaw1.contains("N/A")){
                     state.WindSpeed = 'No Station Data'}
             
             if (windSpeedRaw1.contains("mph")) {
@@ -555,7 +498,7 @@ def PollStationNow()
                 if(speedUnit == "MPH"){
             	state.SU = ' mph'
                 state.WindSpeed = windSpeedRaw1
-                log.info "Wind Speed Input = MPH - Output = MPH -- No conversion required"
+                LOGINFO("Wind Speed Input = MPH - Output = MPH -- No conversion required")
                 }
                 
                 if(speedUnit == "KPH"){
@@ -578,7 +521,7 @@ def PollStationNow()
                  if(speedUnit == "KPH"){
                  state.SU = ' kph'
                  state.WindSpeed = windSpeedRaw1 
-                 log.info "WindSpeed Input = KPH - Output = KPH --No conversion required"
+                 LOGINFO("WindSpeed Input = KPH - Output = KPH --No conversion required")
                 }
                 
             } 
@@ -587,7 +530,7 @@ def PollStationNow()
 // ************************** WIND GUST ****************************************************************************************
             
               def windGustRaw1 = (resp1.data.stats.current.windGust)  
-            	 if(windGustRaw1.contains("N/A") || windGustRaw1 == null){
+            	 if(windGustRaw1 == null || windGustRaw1.contains("N/A")){
                     state.WindGust = 'No Station Data'}
             
             if (windGustRaw1.contains("mph")) {
@@ -596,7 +539,7 @@ def PollStationNow()
                 if(speedUnit == "MPH"){
             	state.SU = ' mph'
                 state.WindGust = windGustRaw1
-                log.info "Wind Gust Speed Input = MPH - Output = MPH -- No conversion required"
+                LOGINFO( "Wind Gust Speed Input = MPH - Output = MPH -- No conversion required")
                 }
                 
                 if(speedUnit == "KPH"){
@@ -619,7 +562,7 @@ def PollStationNow()
                  if(speedUnit == "KPH"){
                  state.SU = ' kph'
                  state.WindGust = windGustRaw1 
-                 log.info "Wind Gust Speed Input = KPH - Output = KPH --No conversion required"
+                LOGINFO( "Wind Gust Speed Input = KPH - Output = KPH --No conversion required")
                 }
                 
             } 
@@ -627,8 +570,8 @@ def PollStationNow()
 // ************************** INSIDE TEMP **************************************************************************************** 
           
               def insideTemperatureRaw1 = (resp1.data.stats.current.insideTemp)
-                    if (insideTemperatureRaw1.contains("N/A") || insideTemperatureRaw1 == null){
-                    state.insideTemp = 'No Station Data'}
+                    if (insideTemperatureRaw1 == null || insideTemperatureRaw1.contains("N/A")){
+                    state.InsideTemp = 'No Station Data'}
             
             if (insideTemperatureRaw1.contains("F")) {
                 insideTemperatureRaw1 = insideTemperatureRaw1.replace(fcode, "")
@@ -636,7 +579,7 @@ def PollStationNow()
                 if(temperatureUnit == "Fahrenheit (°F)"){
             	state.TU = ' °F'
                 state.InsideTemp = insideTemperatureRaw1
-                log.info "InsideTemperature Input = F - Output = F -- No conversion required"
+                LOGINFO("InsideTemperature Input = F - Output = F -- No conversion required")
                 }
                 
                 if(temperatureUnit == "Celsius (°C)"){
@@ -659,7 +602,7 @@ def PollStationNow()
                 if(temperatureUnit == "Celsius (°C)"){
                 state.TU = ' °C'
                 state.InsideTemp = insideTemperatureRaw1  
-                    log.info "InsideTemperature Input = C - Output = C --No conversion required"
+                LOGINFO( "InsideTemperature Input = C - Output = C --No conversion required")
                 }
                 
             } 
@@ -668,7 +611,7 @@ def PollStationNow()
             
             
             def rainRateRaw1 = (resp1.data.stats.current.rainRate) 
-            	if(rainRateRaw1.contains("N/A") || rainRateRaw1 == null){
+            	if(rainRateRaw1 == null || rainRateRaw1.contains("N/A")){
                    state.Rainrate = 'No Station Data'}
             	
             if(rainRateRaw1.contains("in/hr")){
@@ -677,7 +620,7 @@ def PollStationNow()
                 if(rainUnit == "IN"){
                     state.RRU = " in/hr"
                  	state.Rainrate = rainRateRaw1  
-                     log.info "Rainrate Input = in/hr - Output = in/hr --No conversion required"
+                    LOGINFO( "Rainrate Input = in/hr - Output = in/hr --No conversion required")
                 }
             
             	if(rainUnit == "MM"){
@@ -699,7 +642,7 @@ def PollStationNow()
             	if(rainUnit == "MM"){
             		state.RRU = " mm/hr"
                    state.Rainrate = rainRateRaw1 
-                   log.info "Rainrate Input = mm/hr - Output = mm/hr --No conversion required"
+                   LOGINFO( "Rainrate Input = mm/hr - Output = mm/hr --No conversion required")
             }
             }
             
@@ -707,7 +650,7 @@ def PollStationNow()
 // ************************** RAIN TODAY ****************************************************************************************    
             
               def rainTodayRaw1 = (resp1.data.stats.sinceMidnight.rainSum)
-               	if(rainTodayRaw1.contains("N/A") || rainTodayRaw1 == null){
+               	if(rainTodayRaw1 == null || rainTodayRaw1.contains("N/A")){
                    state.RainToday = 'No Station Data'}
             	
             if(rainTodayRaw1.contains("in")){
@@ -716,7 +659,7 @@ def PollStationNow()
                 if(rainUnit == "IN"){
                     state.RU = " in"
                  	state.RainToday = rainTodayRaw1 
-                     log.info "RainToday Input = in - Output = in --No conversion required"
+                    LOGINFO( "RainToday Input = in - Output = in --No conversion required")
                 }
             
             	if(rainUnit == "MM"){
@@ -738,7 +681,7 @@ def PollStationNow()
             	if(rainUnit == "MM"){
             		state.RU = " mm"
                    state.RainToday = rainTodayRaw1 
-                   log.info "RainToday Input = mm - Output = mm --No conversion required"
+                  LOGINFO("RainToday Input = mm - Output = mm --No conversion required")
             }
             }
 
@@ -746,7 +689,7 @@ def PollStationNow()
 // ************************** TEMPERATURE ****************************************************************************************
             
               def temperatureRaw1 = (resp1.data.stats.current.outTemp) 
-            	if(temperatureRaw1.contains("N/A") || temperatureRaw1 ==null){
+            	if(temperatureRaw1 ==null || temperatureRaw1.contains("N/A")){
                 state.Temperature = 'No Station Data'}
             
             if (temperatureRaw1.contains("F")) {
@@ -755,7 +698,7 @@ def PollStationNow()
                 if(temperatureUnit == "Fahrenheit (°F)"){
             	state.TU = ' °F'
                 state.Temperature = temperatureRaw1
-                log.info "Temperature Input = F - Output = F -- No conversion required"
+                LOGINFO("Temperature Input = F - Output = F -- No conversion required")
                 }
                 
                 if(temperatureUnit == "Celsius (°C)"){
@@ -778,7 +721,7 @@ def PollStationNow()
                 if(temperatureUnit == "Celsius (°C)"){
                 state.TU = ' °C'
                 state.Temperature = temperatureRaw1  
-                    log.info "Temperature Input = C - Output = C --No conversion required"
+                 LOGINFO("Temperature Input = C - Output = C --No conversion required")
                 }
                 
             } 
@@ -792,20 +735,42 @@ def PollStationNow()
                     
   
             
-// ************************** uv ************************************************************************************************            
+// ************************** UV ************************************************************************************************            
             
               def UVRaw1 = (resp1.data.stats.current.UV)
-            	if(UVRaw1.contains("N/A") || UVRaw1 ==null){
+            	if(UVRaw1 ==null || UVRaw1.contains("N/A")){
                    
                 	state.UV = 'No Station Data'}
             	else{
                     state.UV = UVRaw1
-                
-                    if(state.UV <= '2.9'){state.UVHarm = 'Low'}
-                    if(state.UV >= '3.0' && state.UV <= '5.9'){state.UVHarm = 'Moderate'}
-            		if(state.UV >= '6.0' && state.UV <= '7.9'){state.UVHarm = 'High'}
- 					if(state.UV >= '8.0' && state.UV <= '10.9'){state.UVHarm = 'Very High'}
-					if(state.UV >= '11.0'){state.UVHarm = 'Extreme'}
+   
+                    
+ // Calculate UV likelyhood of causing harm to someone *****************************************************                   
+                    LOGINFO ( "state.UV -- $state.UV")
+                    if(state.UV <= '0.1'){
+                        state.UVHarm = 'Zero'
+                        LOGINFO  ("UV Zero -- $state.UV")
+                    }
+                    if(state.UV >= '0.2' && state.UV <= '2.9'){
+                        state.UVHarm = 'Low'
+                         LOGINFO  ( "UV Low -- $state.UV")
+                    }
+                    if(state.UV >= '3.0' && state.UV <= '5.9'){
+                        state.UVHarm = 'Moderate'
+                        LOGINFO  ( "UV Moderate -- $state.UV")
+                    }
+            		if(state.UV >= '6.0' && state.UV <= '7.9'){
+                        state.UVHarm = 'High'
+                         LOGINFO  ( "UV High -- $state.UV")
+                    }
+ 					if(state.UV >= '8.0' && state.UV <= '9.8'){
+                        state.UVHarm = 'VeryHigh'
+                        LOGINFO  ( "UV VeryHigh -- $state.UV")
+                    }
+					if(state.UV >= "9.99"){
+                        state.UVHarm = 'Extreme'
+                         LOGINFO  ( "UV Extreme -- $state.UV")
+                    }
 
 
 
@@ -819,7 +784,7 @@ def PollStationNow()
 // ************************** WINDCHILL ****************************************************************************************            
             
               def windChillRaw1 = (resp1.data.stats.current.windchill)
-            	if(windChillRaw1.contains("N/A") || windChillRaw1 ==null){
+            	if(windChillRaw1 ==null || windChillRaw1.contains("N/A")){
                    state.FeelsLike = 'No Station Data'}
                 	
             
@@ -829,7 +794,7 @@ def PollStationNow()
                 if(temperatureUnit == "Fahrenheit (°F)"){
             	state.TU = ' °F'
                 state.FeelsLike = windChillRaw1
-                log.info "FeelsLike Input = F - Output = F -- No conversion required"
+                LOGINFO( "FeelsLike Input = F - Output = F -- No conversion required")
                 }
                 
                 if(temperatureUnit == "Celsius (°C)"){
@@ -852,7 +817,7 @@ def PollStationNow()
                 if(temperatureUnit == "Celsius (°C)"){
                 state.TU = ' °C'
                 state.FeelsLike = windChillRaw1 
-                    log.info "FeelsLike Input = C - Output = C --No conversion required"
+                 LOGINFO( "FeelsLike Input = C - Output = C --No conversion required")
                 }
                 
             } 
@@ -876,8 +841,8 @@ def PollStationNow()
              sendEvent(name: "DriverVersion", value: state.DriverVersion, isStateChange: true)
              sendEvent(name: "WeewxServerUptime", value: resp1.data.serverUptime, isStateChange: true)
              sendEvent(name: "WeewxServerLocation", value: resp1.data.location, isStateChange: true)
-             sendEvent(name: "sunrise", value: resp1.data.almanac.sun.sunrise, isStateChange: true)
-             sendEvent(name: "sunset", value: resp1.data.almanac.sun.sunset, isStateChange: true)
+             sendEvent(name: "localSunrise", value: resp1.data.almanac.sun.sunrise, isStateChange: true)
+             sendEvent(name: "localSunset", value: resp1.data.almanac.sun.sunset, isStateChange: true)
              sendEvent(name: "moonPhase", value: resp1.data.almanac.moon.phase, isStateChange: true)
              sendEvent(name: "moonRise", value: resp1.data.almanac.moon.rise, isStateChange: true)
              sendEvent(name: "uv", value: state.UV, isStateChange: true)
@@ -960,9 +925,9 @@ def PollStationNow()
             if(summaryType == true){
             
             if (WeatherSummeryFormat == "Celsius, Miles & MPH"){
-                		 sendEvent(name: "weatherSummaryFormat", value: "Celsius, Miles & MPH", isStateChange: true)
-                         sendEvent(name: "weatherSummary", value: "Weather summary for" + " " + resp1.data.current_observation.display_location.city + ", " + resp1.data.current_observation.observation_time+ ". "   
-                       + resp1.data.forecast.simpleforecast.forecastday[0].conditions + " with a high of " + resp1.data.forecast.simpleforecast.forecastday[0].high.celsius + " degrees, " + "and a low of " 
+                		
+                         sendEvent(name: "weatherSummary", value: "Weather summary for" + " " + resp1.data.location + ", " + resp1.data.time + ". "   
+                       + resp2.data.current.condition.text + " with a high of " + resp1.data.forecast.simpleforecast.forecastday[0].high.celsius + " degrees, " + "and a low of " 
                        + resp1.data.forecast.simpleforecast.forecastday[0].low.celsius  + " degrees. " + "Humidity is currently around " + resp1.data.current_observation.relative_humidity + " and temperature is " 
                        + resp1.data.current_observation.temp_c + " degrees. " + " The temperature feels like it's " + resp1.data.current_observation.feelslike_c + " degrees. " + "Wind is from the " + resp1.data.current_observation.wind_dir
                        + " at " + resp1.data.current_observation.wind_mph + " mph" + ", with gusts up to " + resp1.data.current_observation.wind_gust_mph + " mph" + ". Visibility is around " 
@@ -1139,104 +1104,132 @@ return wm
 }
 
 def convertFtoC(temperatureIn){
-    log.info "Converting F to C"
+    LOGDEBUG( "Converting F to C")
     def tempIn = temperatureIn.toFloat()
-    log.info "tempIn = $tempIn"
+    LOGDEBUG("tempIn = $tempIn")
     def tempCalc = ((tempIn - 32) *0.5556)  
     def tempOut1 = tempCalc.round(state.DecimalPlaces)
     def tempOut = tempOut1
-    log.info "tempOut =  $tempOut"
+    LOGDEBUG( "tempOut =  $tempOut")
 	return tempOut
             }
             
             
 def convertCtoF(temperatureIn){
-    log.info "Converting C to F"
+    LOGDEBUG( "Converting C to F")
     def tempIn = temperatureIn.toFloat()
-    log.info "tempIn = $tempIn"
+    LOGDEBUG( "tempIn = $tempIn")
     def tempCalc = ((tempIn * 1.8) + 32)  
     def tempOut1 = tempCalc.round(state.DecimalPlaces)
     def tempOut = tempOut1
-    log.info "tempOut =  $tempOut"
+    LOGDEBUG( "tempOut =  $tempOut")
 	return tempOut
             }   
 
  
 def convertINtoMM(unitIn){
-      log.info "Converting IN to MM"             
+      LOGDEBUG( "Converting IN to MM" )           
       def tempIn1 = unitIn.toFloat()           
-      log.info "tempIn1 = $tempIn1" 
+     LOGDEBUG( "tempIn1 = $tempIn1" )
     def tempCalc1 = (tempIn1 * 25.4)
     def tempOut2 = tempCalc1.round(state.DecimalPlaces)
     def tempOut1 = tempOut2
-    log.info "tempOut1 =  $tempOut1"
+    LOGDEBUG( "tempOut1 =  $tempOut1")
 	return tempOut1              
                }
 
 def convertMMtoIN(unitIn){
-      log.info "Converting IN to MM"             
+      LOGDEBUG( "Converting IN to MM" )            
       def tempIn1 = unitIn.toFloat()           
-      log.info "tempIn1 = $tempIn1" 
+      LOGDEBUG( "tempIn1 = $tempIn1")
     def tempCalc1 = (tempIn1/25.4)
     def tempOut2 = tempCalc1.round(state.DecimalPlaces)
     def tempOut1 = tempOut2
-    log.info "tempOut1 =  $tempOut1"
+    LOGDEBUG( "tempOut1 =  $tempOut1")
 	return tempOut1              
                }               
                
                
                
 def convertMBtoIN(pressureIn){
-      log.info "Converting MBAR to INHg"             
+      LOGDEBUG( "Converting MBAR to INHg")           
      def pressIn1 = pressureIn.toFloat()           
-      log.info "Pressure In = $pressIn1" 
+      LOGDEBUG("Pressure In = $pressIn1") 
     def pressCalc1 = (pressIn1 * 0.02953)
     def pressOut2 = pressCalc1.round(state.DecimalPlaces)
     def pressOut1 = pressOut2
-    log.info "Pressure Out =  $pressOut1"
+    LOGDEBUG( "Pressure Out =  $pressOut1")
 	return pressOut1              
                }                              
                
 def convertINtoMB(pressureIn){
-      log.info "Converting INHg to MBAR"             
+      LOGDEBUG( "Converting INHg to MBAR" )            
       def pressIn1 = pressureIn.toFloat()           
-      log.info "Pressure In = $pressIn1" 
+      LOGDEBUG( "Pressure In = $pressIn1" )
     def pressCalc1 = (pressIn1 * 33.8638815)
     def pressOut2 = pressCalc1.round(state.DecimalPlaces)
     def pressOut1 = pressOut2
-    log.info "Pressure Out =  $pressOut1"
+   LOGDEBUG( "Pressure Out =  $pressOut1")
 	return pressOut1              
                }                                    
                
 def convertMPHtoKPH(speed1In) {
-  log.info "Converting MPH to KPH"             
+  LOGDEBUG( "Converting MPH to KPH")            
       def speed1 = speed1In.toFloat()           
-      log.info "Speed In = $speed1In" 
+     LOGDEBUG( "Speed In = $speed1In")
     def speedCalc1 = (speed1In * 1.60934)
     def speedOut2 = speedCalc1.round(state.DecimalPlaces)
     def speedOut1 = speedOut2
-    log.info "Speed Out =  $pressOut1"
+    LOGDEBUG("Speed Out =  $pressOut1")
 	return speedOut1              
                }                                    
                
    
 
 def convertKPHtoMPH(speed1In) {
-  log.info "Converting KPH to MPH"             
+  LOGDEBUG("Converting KPH to MPH" )            
       def speed1 = speed1In.toFloat()           
-      log.info "Speed In = $speed1In" 
+  LOGDEBUG( "Speed In = $speed1In") 
     def speedCalc1 = (speed1In * 0.621371)
     def speedOut2 = speedCalc1.round(state.DecimalPlaces)
     def speedOut1 = speedOut2
-    log.info "Speed Out =  $pressOut1"
+  LOGDEBUG( "Speed Out =  $pressOut1")
 	return speedOut1              
                }                              
 
 
+// define debug action
+def logCheck(){
+state.checkLog = logSet
+if(state.checkLog == true){
+log.info "All Logging Enabled"
+}
+else if(state.checkLog == false){
+log.info "Further Logging Disabled"
+}
 
+}
+def LOGDEBUG(txt){
+    try {
+    	if(state.checkLog == true){ log.debug("Weewx Driver - DEBUG:  ${txt}") }
+    } catch(ex) {
+    	log.error("LOGDEBUG unable to output requested data!")
+    }
+}
 
+def LOGINFO(txt){
+    try {
+    	if(state.checkLog == true){log.info("Weewx Driver - INFO:  ${txt}") }
+    } catch(ex) {
+    	log.error("LOGINFO unable to output requested data!")
+    }
+}
 
-
+def setVersion(){
+      state.DriverVersion = "1.2.0"   
+    // ************************* Manually Update As Required *************************************
+   
+}
 
 
 
