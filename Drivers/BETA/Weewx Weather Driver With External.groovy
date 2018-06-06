@@ -898,7 +898,7 @@ def PollStationNow()
             
 // // Send Events  - WITHOUT UNITS *****************************************************************************************               
              if(state.DisplayUnits == false){  
-                  sendEvent(name: "illuminance", value: state.Illuminance, isStateChange: true)
+                  sendEvent(name: "illuminance", value: state.Illuminance +' unit: "lux"', isStateChange: true)
                   sendEvent(name: "solarradiation", value: state.SolarRadiation, isStateChange: true)
                   sendEvent(name: "dewpoint", value: state.Dewpoint, isStateChange: true)
                   sendEvent(name: "humidity", value: state.Humidity, isStateChange: true)
