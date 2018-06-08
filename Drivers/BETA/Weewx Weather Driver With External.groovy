@@ -991,8 +991,8 @@ def PollStationNow()
             
             if(state.DisplayUnits == false){
                 
-                  sendEvent(name: "illuminance", value: state.Illuminance.toFloat(), unit: "lux", isStateChange: true)    
-                  sendEvent(name: "solarradiation", value: state.SolarRadiation.toFloat(), unit: "lux", isStateChange: true)
+                  sendEvent(name: "illuminance", value: state.Illuminance.toInteger(), unit: "lux", isStateChange: true)    
+                  sendEvent(name: "solarradiation", value: state.SolarRadiation.toInteger(), unit: "lux", isStateChange: true)
                   sendEvent(name: "dewpoint", value: state.Dewpoint, isStateChange: true)
                   sendEvent(name: "humidity", value: state.Humidity, isStateChange: true)
                   sendEvent(name: "pressure", value: state.Pressure, isStateChange: true)
