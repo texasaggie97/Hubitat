@@ -96,7 +96,7 @@ metadata {
         attribute "visibility", "string"
         
        
-      attribute "weatherSummary", "string"
+      
         
         
 
