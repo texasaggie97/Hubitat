@@ -38,7 +38,7 @@
  *  Changes:
  *
  *
- *  V2.0.1.171 - Driver requirement updated
+ *  V2.0.1.172 - Driver requirement updated
  *  V2.0.1.150 - Driver requirement updated
  *  V2.0.1.140 - debug
  *  V2.0.0.130 - Recode for new supported weewx/apixu driver
@@ -849,8 +849,8 @@ def LOGDEBUG(txt){
 
 // App & Driver Version   *********************************************************************************
 def setAppVersion(){
-    state.appversion = "2.0.1.171"
-    state.reqdriverversion = "1.7.1" // required driver version for this app
+    state.appversion = "2.0.1.172"
+    state.reqdriverversion = "1.7.2" // required driver version for this app
     state.reqNameSpace = "Cobra"   // check to confirm Cobra's driver is being used
    
 }
