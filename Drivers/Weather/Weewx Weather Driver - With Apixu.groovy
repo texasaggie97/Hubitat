@@ -1,8 +1,13 @@
 /**
- *  Weewx Weather Driver
- *
+ *  Weewx Weather Driver - With Apixu
  *
  *  Copyright 2018 Andrew Parker
+ *
+ *  This driver was originally born from an idea by @mattw01 and @Jhoke and I thank them for that!
+ *  
+ *  This driver is specifically designed to be used with 'Weewx' and your own PWS
+ *  It also has the capability to collect forecast data from an external source (once you have an api key)
+ *
  *  
  *  This driver is free!
  *
@@ -31,8 +36,6 @@
  *  If modifying this project, please keep the above header intact and add your comments/credits below - Thank you! -  @Cobra
  *
  *-------------------------------------------------------------------------------------------------------------------
- *
- *
  *
  *  Last Update 12/06/2018
  *
