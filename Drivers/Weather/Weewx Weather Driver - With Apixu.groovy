@@ -18,9 +18,10 @@
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
  *  for the specific language governing permissions and limitations under the License.
  *
- *  Last Update 11/06/2018
+ *  Last Update 12/06/2018
  *
- *
+ *  V1.7.0 - Added 'Poll Inside' - This sends internal temperature and humidity as 'standard' external data (for use with Rule Machine)
+ *  V1.6.0 - Added more error checking for PWS that don't send all data
  *  V1.5.0 - Code cleanup & removed commented out test code
  *  V1.4.0 - Disabled OWM data (not much useful data)
  *  V1.3.0 - Added Open Weather Map as an external source (limited details)
@@ -43,6 +44,7 @@ metadata {
         capability "Relative Humidity Measurement"
         command "PollStationNow"
 		command "PollExternalNow"
+        command "PollInside"
         
 // Base Info        
         attribute "DriverAuthor", "string"
@@ -394,6 +396,8 @@ def PollApixuNow(){
 
 
 
+
+
 def pollSchedule1()
 {
     if(extSource == "Apixu"){ PollApixuNow()}
@@ -455,28 +459,34 @@ def PollStationNow()
 // Collect Data
            
  // ************************ ILLUMINANCE **************************************************************************************           
-              def illuminanceRaw1 = (resp1.data.stats.current.solarRadiation.replaceFirst(wmcode, ""))
-               	if(illuminanceRaw1 == null || illuminanceRaw1.contains("N/A")){
-                state.Illuminance = 'No Station Data'}
-            else{
-                state.Illuminance = illuminanceRaw1
-               
-                }
-// ************************* SOLAR RADIATION*****************************************************************************************           
-            
-              def solarradiationRaw1 = (resp1.data.stats.current.solarRadiation.replaceFirst(wmcode, ""))
-            	if(solarradiationRaw1 == null || solarradiationRaw1.contains("N/A")){
-                  	state.SolarRadiation = 'No Station Data'}
+                def illuminanceRaw = (resp1.data.stats.current.solarRadiation)  
+                if(illuminanceRaw == null || illuminanceRaw.contains("N/A")){
+                	state.Illuminance = 'No Station Data'
+                }   
             	else{
+                	def illuminanceRaw1 = (resp1.data.stats.current.solarRadiation.replaceFirst(wmcode, ""))
+                	state.Illuminance = illuminanceRaw1
+                }
+            
+// ************************* SOLAR RADIATION*****************************************************************************************           
+            	
+              def solarradiationRaw = (resp1.data.stats.current.solarRadiation)
+            	if(solarradiationRaw == null || solarradiationRaw.contains("N/A")){
+                  	state.SolarRadiation = 'No Station Data'
+                }
+            	else{
+                     def solarradiationRaw1 = (resp1.data.stats.current.solarRadiation.replaceFirst(wmcode, ""))
                      state.SolarRadiation = solarradiationRaw1
                 }
             
 // ************************** HUMIDITY ***************************************************************************************   
             
-              def humidityRaw1 = (resp1.data.stats.current.humidity.replaceFirst("%", ""))
-            	if(humidityRaw1 == null || humidityRaw1.contains("N/A")){
-                state.Humidity = 'No Station Data'}
+              def humidityRaw = (resp1.data.stats.current.humidity)
+            	if(humidityRaw == null || humidityRaw.contains("N/A")){
+                state.Humidity = 'No Station Data'
+                }
             	else{
+                   def humidityRaw1 = (resp1.data.stats.current.humidity.replaceFirst("%", ""))
                    state.Humidity = humidityRaw1
                 }
 
@@ -1026,6 +1036,25 @@ def PollStationNow()
 }
 
 
+def PollInside(){
+    LOGINFO( "Polling internal temperature and humidity and sending it as 'standard' temperature & humidity data" )   
+state.Temperature = state.InsideTemp
+state.Humidity = state.InsideHumidity
+    
+    if(state.DisplayUnits == true){ 
+		sendEvent(name: "humidity", value: state.Humidity +" " +state.HU, isStateChange: true)
+		sendEvent(name: "temperature", value: state.Temperature +" " +state.TU, isStateChange: true)
+    }
+   
+    if(state.DisplayUnits == false){ 
+		sendEvent(name: "humidity", value: state.Humidity, isStateChange: true)
+		sendEvent(name: "temperature", value: state.Temperature, isStateChange: true)
+    }
+    
+}
+
+
+
 def getFcode(){
      def charF1 ="&-#-1-7-6-;-F"
      def charF = charF1.replace("-", "")
@@ -1192,7 +1221,7 @@ def LOGINFO(txt){
 }
 
 def setVersion(){
-      state.DriverVersion = "1.5.0"   
+      state.DriverVersion = "1.7.0"   
     // ************************* Manually Update As Required *************************************
    
 }
