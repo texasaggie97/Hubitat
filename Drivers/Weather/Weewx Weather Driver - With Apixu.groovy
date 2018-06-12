@@ -20,6 +20,7 @@
  *
  *  Last Update 12/06/2018
  *
+ *  V1.7.1 - Added additional logging to help debug
  *  V1.7.0 - Added 'Poll Inside' - This sends internal temperature and humidity as 'standard' external data (for use with Rule Machine)
  *  V1.6.0 - Added more error checking for PWS that don't send all data
  *  V1.5.0 - Code cleanup & removed commented out test code
@@ -42,8 +43,8 @@ metadata {
         capability "Temperature Measurement"
         capability "Illuminance Measurement"
         capability "Relative Humidity Measurement"
-        command "PollStationNow"
-		command "PollExternalNow"
+        command "PollStation"
+		command "PollExternal"
         command "PollInside"
         
 // Base Info        
@@ -139,7 +140,7 @@ def updated() {
     logCheck()
     setVersion()
     units()
-    PollStationNow()
+    PollStation()
     if(extSource == "Apixu"){ PollApixuNow()}
     if(extSource == "Open Weather Map"){ PollOWMNow()}                        
     def pollIntervalCmd = (settings?.pollInterval ?: "3 Hours").replace(" ", "")
@@ -166,7 +167,7 @@ def units(){
     state.DisplayUnits = unitSet
 }
 
-def PollExternalNow(){
+def PollExternal(){
  if(extSource == "Apixu"){ PollApixuNow()}                                
  if(extSource == "Open Weather Map"){ PollOWMNow()}                               
  }
@@ -407,14 +408,14 @@ def pollSchedule1()
 
 def pollSchedule()
 {
-    PollStationNow()
+    PollStation()
 }
               
 def parse(String description) {
 }
 
 
-def PollStationNow()
+def PollStation()
 {
     units()
   
@@ -459,7 +460,8 @@ def PollStationNow()
 // Collect Data
            
  // ************************ ILLUMINANCE **************************************************************************************           
-                def illuminanceRaw = (resp1.data.stats.current.solarRadiation)  
+           LOGINFO("Checking illuminance")    
+            def illuminanceRaw = (resp1.data.stats.current.solarRadiation)  
                 if(illuminanceRaw == null || illuminanceRaw.contains("N/A")){
                 	state.Illuminance = 'No Station Data'
                 }   
@@ -469,7 +471,7 @@ def PollStationNow()
                 }
             
 // ************************* SOLAR RADIATION*****************************************************************************************           
-            	
+            	LOGINFO("Checking SolarRadiation")
               def solarradiationRaw = (resp1.data.stats.current.solarRadiation)
             	if(solarradiationRaw == null || solarradiationRaw.contains("N/A")){
                   	state.SolarRadiation = 'No Station Data'
@@ -480,7 +482,7 @@ def PollStationNow()
                 }
             
 // ************************** HUMIDITY ***************************************************************************************   
-            
+         LOGINFO("Checking Humidity")
               def humidityRaw = (resp1.data.stats.current.humidity)
             	if(humidityRaw == null || humidityRaw.contains("N/A")){
                 state.Humidity = 'No Station Data'
@@ -491,7 +493,7 @@ def PollStationNow()
                 }
 
 // ************************** INSIDE HUMIDITY ************************************************************************************
-            
+            LOGINFO("Checking Inside Humidity")
               def inHumidRaw1 = (resp1.data.stats.current.insideHumidity.replaceFirst("%", "")) 
             	if(inHumidRaw1 ==null || inHumidRaw1.contains("N/A")){
                    
@@ -503,7 +505,7 @@ def PollStationNow()
                         
             
 // ************************* DEWPOINT *****************************************************************************************
-            
+            LOGINFO("Checking Dewpoint")
                 def dewpointRaw1 = (resp1.data.stats.current.dewpoint)
                  	if(dewpointRaw1 == null || dewpointRaw1.contains("N/A")){
                     state.Dewpoint = 'No Station Data'}
@@ -547,7 +549,7 @@ def PollStationNow()
             
 
 // ************************** PRESSURE ****************************************************************************************            
-           
+           LOGINFO("Checking Pressure")
               def pressureRaw1 = (resp1.data.stats.current.barometer)
                     if (insideTemperatureRaw1 == null || pressureRaw1.contains("N/A")){
                     state.Pressure = 'No Station Data'}
@@ -590,7 +592,7 @@ def PollStationNow()
          
             
 // ************************** WIND SPEED ****************************************************************************************
-            
+            LOGINFO("Checking Wind speed")
     		  def windSpeedRaw1 = (resp1.data.stats.current.windSpeed) 
             if(windSpeedRaw1 == null || windSpeedRaw1.contains("N/A")){
                     state.WindSpeed = 'No Station Data'}
@@ -631,7 +633,7 @@ def PollStationNow()
             
                    
 // ************************** WIND GUST ****************************************************************************************
-            
+            LOGINFO("Checking Wind Gust")
               def windGustRaw1 = (resp1.data.stats.current.windGust)  
             	 if(windGustRaw1 == null || windGustRaw1.contains("N/A")){
                     state.WindGust = 'No Station Data'}
@@ -671,7 +673,7 @@ def PollStationNow()
             } 
             
 // ************************** INSIDE TEMP **************************************************************************************** 
-          
+          LOGINFO("Checking Inside Temperature")
               def insideTemperatureRaw1 = (resp1.data.stats.current.insideTemp)
                     if (insideTemperatureRaw1 == null || insideTemperatureRaw1.contains("N/A")){
                     state.InsideTemp = 'No Station Data'}
@@ -711,7 +713,7 @@ def PollStationNow()
             } 
   
 // ************************** RAIN RATE ****************************************************************************************    
-            
+            LOGINFO("Checking Rain Rate")
             
             def rainRateRaw1 = (resp1.data.stats.current.rainRate) 
             	if(rainRateRaw1 == null || rainRateRaw1.contains("N/A")){
@@ -751,7 +753,7 @@ def PollStationNow()
             
 
 // ************************** RAIN TODAY ****************************************************************************************    
-            
+            LOGINFO("Checking Rain Today")
               def rainTodayRaw1 = (resp1.data.stats.sinceMidnight.rainSum)
                	if(rainTodayRaw1 == null || rainTodayRaw1.contains("N/A")){
                    state.RainToday = 'No Station Data'}
@@ -790,7 +792,7 @@ def PollStationNow()
 
 
 // ************************** TEMPERATURE ****************************************************************************************
-            
+            LOGINFO("Checking Temperature")
               def temperatureRaw1 = (resp1.data.stats.current.outTemp) 
             	if(temperatureRaw1 ==null || temperatureRaw1.contains("N/A")){
                 state.Temperature = 'No Station Data'}
@@ -839,7 +841,7 @@ def PollStationNow()
   
             
 // ************************** UV ************************************************************************************************            
-            
+            LOGINFO("Checking UV")
               def UVRaw1 = (resp1.data.stats.current.UV)
             	if(UVRaw1 ==null || UVRaw1.contains("N/A")){
                    
@@ -887,7 +889,7 @@ def PollStationNow()
             
 
 // ************************** WINDCHILL ****************************************************************************************            
-            
+            LOGINFO("Checking WindChill")
               def windChillRaw1 = (resp1.data.stats.current.windchill)
             	if(windChillRaw1 ==null || windChillRaw1.contains("N/A")){
                    state.FeelsLike = 'No Station Data'}
@@ -962,15 +964,15 @@ def PollStationNow()
                       
             
             def windDirRaw = (resp1.data.stats.current.windDirText)
-            	if(windDirRaw){
+            	if(windDirRaw != null){
                     if(windDirRaw.contains("N/A")){sendEvent(name: "wind_dir", value:"No Station Data", isStateChange: true)}
                     else {sendEvent(name: "wind_dir", value: windDirRaw, isStateChange: true)} 
                 
                 }
          
              def pressureTrend = (resp1.data.stats.current.barometerTrendData) 
-                  if(pressureTrend){
-                      if(pressureTrend == null || pressureTrend.contains("N/A")){sendEvent(name: "pressure_trend", value:"No Station Data", isStateChange: true)}
+                  if(pressureTrend != null){
+                      if(pressureTrend.contains("N/A")){sendEvent(name: "pressure_trend", value:"No Station Data", isStateChange: true)}
                       else if(pressureTrend.contains("-")){sendEvent(name: "pressure_trend", value:"Falling", isStateChange: true)} 
                       else if(pressureTrend.contains("+")){sendEvent(name: "pressure_trend", value:"Rising", isStateChange: true)} 
                       else {sendEvent(name: "pressure_trend", value:"Static", isStateChange: true)} 
@@ -1221,7 +1223,7 @@ def LOGINFO(txt){
 }
 
 def setVersion(){
-      state.DriverVersion = "1.7.0"   
+      state.DriverVersion = "1.7.1"   
     // ************************* Manually Update As Required *************************************
    
 }
