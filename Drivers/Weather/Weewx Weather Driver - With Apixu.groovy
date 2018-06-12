@@ -20,7 +20,8 @@
  *
  *  Last Update 12/06/2018
  *
- *  V1.7.1 - Added additional logging to help debug
+ *  V1.7.2 - Debug illumination & solarradiation cal errors
+ *  V1.7.1 - Added additon logging to help debug
  *  V1.7.0 - Added 'Poll Inside' - This sends internal temperature and humidity as 'standard' external data (for use with Rule Machine)
  *  V1.6.0 - Added more error checking for PWS that don't send all data
  *  V1.5.0 - Code cleanup & removed commented out test code
@@ -467,7 +468,7 @@ def PollStation()
                 }   
             	else{
                 	def illuminanceRaw1 = (resp1.data.stats.current.solarRadiation.replaceFirst(wmcode, ""))
-                	state.Illuminance = illuminanceRaw1
+                	state.Illuminance = illuminanceRaw1.toFloat()
                 }
             
 // ************************* SOLAR RADIATION*****************************************************************************************           
@@ -478,7 +479,7 @@ def PollStation()
                 }
             	else{
                      def solarradiationRaw1 = (resp1.data.stats.current.solarRadiation.replaceFirst(wmcode, ""))
-                     state.SolarRadiation = solarradiationRaw1
+                     state.SolarRadiation = solarradiationRaw1.toFloat()
                 }
             
 // ************************** HUMIDITY ***************************************************************************************   
@@ -1008,8 +1009,8 @@ def PollStation()
             
             if(state.DisplayUnits == false){
                 
-                  sendEvent(name: "illuminance", value: state.Illuminance.toInteger(), unit: "lux", isStateChange: true)    
-                  sendEvent(name: "solarradiation", value: state.SolarRadiation.toInteger(), unit: "lux", isStateChange: true)
+                  sendEvent(name: "illuminance", value: state.Illuminance, unit: "lux", isStateChange: true)    
+                  sendEvent(name: "solarradiation", value: state.SolarRadiation, unit: "lux", isStateChange: true)
                   sendEvent(name: "dewpoint", value: state.Dewpoint, isStateChange: true)
                   sendEvent(name: "humidity", value: state.Humidity, isStateChange: true)
                   sendEvent(name: "pressure", value: state.Pressure, isStateChange: true)
@@ -1223,7 +1224,7 @@ def LOGINFO(txt){
 }
 
 def setVersion(){
-      state.DriverVersion = "1.7.1"   
+      state.DriverVersion = "1.7.2"   
     // ************************* Manually Update As Required *************************************
    
 }
