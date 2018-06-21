@@ -33,13 +33,13 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 08/03/2018
+ *  Last Update: 21/06/2017
  *
  *  Changes:
  *
  * 
  *
- *  
+ *  V2.1.0 - Added remote version checking
  *  V2.0.0 - Initial port to Hubitat
  *  V1.0.0 - POC
  *
@@ -67,10 +67,11 @@ preferences {
                   required: false,
                   "This parent app is a container for all presence child apps"
     }
-    section() {
-           paragraph image: "https://raw.githubusercontent.com/cobravmax/SmartThings/master/icons/cobra3.png",
-                         "Parent Version: 2.0.0 -  Copyright © 2018 Cobra"
-    }
+section{
+            paragraph "Parent Status: $state.verCheck"
+			paragraph "Parent Version: $state.appversion -  Copyright © 2018 Cobra"
+			}
+    
         section {
             app(name: "switchPresenceAutomation", appName: "Presence_Central_Child", namespace: "Cobra", title: "Create New Presence Automation", multiple: true)
            
@@ -93,6 +94,9 @@ def updated() {
 }
 
 def initialize() {
+    setAppVersion()
+    cobra()
+    schedule("0 0 14 ? * FRI *", cobra)
     log.debug "there are ${childApps.size()} child smartapps"
     childApps.each {child ->
         log.debug "child app: ${child.label}"
@@ -101,8 +105,33 @@ def initialize() {
 
 
 
-// App Version   ***********************************************
+def cobra(){
+    setAppVersion()
+    def paramsUD = [uri: "http://update.hubitat.uk/cobra.json"]
+       try {
+        httpGet(paramsUD) { respUD ->
+  //   log.info "response data: ${respUD.data}"
+       def cobraVer = (respUD.data.versions.(state.InternalName))
+       def cobraOld = state.appversion.replace(".", "")
+       if(cobraOld < cobraVer){
+		state.verCheck = "** New Version Available **"
+           log.warn "There is a newer version of this app available"
+       }    
+       else{ 
+      state.verCheck = "Current"
+       }
+       
+       }
+        } 
+        catch (e) {
+        log.error "Something went wrong: $e"
+    }
+}        
+
+
+ 
+// App Version   *********************************************************************************
 def setAppVersion(){
-    state.appversion = "1.0.0"
+    state.appversion = "2.1.0"
+    state.InternalName = "PCparent"
 }
-// end app version *********************************************

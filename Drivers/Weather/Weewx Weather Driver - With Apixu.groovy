@@ -37,10 +37,12 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update 12/06/2018
+ *  Last Update 18/06/2018
  *
+ * 
+ *  V1.8.0 - Added remote version checking & cleaned up code
  *  V1.7.2 - Debug illumination & solarradiation calc errors
- *  V1.7.1 - Added additon logging to help debug
+ *  V1.7.1 - Added additional logging to help debug
  *  V1.7.0 - Added 'Poll Inside' - This sends internal temperature and humidity as 'standard' external data (for use with Rule Machine)
  *  V1.6.0 - Added more error checking for PWS that don't send all data
  *  V1.5.0 - Code cleanup & removed commented out test code
@@ -67,12 +69,16 @@ metadata {
 		command "PollExternal"
         command "PollInside"
         
+		
+        
 // Base Info        
         attribute "DriverAuthor", "string"
         attribute "DriverVersion", "string"
+        attribute "DriverStatus", "string"
         attribute "WeewxServerUptime", "string"
         attribute "WeewxServerLocation", "string"
         attribute "RefreshRate-Weewx", "string"
+        
 // Units
         attribute "distanceUnit", "string"
         attribute "pressureUnit", "string"
@@ -102,7 +108,7 @@ metadata {
         attribute "moonRise", "string"
         
         
-        // External Data (if used)
+// External Data (if used)
         attribute "LastUpdate-External", "string"
         attribute "RefreshRate-External", "string"
         attribute "visibility", "string"
@@ -117,8 +123,6 @@ metadata {
         attribute "weatherIcon", "string"
         attribute "weatherForecast", "string"
         attribute "visibility", "string"
-        
-       
       
         
         
@@ -142,7 +146,7 @@ metadata {
             input "speedUnit", "enum", title: "Distance & Speed Unit", required:true, defaultValue: "Miles (MPH)", options: ["Miles (MPH)", "Kilometers (KPH)"]
             input "temperatureUnit", "enum", title: "Temperature Unit", required:true, defaultValue: "Fahrenheit (°F)", options: ["Fahrenheit (°F)", "Celsius (°C)"]
             input "decimalUnit", "enum", title: "Max Decimal Places", required:true, defaultValue: "2", options: ["1", "2", "3", "4", "5"]
-            input "extSource", "enum", title: "Select External Source", required:true, defaultValue: "None", options: ["None", "Apixu"]  // , "Open Weather Map"
+            input "extSource", "enum", title: "Select External Source", required:true, defaultValue: "None", options: ["None", "Apixu" ]// , "Open Weather Map"
                 if(extSource != "None"){
                 input "apiKey", "text", required: true, title: "API Key"
                 input "pollLocation1", "text", required: true, title: "ZIP Code or Location"
@@ -155,12 +159,14 @@ metadata {
 }
 
 def updated() {
-    log.debug "updated called"
+    log.debug "Updated called"
     unschedule()
     logCheck()
     setVersion()
     units()
+    cobra()
     PollStation()
+    schedule("0 45 16 ? * MON *", cobra)
     if(extSource == "Apixu"){ PollApixuNow()}
     if(extSource == "Open Weather Map"){ PollOWMNow()}                        
     def pollIntervalCmd = (settings?.pollInterval ?: "3 Hours").replace(" ", "")
@@ -319,7 +325,7 @@ def PollApixuNow(){
  		    LOGINFO( "response data: ${resp2.data}")
             } 
             if(logSet == false){ 
-            log.info "Further detailed 'External Source' data logging disabled"    
+        //    log.info "Further detailed 'External Source' data logging disabled"    
             }    
             
     
@@ -335,9 +341,7 @@ def PollApixuNow(){
               sendEvent(name: "RefreshRate-External", value: pollInterval1, isStateChange: true) 
               sendEvent(name: "weatherIcon", value: resp2.data.current.condition.icon, isStateChange: true)  // Current Conditions Icon
       //      sendEvent(name: "weatherIcon", value: resp2.data.forecast.forecastday.day[1].condition.icon, isStateChange: true)  // Forecast Icon
-     
-         sendEvent(name: "TEST", value: resp2.data.forecast.forecastday.day[0].avgvis_miles, isStateChange: true)
-            
+                    
     // Apixu With Units ***************************************************************
             
           if(state.DisplayUnits == true){
@@ -434,6 +438,7 @@ def pollSchedule()
 def parse(String description) {
 }
 
+       
 
 def PollStation()
 {
@@ -460,22 +465,9 @@ def PollStation()
             
             
             if(logSet == false){ 
-            log.info "Further Weewx detailed data logging disabled"    
+      //      log.info "Further Weewx detailed data logging disabled"    
             }    
-   
-           
-            
-  // Conversions
-            
-            // inHg to mbar - multiply inches by 33.8638815 to get mbar
-            // Example: (50°F - 32) x .5556 = 10°C   *********** def Celcius1=(Faran =32) *0.5556
-            // 1 mi = 1.609344 km -   ************  def newKM=miles * 1.609344
-            //   = (68°F - 32) × 5/9 = 20 °C
-            
-            
-            // def convertToC = (Faran1 - 32) *0.5556
-            // def convertToKM = miles * 1.609344
-            // def convertToMbar = inHg1 * 33.8638815
+
             
 // Collect Data
            
@@ -949,11 +941,26 @@ def PollStation()
                 
             } 
            
-                    
-                    
+// ************************** WIND DIR ****************************************************************************************                     
+            def windDirRaw = (resp1.data.stats.current.windDirText)
+            	if(windDirRaw != null){
+                    if(windDirRaw.contains("N/A")){sendEvent(name: "wind_dir", value:"No Station Data", isStateChange: true)}
+                    else {sendEvent(name: "wind_dir", value: windDirRaw, isStateChange: true)} 
+                
+                }                    
                     
             
-   
+
+// ************************** PRESSURE TREND ************************************************************************************             
+             def pressureTrend = (resp1.data.stats.current.barometerTrendData) 
+                  if(pressureTrend != null){
+                      if(pressureTrend.contains("N/A")){sendEvent(name: "pressure_trend", value:"No Station Data", isStateChange: true)}
+                      else if(pressureTrend.contains("-")){sendEvent(name: "pressure_trend", value:"Falling", isStateChange: true)} 
+                      else if(pressureTrend.contains("+")){sendEvent(name: "pressure_trend", value:"Rising", isStateChange: true)} 
+                      else {sendEvent(name: "pressure_trend", value:"Static", isStateChange: true)} 
+                  }
+            
+            
              //  any more?
                  
              		
@@ -983,20 +990,9 @@ def PollStation()
             
                       
             
-            def windDirRaw = (resp1.data.stats.current.windDirText)
-            	if(windDirRaw != null){
-                    if(windDirRaw.contains("N/A")){sendEvent(name: "wind_dir", value:"No Station Data", isStateChange: true)}
-                    else {sendEvent(name: "wind_dir", value: windDirRaw, isStateChange: true)} 
-                
-                }
+
          
-             def pressureTrend = (resp1.data.stats.current.barometerTrendData) 
-                  if(pressureTrend != null){
-                      if(pressureTrend.contains("N/A")){sendEvent(name: "pressure_trend", value:"No Station Data", isStateChange: true)}
-                      else if(pressureTrend.contains("-")){sendEvent(name: "pressure_trend", value:"Falling", isStateChange: true)} 
-                      else if(pressureTrend.contains("+")){sendEvent(name: "pressure_trend", value:"Rising", isStateChange: true)} 
-                      else {sendEvent(name: "pressure_trend", value:"Static", isStateChange: true)} 
-                  }
+
             
             
             
@@ -1074,7 +1070,6 @@ state.Humidity = state.InsideHumidity
     }
     
 }
-
 
 
 def getFcode(){
@@ -1242,9 +1237,32 @@ def LOGINFO(txt){
     }
 }
 
+def cobra(){
+    setVersion()
+    def paramsUD = [uri: "http://update.hubitat.uk/cobra.json"]
+       try {
+        httpGet(paramsUD) { respUD ->
+  //   log.info "response data: ${respUD.data}"
+       def cobraVer = (respUD.data.versions.(state.InternalName))
+       def cobraOld = state.DriverVersion.replace(".", "")
+       if(cobraOld < cobraVer){
+           sendEvent(name: "DriverStatus", value: "** New Version Available **", isStateChange: true)
+           log.warn "There is a newer version of this driver available"
+       }    
+       else{ sendEvent(name: "DriverStatus", value: "Current", isStateChange: true)}
+       
+       }
+        } 
+        catch (e) {
+        log.error "Something went wrong: $e"
+    }
+}        
+
+
 def setVersion(){
-      state.DriverVersion = "1.7.2"   
-    // ************************* Manually Update As Required *************************************
+      state.DriverVersion = "1.8.0" 
+      state.InternalName = "WeewxApixu"
+    // ************************* Update As Required *************************************
    
 }
 

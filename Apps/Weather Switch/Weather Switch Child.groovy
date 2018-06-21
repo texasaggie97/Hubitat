@@ -33,11 +33,11 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 11/06/2018
+ *  Last Update: 21/06/2018
  *
  *  Changes:
  *
- *
+ *  V2.1.0 - Dropped driver requirement checking & added remote version checking
  *  V2.0.1.172 - Driver requirement updated
  *  V2.0.1.150 - Driver requirement updated
  *  V2.0.1.140 - debug
@@ -208,9 +208,10 @@ def updated() {
 def initialize() {
 	log.info "Initialised with settings: ${settings}"
 	setAppVersion()
-	logCheck()
-    signOff()
-	state.enablecurrS1 = 'on'
+    cobra()
+    logCheck()
+    schedule("0 0 14 ? * FRI *", cobra)
+  	state.enablecurrS1 = 'on'
         
         
 	subscribe(enableswitch1, "switch", enableSwitch1Handler)
@@ -547,19 +548,8 @@ LOGDEBUG("Sunset =  $evt.value")
 }         
 
 
+  
 
-
-
-
-
-
-
-
-def signOff(){
-LOGDEBUG("Observation Time: $state.observe1 - City: $state.city1 - Station: $state.station1")   
-    
-    
-}
 
 // Switch Actions
 
@@ -848,9 +838,38 @@ def LOGDEBUG(txt){
 
 
 // App & Driver Version   *********************************************************************************
+
+
+def cobra(){
+    setAppVersion()
+    def paramsUD = [uri: "http://update.hubitat.uk/cobra.json"]
+       try {
+        httpGet(paramsUD) { respUD ->
+  //   log.info "response data: ${respUD.data}"
+       def cobraVer = (respUD.data.versions.(state.InternalName))
+       def cobraOld = state.appversion.replace(".", "")
+       if(cobraOld < cobraVer){
+		state.verCheck = "** New Version Available **"
+           log.warn "There is a newer version of this app available"
+       }    
+       else{ 
+      state.verCheck = "Current"
+      log.info "App is current version"
+       }
+       
+       }
+        } 
+        catch (e) {
+        log.error "Something went wrong: $e"
+    }
+}        
+
+
+
+ 
+// App Version   *********************************************************************************
 def setAppVersion(){
-    state.appversion = "2.0.1.172"
-    state.reqdriverversion = "1.7.2" // required driver version for this app
-    state.reqNameSpace = "Cobra"   // check to confirm Cobra's driver is being used
-   
+    state.appversion = "2.1.0"
+     state.InternalName = "WSchild"
+    
 }

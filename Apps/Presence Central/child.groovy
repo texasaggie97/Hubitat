@@ -1,7 +1,7 @@
 /**
  *  ****************  Presence Central.  ****************
  *
- *  Credits: I have to credit Brian Gudauskas (ST Reliable Presence) & Eric Roberts (ST Everyones Presence) for stealing some of their code for multiple presence sensor determinations
+ *  Credits: I have to credit Brian Gudauskas (Reliable Presence) & Eric Roberts (Everyones Presence) for stealing some of their code for multiple presence sensor determinations
  *
  *
  *  Design Usage:
@@ -36,10 +36,11 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 10/05/2018
+ *  Last Update: 21/06/2018
  *
  *  Changes:
  *
+ *  V2.5.0 - Added remote version checking 
  *  V2.4.0 - Re-enabled TTS talking as an action option
  *  V2.3.1 - Added ability to configure Pushover priority from GUI
  *  V2.3.0 - Added 'PushOver' messaging option
@@ -73,9 +74,9 @@ definition(
    
     
     parent: "Cobra:Presence Central",
-    iconUrl: "https://raw.githubusercontent.com/cobravmax/SmartThings/master/icons/presence.png",
-    iconX2Url: "https://raw.githubusercontent.com/cobravmax/SmartThings/master/icons/presence.png",
-    iconX3Url: "https://raw.githubusercontent.com/cobravmax/SmartThings/master/icons/presence.png"
+    iconUrl: "",
+    iconX2Url: "",
+    iconX3Url: ""
     )
     
     
@@ -97,6 +98,7 @@ def updated() {
 def initialize() {
  log.info "Initialised with settings: ${settings}"
     setAppVersion()
+    cobra()
     logCheck()
     switchRunCheck()
     state.timer1 = true
@@ -104,7 +106,8 @@ def initialize() {
     state.timerlock = true
 	state.riseSetGo = true
 
-// Basic Subscriptions    
+// Basic Subscriptions 
+    schedule("0 0 14 ? * FRI *", cobra)
 	subscribe(location, "hsmStatus", statusHandler)
 	subscribe(enableSwitch, "switch", switchEnable)
 	subscribe(location, "sunriseTime", sunriseSunsetTimeHandler)
@@ -167,11 +170,10 @@ def mainPage() {
                   required: false,
                   "This child app allows you to define different actions upon arrival or departure of one or more presence sensors"
                   }
-     section() {
-   
-        paragraph image: "https://raw.githubusercontent.com/cobravmax/SmartThings/master/icons/cobra3.png",
-                         "Child Version: $state.appversion - Copyright © 2018 Cobra"
-    }             
+     section{
+            paragraph "Child Status: $state.verCheck"
+			paragraph "Child Version: $state.appversion -  Copyright © 2018 Cobra"
+			}  
       section() {
         	basicInputs()
           	  	}
@@ -1621,8 +1623,35 @@ def LOGDEBUG(txt){
 
 
 
-// App Version   ***********************************************
+def cobra(){
+    setAppVersion()
+    def paramsUD = [uri: "http://update.hubitat.uk/cobra.json"]
+       try {
+        httpGet(paramsUD) { respUD ->
+  //   log.info "response data: ${respUD.data}"
+       def cobraVer = (respUD.data.versions.(state.InternalName))
+       def cobraOld = state.appversion.replace(".", "")
+       if(cobraOld < cobraVer){
+		state.verCheck = "** New Version Available **"
+           log.warn "There is a newer version of this app available"
+       }    
+       else{ 
+      state.verCheck = "Current"
+      log.info "App is current version"
+       }
+       
+       }
+        } 
+        catch (e) {
+        log.error "Something went wrong: $e"
+    }
+}        
+
+
+ 
+// App Version   *********************************************************************************
 def setAppVersion(){
-    state.appversion = "2.4.0"
+    state.appversion = "2.5.0"
+     state.InternalName = "PCchild"
+   
 }
-// end app version *********************************************

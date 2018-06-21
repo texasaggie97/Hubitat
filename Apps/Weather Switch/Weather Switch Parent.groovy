@@ -33,14 +33,14 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 24/04/2018
+ *  Last Update: 21/06/2018
  *
  *  Changes:
  *
  * 
  *
  *
- *
+ *  V1.2.0 - Added remote version checking
  *  V1.1.0 - Debug
  *  V1.0.0 - POC
  *
@@ -52,11 +52,11 @@ definition(
     name:"Weather Switch",
     namespace: "Cobra",
     author: "Andrew Parker",
-    description: "This is the 'Parent' app for weather Switch",
+    description: "This is the 'Parent' app for Weather Switch",
     category: "Convenience",
-    iconUrl: "https://raw.githubusercontent.com/cobravmax/SmartThings/master/icons/cobra.png",
-    iconX2Url: "https://raw.githubusercontent.com/cobravmax/SmartThings/master/icons/cobra.png",
-    iconX3Url: "https://raw.githubusercontent.com/cobravmax/SmartThings/master/icons/cobra.png"
+    iconUrl: "",
+    iconX2Url: "",
+    iconX3Url: ""
     )
 
 
@@ -67,7 +67,7 @@ definition(
 
 preferences {
 	
-     page name: "mainPage", title: "", install: true, uninstall: true,submitOnChange: true 
+     page name: "mainPage", title: "", install: true, uninstall: true // ,submitOnChange: true 
      
 } 
 
@@ -85,6 +85,8 @@ def updated() {
 
 def initialize() {
 	setAppVersion()
+    schedule("0 0 14 ? * FRI *", cobra)
+    cobra()
     log.info "There are ${childApps.size()} child smartapps"
     childApps.each {child ->
     log.info "Child app: ${child.label}"
@@ -104,6 +106,7 @@ def mainPage() {
 			}
             
 		section{
+            paragraph "Parent Status: $state.verCheck"
 			paragraph "Parent Version: $state.appversion -  Copyright © 2018 Cobra"
 			}
     
@@ -143,19 +146,33 @@ def mainPage() {
 
 
 
+def cobra(){
+    setAppVersion()
+    def paramsUD = [uri: "http://update.hubitat.uk/cobra.json"]
+       try {
+        httpGet(paramsUD) { respUD ->
+  //   log.info "response data: ${respUD.data}"
+       def cobraVer = (respUD.data.versions.(state.InternalName))
+       def cobraOld = state.appversion.replace(".", "")
+       if(cobraOld < cobraVer){
+		state.verCheck = "** New Version Available **"
+           log.warn "There is a newer version of this app available"
+       }    
+       else{ 
+      state.verCheck = "Current"
+       }
+       
+       }
+        } 
+        catch (e) {
+        log.error "Something went wrong: $e"
+    }
+}        
 
 
-
-
-
-
-
-
-
-
- 
  
 // App Version   *********************************************************************************
 def setAppVersion(){
-    state.appversion = "1.1.0"
+    state.appversion = "1.2.0"
+     state.InternalName = "WSparent"
 }
