@@ -33,7 +33,7 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 21/06/2018
+ *  Last Update: 22/06/2018
  *
  *  Changes:
  *
@@ -64,9 +64,9 @@ definition(
     category: "",
     parent: "Cobra:Weather Switch",
     
-    iconUrl: "https://s3.amazonaws.com/smartapp-icons/Convenience/Cat-Convenience.png",
-    iconX2Url: "https://s3.amazonaws.com/smartapp-icons/Convenience/Cat-Convenience@2x.png",
-    iconX3Url: "https://s3.amazonaws.com/smartapp-icons/Convenience/Cat-Convenience@2x.png")
+    iconUrl: "",
+    iconX2Url: "",
+    iconX3Url: "")
 
 
 preferences {
@@ -78,6 +78,13 @@ preferences {
 // main page *****************************************************************************************************************
   def mainPage() {
     dynamicPage(name: "mainPage") {  
+        
+        section{
+            paragraph "Child Status: $state.verCheck"
+			paragraph "Child Version: $state.appversion -  Copyright © 2018 Cobra"
+			}
+        
+        
 	section("Input/Output") {
     input(name: "enableswitch1", type: "capability.switch", title: "Enable/Disable app with this switch", required: false, multiple: false)
 	input(name: "sensor1", type: "capability.sensor", title: "Weather Device", required: true, multiple: false)
