@@ -37,6 +37,7 @@
  *
  *  Changes:
  *
+ *  V2.1.1 - Debug
  *  V2.1.0 - Dropped driver requirement checking & added remote version checking
  *  V2.0.1.172 - Driver requirement updated
  *  V2.0.1.150 - Driver requirement updated
@@ -216,8 +217,6 @@ def initialize() {
         
 	subscribe(enableswitch1, "switch", enableSwitch1Handler)
     subscribe(sensorSwitch1, "switch", sensorSwitch1Handler)
-    subscribe(sensor1, "DriverAuthor", checkNameHandler)
-    subscribe(sensor1, "DriverVersion", checkDriverVerHandler)
     subscribe(sensor1, "LastUpdate-Weewx", observation_timeHandler)
     subscribe(sensor1, "LastUpdate-External", observation_timeHandler1) 
     subscribe(sensor1, "city", cityHandler)
@@ -269,18 +268,7 @@ LOGDEBUG("$enableswitch1 is $state.enablecurrS1")
 
 
 
-def checkNameHandler(evt){
-  def drivername = evt.value 
-    if(state.reqNameSpace == drivername){LOGDEBUG("You are using a Cobra weather driver ")} 
-    else {log.warn "*** Warning! *** You are not using Cobra's driver - Results may vary from expected  "} 
-}
 
-def checkDriverVerHandler(evt){
-    def driverversion = evt.value
-  
-    if(state.reqdriverversion == driverversion){LOGDEBUG("Driver version number:OK")}
-    else{log.warn "*** Warning! *** - Driver version number does not match requirement for this app - Results may vary from expected  "} 
-}
           
 def sensorSwitch1Handler(evt){
 state.currS1 = evt.value
@@ -869,7 +857,7 @@ def cobra(){
  
 // App Version   *********************************************************************************
 def setAppVersion(){
-    state.appversion = "2.1.0"
+    state.appversion = "2.1.1"
      state.InternalName = "WSchild"
     
 }
