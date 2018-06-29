@@ -33,10 +33,12 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 22/06/2018
+ *  Last Update: 29/06/2018
  *
  *  Changes:
  *
+ *
+ *  V2.2.0 - Changed method so on/off command is only sent once (not repeatedly)
  *  V2.1.1 - Debug
  *  V2.1.0 - Dropped driver requirement checking & added remote version checking
  *  V2.0.1.172 - Driver requirement updated
@@ -654,20 +656,28 @@ checkPresence1()
 
 
 def on(){
+    if(state.already == 'off'){
     if(state.enablecurrS1 == 'on'){ 
     	LOGDEBUG("Turning on switch...")   
-    	sensorswitch1.on()      
+    	sensorswitch1.on()  
+        state.already = 'on'
     }
+   
     if(state.enablecurrS1 == 'off'){ 
     	LOGDEBUG("Cannot switch on - App disabled...") 
     }
+    }
+    else{ LOGDEBUG("Cannot switch on - Already On")}
 }
 
 
 def off(){
-      	LOGDEBUG("Turning off switch...")   
+    if(state.already == 'on'){
+    LOGDEBUG("Turning off switch...")   
     	sensorswitch1.off()      
-       
+       state.already = 'off'
+    }
+     else{ LOGDEBUG("Cannot switch off - Already Off")}
 }
   
 // Check time allowed to run...
@@ -864,7 +874,7 @@ def cobra(){
  
 // App Version   *********************************************************************************
 def setAppVersion(){
-    state.appversion = "2.1.1"
+    state.appversion = "2.2.0"
      state.InternalName = "WSchild"
     
 }
