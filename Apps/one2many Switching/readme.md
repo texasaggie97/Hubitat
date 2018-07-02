@@ -4,6 +4,7 @@ One To Many Switching
 
 To install Child/Parent version
 
-1. Copy code from both child and parent apps and save
-2. 'Load' Parent App in Hubitat and save
-3. Create new child apps from withing parent
+1. Copy code from  parent app and save
+2. Copy code from  child app and save
+3. 'Load' Parent App in Hubitat and save
+4. Create new child apps from within parent
