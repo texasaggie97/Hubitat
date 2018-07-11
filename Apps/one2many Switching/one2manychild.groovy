@@ -33,13 +33,13 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 02/07/2018
+ *  Last Update: 11/07/2018
  *
  *  Changes:
  *
  * 
  *
- * 
+ *  V1.0.1 - Changed the way default settings work to prevent having to toggle switches first time
  *  V1.0.0 - POC 
  */
  
@@ -66,7 +66,7 @@ definition(
 preferences {
 
 section ("") {
- paragraph " V1.0.0 "
+ 
   paragraph image:  "",
        	title: "Switch Follow",
         required: false, 
@@ -107,7 +107,7 @@ def initialize() {
 	subscribe(switch1, "switch", switchHandler1)
     schedule("0 0 14 ? * FRI *", cobra)
     cobra()
-    state.reverse = false
+    reversemode = false
 
     
    
@@ -117,8 +117,10 @@ def initialize() {
 
 def switchHandler1 (evt) {
 state.reverse = reversemode
-state.currS1 = evt.value 
-if (state.reverse == false){
+state.currS1 = evt.value
+    log.info "Control switch is $state.currS1"
+    
+if (state.reverse == false || state.reverse == null){
 	if (state.currS1 == "on") { 
 	log.info "Turning on $switch2"
 	switch2.on()
@@ -174,6 +176,6 @@ def cobra(){
  
 // App Version   *********************************************************************************
 def setAppVersion(){
-    state.appversion = "1.0.0"
+    state.appversion = "1.0.1"
      state.InternalName = "OneToManychild"
 }
