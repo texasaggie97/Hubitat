@@ -37,6 +37,7 @@
  *
  *  Changes:
  *
+ *  V2.2.2 - Debug - state variable not clearing
  *  V2.2.1 - Debug - Typo in switch name
  *  V2.2.0 - Changed method so on/off command is only sent once (not repeatedly)
  *  V2.1.1 - Debug
@@ -282,6 +283,19 @@ LOGDEBUG("$enableswitch1 is $state.enablecurrS1")
 def sensorSwitch1Handler(evt){
 state.currS1 = evt.value
 LOGDEBUG("$sensorswitch1 is $state.currS1")
+    
+    if(state.currS1 == "on"){
+        state.already = 'on'
+    }
+    
+     if(state.currS1 == "off"){
+        state.already = 'off'
+    }  
+    
+    
+    
+    
+    
 }
 
 def displayTempUnitHandler(evt){
@@ -874,7 +888,7 @@ def cobra(){
  
 // App Version   *********************************************************************************
 def setAppVersion(){
-    state.appversion = "2.2.1"
+    state.appversion = "2.2.2"
      state.InternalName = "WSchild"
     
 }
