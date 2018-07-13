@@ -33,11 +33,11 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 29/06/2018
+ *  Last Update: 13/07/2018
  *
  *  Changes:
  *
- *
+ *  V2.2.1 - Debug - Typo in switch name
  *  V2.2.0 - Changed method so on/off command is only sent once (not repeatedly)
  *  V2.1.1 - Debug
  *  V2.1.0 - Dropped driver requirement checking & added remote version checking
@@ -222,10 +222,10 @@ def initialize() {
     logCheck()
     schedule("0 0 14 ? * FRI *", cobra)
   	state.enablecurrS1 = 'on'
-        
+     state.already = 'off'   
         
 	subscribe(enableswitch1, "switch", enableSwitch1Handler)
-    subscribe(sensorSwitch1, "switch", sensorSwitch1Handler)
+    subscribe(sensorswitch1, "switch", sensorSwitch1Handler)
     subscribe(sensor1, "LastUpdate-Weewx", observation_timeHandler)
     subscribe(sensor1, "LastUpdate-External", observation_timeHandler1) 
     subscribe(sensor1, "city", cityHandler)
@@ -281,7 +281,7 @@ LOGDEBUG("$enableswitch1 is $state.enablecurrS1")
           
 def sensorSwitch1Handler(evt){
 state.currS1 = evt.value
-LOGDEBUG("$switch1 is $state.currS1")
+LOGDEBUG("$sensorswitch1 is $state.currS1")
 }
 
 def displayTempUnitHandler(evt){
@@ -874,7 +874,7 @@ def cobra(){
  
 // App Version   *********************************************************************************
 def setAppVersion(){
-    state.appversion = "2.2.0"
+    state.appversion = "2.2.1"
      state.InternalName = "WSchild"
     
 }
