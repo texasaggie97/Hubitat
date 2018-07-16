@@ -30,10 +30,11 @@
  *-------------------------------------------------------------------------------------------------------------------
  *
  *
- *  Last Update: 11/05/2018
+ *  Last Update: 16/07/2018
  *
  *  Changes:
  *
+ *  V10.1.1 - Debug 'colon' was being spoken - now changed to a space
  *  V10.1.0 - Added 'Join' messaging & debug
  *  V10.0.0 - Hubitat port
  *
@@ -2606,6 +2607,7 @@ private compileMsg(msg) {
     LOGDEBUG("msgComp = $msgComp")
     
     if (msgComp.contains("%TIME%")) {msgComp = msgComp.toUpperCase().replace('%TIME%', getTime(false,true))}  
+    if (msgComp.contains(":")) {msgComp = msgComp.toUpperCase().replace(':', ' ')}
     if (msgComp.contains("%DAY%")) {msgComp = msgComp.toUpperCase().replace('%DAY%', getDay() )}  
 //	if (msgComp.contains("%DATE%")) {msgComp = msgComp.toUpperCase().replace('%DATE%', getdate() )}  
 //    if (msgComp.contains("%YEAR%")) {msgComp = msgComp.toUpperCase().replace('%YEAR%', getyear() )}  
