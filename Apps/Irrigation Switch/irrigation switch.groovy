@@ -3,7 +3,7 @@
  *  This was created to use either as a switch to water the garden or as a switch to 'announce' that the garden needs water.
  *
  *  Copyright 2018 Andrew Parker
- *  Concept, testing, and help debugging, was provided by @CAL.Hub when we initially used a driver to perform this task
+ *  Concept, testing, and help debugging, was provided by @CAL.Hub when we initially used a driver to perform this task.
  *  With Weather Underground about to stop access to their API I created an app to do the job instead so people can use whichever driver they wish
  *  (Providing the correct atrtributes are sent by the driver)
  *  
@@ -61,11 +61,7 @@ preferences {
   def mainPage() {
     dynamicPage(name: "mainPage") {  
         
-        section{
-            paragraph "Child Status: $state.verCheck"
-			paragraph "Child Version: $state.appversion -  Copyright © 2018 Cobra"
-			}
-    
+     display()
         
         
 	section("Input/Output") {
@@ -132,10 +128,9 @@ def updated() {
 }
 
 def initialize() {
-	setAppVersion()
-    cobra()
+    version()
     logCheck()
-    schedule("0 0 14 ? * FRI *", cobra)
+   
      state.enablecurrS1 = 'on'
      def changeOver = cutOff
      schedule(changeOver, createHistory)
@@ -367,21 +362,47 @@ def LOGDEBUG(txt){
 
 
 
+
+// Check Version   *********************************************************************************
+def version(){
+    cobra()
+    if (state.Type == "Application"){
+    schedule("0 0 14 ? * FRI *", cobra)
+    }
+    if (state.Type == "Driver"){
+    schedule("0 45 16 ? * MON *", cobra)
+    }
+}
+
+def display(){
+    
+    section{
+            paragraph "Version Status: $state.Status"
+			paragraph "Current Version: $state.version -  $state.Copyright"
+			}
+
+}
+
+
 def cobra(){
-    setAppVersion()
+    
+    setVersion()
     def paramsUD = [uri: "http://update.hubitat.uk/cobra.json"]
        try {
         httpGet(paramsUD) { respUD ->
-  //   log.info "response data: ${respUD.data}"
-       def cobraVer = (respUD.data.versions.(state.InternalName))
-       def cobraOld = state.appversion.replace(".", "")
+ //  log.info " Version Checking - Response Data: ${respUD.data}"
+       def copyNow = (respUD.data.copyright)
+       state.Copyright = copyNow
+            def newver = (respUD.data.versions.(state.Type).(state.InternalName))
+            def cobraVer = (respUD.data.versions.(state.Type).(state.InternalName).replace(".", ""))
+       def cobraOld = state.version.replace(".", "")
        if(cobraOld < cobraVer){
-		state.verCheck = "** New Version Available **"
-           log.warn "There is a newer version of this app available"
+		state.Status = "<b>** New Version Available (Version: $newver) **</b>"
+           log.warn "** There is a newer version of this $state.Type available  (Version: $newver) **"
        }    
        else{ 
-      state.verCheck = "Current"
-      log.info "App is current version"
+      state.Status = "Current"
+      log.info "$state.Type is the current version"
        }
        
        }
@@ -395,8 +416,11 @@ def cobra(){
 
  
 // App Version   *********************************************************************************
-def setAppVersion(){
-    state.appversion = "1.1.0"
+def setVersion(){
+     state.version = "1.1.0"
      state.InternalName = "Iswitch"
-    
+     state.Type = "Application"
+
+
 }
+
