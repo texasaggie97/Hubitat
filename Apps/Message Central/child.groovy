@@ -30,11 +30,14 @@
  *-------------------------------------------------------------------------------------------------------------------
  *
  *
- *  Last Update: 16/07/2018
+ *  Last Update: 19/07/2018
  *
  *  Changes:
  *
- *  V10.1.1 - Debug 'colon' was being spoken - now changed to a space
+ *
+ *  V10.3.0 - Added Mode restriction in Hubitat format (previous format was not working correctly) and debug/reformat of version checking
+ *  V10.2.1 - Debug 'colon' was being spoken - now replaced with a space in message conversion
+ *  V10.2.0 - Added version checking
  *  V10.1.0 - Added 'Join' messaging & debug
  *  V10.0.0 - Hubitat port
  *
@@ -93,9 +96,9 @@ definition(
 
  parent: "Cobra:Message Central",
 
-    iconUrl: "https://raw.githubusercontent.com/cobravmax/SmartThings/master/icons/voice.png",
-    iconX2Url: "https://raw.githubusercontent.com/cobravmax/SmartThings/master/icons/voice.png",
-    iconX3Url: "https://raw.githubusercontent.com/cobravmax/SmartThings/master/icons/voice.png")
+    iconUrl: "",
+    iconX2Url: "",
+    iconX3Url: "")
 
 preferences {
     page name: "mainPage", title: "", install: false, uninstall: true, nextPage: "restrictionsPage"
@@ -124,9 +127,10 @@ def updated() {
 
 def initialize() {
 	  log.info "Initialised with settings: ${settings}"
-      setAppVersion()
-      logCheck()
       
+      logCheck()
+     version()
+      schedule("0 0 14 ? * FRI *", cobra)
       switchRunCheck()
       state.timer1 = true
       state.timer2 = true
@@ -241,21 +245,14 @@ def mainPage() {
     dynamicPage(name: "mainPage") {
       
         section {
-        paragraph image: "https://raw.githubusercontent.com/cobravmax/SmartThings/master/icons/voice.png",
-                  title: "Message Central Child",
+        paragraph title: "Message Central Child",
                   required: false,
                   "This child app allows you use different triggers to create different voice or text messages"
                   }
-     section() {
+    display()
    
-        paragraph image: "",
-                         " Child Version: $state.appversion - Copyright © 2017 - 2018 Cobra" 
-                      	
-   
-            href "pageHelp", title:"Message Variables", description:"Tap here for a list of 'variables' you can configure for use in your messages (and what they do)"
-           
-           
-            
+       section{
+              href "pageHelp", title:"Message Variables", description:"Tap here for a list of 'variables' you can configure for use in your messages (and what they do)"
         }
 
     
@@ -373,6 +370,8 @@ def restrictionsPage() {
        
        } 
        
+           
+           
       }  
     }
 
@@ -384,9 +383,14 @@ def namePage() {
             section("Automation name") {
                 label title: "Enter a name for this message automation", required: false
             }
+           
+           
+           
             section("Logging") {
             input "debugMode", "bool", title: "Enable logging", required: true, defaultValue: false
   	        }
+           
+           
       }  
     }
 
@@ -446,9 +450,7 @@ def triggerInput() {
 
 def restrictionInputs(){
 
-		section() {
-           		mode title: "Run only when in specific mode(s) ", required: false
-            }
+
         
 
 		section() {
@@ -458,7 +460,9 @@ def restrictionInputs(){
     input "restrictions3", "bool", title: "Restrict by Presence Sensor", required: true, defaultValue: false, submitOnChange: true
      }
 
-    
+		section() {
+           		 input(name:"modes", type: "mode", title: "Set for specific mode(s)", multiple: true, required: false)
+            }    
     
      if(restrictions1){    
      	section("Time/Day") {
@@ -2134,6 +2138,7 @@ def checkAgain2() {
 
 
 def speakNow(){
+    if(modeIsOk()){ 
 LOGDEBUG("Power - speakNow...")
 checkPresence()
 checkPresence1()
@@ -2180,7 +2185,7 @@ LOGDEBUG("Power - Join Message - Sending Message: $state.fullPhrase")
 LOGDEBUG( "Cannot continue - Presence failed")
 }
 }
-
+}
 
 def startTimerPower(){
 state.timer1 = false
@@ -2201,6 +2206,7 @@ LOGDEBUG( "Timer reset - Messages allowed")
 
 // PushOver Message Actions =============================
 def pushOver(msgType, inMsg){
+    if(modeIsOk()){ 
     if(state.timer1 == true){
 // compileMsg(inMsg)
     newMessage = state.fullPhrase
@@ -2259,10 +2265,12 @@ def pushOver(msgType, inMsg){
   }
      state.timer1 = false
             startTimer1()
- }    
+ }
+}
 }
 
 def joinMsg(inMsg){
+    if(modeIsOk()){ 
     if(state.timer1 == true){
 // compileMsg(inMsg)
     newMessage = state.fullPhrase
@@ -2273,13 +2281,14 @@ def joinMsg(inMsg){
 	speaker.speak(state.msg1)
     }
  }       
-    
+}    
     
 
 
 // Talk now....
 
 def talkSwitch(){
+    if(modeIsOk()){ 
 LOGDEBUG("Calling.. talkSwitch")
 if(state.appgo == true){
 LOGDEBUG("Calling.. CheckTime")
@@ -2338,7 +2347,7 @@ LOGDEBUG( "Message 2 is empty so nothing to say")
 else if(state.appgo == false){
 LOGDEBUG("$enableSwitch is off so cannot continue")
 }
-
+}
 }
 
 def checkVolume(){
@@ -2433,7 +2442,11 @@ log.trace "SendMessage - $state.fullPhrase"
 
 
 
-
+// Check Mode
+def modeIsOK() {
+	def result = !modes || modes.contains(location.mode)
+    return result
+ }
 
 
 // Check time allowed to run...
@@ -2963,10 +2976,65 @@ private getyear() {
 }
 
 
-
-
-
-// App Version   *********************************************************************************
-def setAppVersion(){
-    state.appversion = "10.1.0"
+// Check Version   *********************************************************************************
+def version(){
+    cobra()
+    if (state.Type == "Application"){
+    schedule("0 0 14 ? * FRI *", cobra)
+    }
+    if (state.Type == "Driver"){
+    schedule("0 45 16 ? * MON *", cobra)
+    }
 }
+
+def display(){
+    
+    section{
+            paragraph "Version Status: $state.verCheck"
+			paragraph "Current Version: $state.version -  $state.Copyright"
+			}
+
+}
+
+
+def cobra(){
+    
+    setVersion()
+    def paramsUD = [uri: "http://update.hubitat.uk/cobra.json"]
+       try {
+        httpGet(paramsUD) { respUD ->
+   log.info " Version Checking - Response Data: ${respUD.data}"
+       def copyNow = (respUD.data.copyright)
+       state.Copyright = copyNow
+            def newver = (respUD.data.versions.(state.Type).(state.InternalName))
+            def cobraVer = (respUD.data.versions.(state.Type).(state.InternalName).replace(".", ""))
+       def cobraOld = state.version.replace(".", "")
+       if(cobraOld < cobraVer){
+		state.Status = "<b>** New Version Available (Version: $newver) **</b>"
+           log.warn "** There is a newer version of this $state.Type available  (Version: $newver) **"
+       }    
+       else{ 
+      state.Status = "Current"
+      log.info "$state.Type is the current version"
+       }
+       
+       }
+        } 
+        catch (e) {
+        log.error "Something went wrong: $e"
+    }
+}        
+
+
+
+ 
+// App Version   *********************************************************************************
+def setVersion(){
+     state.version = "10.3.0"
+     state.InternalName = "MCchild"
+     state.Type = "Application"
+
+
+}
+
+
