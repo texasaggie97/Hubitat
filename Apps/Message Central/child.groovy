@@ -34,7 +34,7 @@
  *
  *  Changes:
  *
- *
+ *  V10.4.0 - Sorted out %date% %year% & %day% variables (to correct errors in different format for Hubitat)
  *  V10.3.0 - Added Mode restriction in Hubitat format (previous format was not working correctly) and debug/reformat of version checking
  *  V10.2.1 - Debug 'colon' was being spoken - now replaced with a space in message conversion
  *  V10.2.0 - Added version checking
@@ -324,8 +324,8 @@ def pageHelpVariables(){
 
 	AvailableVariables += " %time% 			-		Replaced with current time in 12 or 24 hour format (Switchable)\n\n"
 	AvailableVariables += " %day% 			- 		Replaced with current day of the week\n\n"
-//	AvailableVariables += " %date% 			- 		Replaced with current day number & month\n\n"
-//	AvailableVariables += " %year% 			- 		Replaced with the current year\n\n"
+	AvailableVariables += " %date% 			- 		Replaced with current day number & month\n\n"
+	AvailableVariables += " %year% 			- 		Replaced with the current year\n\n"
     AvailableVariables += " %greeting% 		- 		Replaced with 'Good Morning', 'Good Afternoon' or 'Good Evening' (evening starts at 6pm)\n\n"
  
 
@@ -2640,7 +2640,7 @@ private compileMsg(msg) {
     if (msgComp.contains(":")) {msgComp = msgComp.toUpperCase().replace(':', ' ')}
     if (msgComp.contains("%DAY%")) {msgComp = msgComp.toUpperCase().replace('%DAY%', getDay() )}  
 	if (msgComp.contains("%DATE%")) {msgComp = msgComp.toUpperCase().replace('%DATE%', getdate() )}  
-//    if (msgComp.contains("%YEAR%")) {msgComp = msgComp.toUpperCase().replace('%YEAR%', getyear() )}  
+    if (msgComp.contains("%YEAR%")) {msgComp = msgComp.toUpperCase().replace('%YEAR%', getyear() )}  
  
 //    if (msgComp.contains("%WEATHER%")) {msgComp = msgComp.toUpperCase().replace('%WEATHER%', getWeatherReport() )}  
     
@@ -2944,8 +2944,8 @@ private parseDate(date, epoch, type){
     else {
     	parseDate = date
     }
-    new Date().parse("yyyy-MM-dd HH:mm", parseDate).format("${type}", timeZone(parseDate))
-  //  def now = new Date().format('yyyy-MM-dd HH:mm', location.timeZone)
+    new Date().parse("yyyy-MM-dd HH:mm", parseDate).format("${type}") //, timeZone(parseDate))
+ 
 }
 private getdate() {
     def month = parseDate("", now(), "MMMM")
@@ -3051,7 +3051,7 @@ def cobra(){
  
 // App Version   *********************************************************************************
 def setVersion(){
-     state.version = "10.3.0"
+     state.version = "10.4.0"
      state.InternalName = "MCchild"
      state.Type = "Application"
 
