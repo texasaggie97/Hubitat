@@ -30,7 +30,7 @@
  *-------------------------------------------------------------------------------------------------------------------
  *
  *
- *  Last Update: 19/07/2018
+ *  Last Update: 16/07/2018
  *
  *  Changes:
  *
@@ -2138,7 +2138,8 @@ def checkAgain2() {
 
 
 def speakNow(){
-    if(modeIsOk()){ 
+       modeCheck()
+    if(modeCheck){  
 LOGDEBUG("Power - speakNow...")
 checkPresence()
 checkPresence1()
@@ -2206,7 +2207,8 @@ LOGDEBUG( "Timer reset - Messages allowed")
 
 // PushOver Message Actions =============================
 def pushOver(msgType, inMsg){
-    if(modeIsOk()){ 
+       modeCheck()
+    if(modeCheck){  
     if(state.timer1 == true){
 // compileMsg(inMsg)
     newMessage = state.fullPhrase
@@ -2270,7 +2272,8 @@ def pushOver(msgType, inMsg){
 }
 
 def joinMsg(inMsg){
-    if(modeIsOk()){ 
+       modeCheck()
+    if(modeCheck){  
     if(state.timer1 == true){
 // compileMsg(inMsg)
     newMessage = state.fullPhrase
@@ -2288,7 +2291,8 @@ def joinMsg(inMsg){
 // Talk now....
 
 def talkSwitch(){
-    if(modeIsOk()){ 
+   modeCheck()
+    if(modeCheck){ 
 LOGDEBUG("Calling.. talkSwitch")
 if(state.appgo == true){
 LOGDEBUG("Calling.. CheckTime")
@@ -2443,7 +2447,8 @@ log.trace "SendMessage - $state.fullPhrase"
 
 
 // Check Mode
-def modeIsOK() {
+def modeCheck() {
+    LOGDEBUG("Checking mode...")
 	def result = !modes || modes.contains(location.mode)
     return result
  }
