@@ -2139,7 +2139,7 @@ def checkAgain2() {
 
 def speakNow(){
        modeCheck()
-    if(modeCheck){  
+    if(state.modeCheck == true){  
 LOGDEBUG("Power - speakNow...")
 checkPresence()
 checkPresence1()
@@ -2208,7 +2208,7 @@ LOGDEBUG( "Timer reset - Messages allowed")
 // PushOver Message Actions =============================
 def pushOver(msgType, inMsg){
        modeCheck()
-    if(modeCheck){  
+    if(state.modeCheck == true){  
     if(state.timer1 == true){
 // compileMsg(inMsg)
     newMessage = state.fullPhrase
@@ -2269,11 +2269,14 @@ def pushOver(msgType, inMsg){
             startTimer1()
  }
 }
+    else{
+        LOGDEBUG("Not in correct 'mode' to continue")
+    }
 }
 
 def joinMsg(inMsg){
        modeCheck()
-    if(modeCheck){  
+    if(state.modeCheck == true){  
     if(state.timer1 == true){
 // compileMsg(inMsg)
     newMessage = state.fullPhrase
@@ -2283,7 +2286,10 @@ def joinMsg(inMsg){
      state.msg1 = newMessage
 	speaker.speak(state.msg1)
     }
- }       
+ }
+     else{
+        LOGDEBUG("Not in correct 'mode' to continue")
+    }
 }    
     
 
@@ -2292,7 +2298,7 @@ def joinMsg(inMsg){
 
 def talkSwitch(){
    modeCheck()
-    if(modeCheck){ 
+    if(state.modeCheck == true){ 
 LOGDEBUG("Calling.. talkSwitch")
 if(state.appgo == true){
 LOGDEBUG("Calling.. CheckTime")
@@ -2352,6 +2358,9 @@ else if(state.appgo == false){
 LOGDEBUG("$enableSwitch is off so cannot continue")
 }
 }
+     else{
+        LOGDEBUG("Not in correct 'mode' to continue")
+    }
 }
 
 def checkVolume(){
@@ -2450,7 +2459,10 @@ log.trace "SendMessage - $state.fullPhrase"
 def modeCheck() {
     LOGDEBUG("Checking mode...")
 	def result = !modes || modes.contains(location.mode)
-    return result
+    
+    LOGDEBUG("Mode = $result")
+    state.modeCheck = result
+    return state.modeCheck
  }
 
 
@@ -2627,7 +2639,7 @@ private compileMsg(msg) {
     if (msgComp.contains("%TIME%")) {msgComp = msgComp.toUpperCase().replace('%TIME%', getTime(false,true))}  
     if (msgComp.contains(":")) {msgComp = msgComp.toUpperCase().replace(':', ' ')}
     if (msgComp.contains("%DAY%")) {msgComp = msgComp.toUpperCase().replace('%DAY%', getDay() )}  
-//	if (msgComp.contains("%DATE%")) {msgComp = msgComp.toUpperCase().replace('%DATE%', getdate() )}  
+	if (msgComp.contains("%DATE%")) {msgComp = msgComp.toUpperCase().replace('%DATE%', getdate() )}  
 //    if (msgComp.contains("%YEAR%")) {msgComp = msgComp.toUpperCase().replace('%YEAR%', getyear() )}  
  
 //    if (msgComp.contains("%WEATHER%")) {msgComp = msgComp.toUpperCase().replace('%WEATHER%', getWeatherReport() )}  
@@ -2923,13 +2935,17 @@ private getDay(){
 private parseDate(date, epoch, type){
     def parseDate = ""
     if (epoch){
+        LOGDEBUG("epoc")
     	long longDate = Long.valueOf(epoch).longValue()
-        parseDate = new Date(longDate).format("yyyy-MM-dd'T'HH:mm:ss.SSSZ", location.timeZone)
+        LOGDEBUG("longDate done")
+        parseDate = new Date(longDate).format("yyyy-MM-dd HH:mm", location.timeZone)
+         LOGDEBUG("1st parseDate done")
     }
     else {
     	parseDate = date
     }
-    new Date().parse("yyyy-MM-dd'T'HH:mm:ss.SSSZ", parseDate).format("${type}", timeZone(parseDate))
+    new Date().parse("yyyy-MM-dd HH:mm", parseDate).format("${type}", timeZone(parseDate))
+  //  def now = new Date().format('yyyy-MM-dd HH:mm', location.timeZone)
 }
 private getdate() {
     def month = parseDate("", now(), "MMMM")
