@@ -33,13 +33,13 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 30/07/2018
+ *  Last Update: 31/07/2018
  *
  *  Changes:
  *
  * 
  *
- *
+ *  V1.0.1 - Code cleanup & revised version checking
  *  V1.0.0 - POC
  *
  */
@@ -77,6 +77,7 @@ def installed() {
 
 def updated() {
     log.debug "Updated with settings: ${settings}"
+    unschedule()
     unsubscribe()
     initialize()
 }
@@ -95,89 +96,60 @@ def mainPage() {
     dynamicPage(name: "mainPage") {
       
 		section {    
-			paragraph image: "",
-				title: "Scheduled Switch",
-				required: false,
-				"This parent app is a container for all schedule switch child apps"
+			paragraph title: "Scheduled Switch",
+			"This parent app is a container for all schedule switch child apps"
 			}
-        display()
-    
-		
-  
-     
-     
-// New Child Apps 
-      
-      
-      
-        
-      section (){
-		app(name: "newApp", appName: "Schedule Switch Child", namespace: "Cobra", title: "Schedule a new switch event", multiple: true)
-		
-            
-            }
-                  
-   
-           
-           
-// End: New Child Apps
-  
-  
-              section() {
-                label title: "Enter a name for parent app (optional)", required: false
-            }
-  
-  
-  
-  
-  
- } // DynamicPage 
-  
-  } // Mainpage
+      display()
+      section (){app(name: "newApp", appName: "Schedule Switch Child", namespace: "Cobra", title: "Schedule a new switch event", multiple: true)}
+      section() {label title: "Enter a name for parent app (optional)", required: false}
+ } 
+}
 
 
 
 
-// Check Version   *********************************************************************************
+
 def version(){
-    cobra()
-    if (state.Type == "Application"){
-    schedule("0 0 14 ? * FRI *", cobra)
-    }
-    if (state.Type == "Driver"){
-    schedule("0 45 16 ? * MON *", cobra)
-    }
+    updatecheck()
+    if (state.Type == "Application"){schedule("0 0 9 ? * FRI *", updatecheck)}
+    if (state.Type == "Driver"){schedule("0 0 8 ? * FRI *", updatecheck)}
 }
 
 def display(){
-    
-    section{
-            paragraph "Version Status: $state.Status"
-			paragraph "Current Version: $state.version -  $state.Copyright"
-			}
-
+    section{paragraph "Version: $state.version -  $state.Copyright"}
+	if(state.Status != "Current"){
+       section{ 
+       paragraph "$state.Status"
+       paragraph "$state.updateInfo"
+    }
+    }
 }
 
 
-def cobra(){
-    
+def updatecheck(){
     setAppVersion()
     def paramsUD = [uri: "http://update.hubitat.uk/cobra.json"]
        try {
         httpGet(paramsUD) { respUD ->
-//   log.info " Version Checking - Response Data: ${respUD.data}"   // Debug Code 
+//  log.info " Version Checking - Response Data: ${respUD.data}"   // Debug Code 
        def copyNow = (respUD.data.copyright)
        state.Copyright = copyNow
             def newver = (respUD.data.versions.(state.Type).(state.InternalName))
             def cobraVer = (respUD.data.versions.(state.Type).(state.InternalName).replace(".", ""))
        def cobraOld = state.version.replace(".", "")
-       if(cobraOld < cobraVer){
-		state.Status = "<b>** New Version Available (Version: $newver) **</b>"
-           log.warn "** There is a newer version of this $state.Type available  (Version: $newver) **"
-       }    
-       else{ 
-      state.Status = "Current"
-      log.info "$state.Type is the current version"
+       state.updateInfo = (respUD.data.versions.UpdateInfo.(state.Type).(state.InternalName)) 
+            if(cobraVer == "NLS"){
+            state.Status = "<b>** This $state.Type is no longer supported by Cobra  **</b>"       
+            log.warn "** This $state.Type is no longer supported by Cobra **"      
+      }           
+      		else if(cobraOld < cobraVer){
+        	state.Status = "<b>New Version Available (Version: $newver)</b>"
+        	log.warn "** There is a newer version of this $state.Type available  (Version: $newver) **"
+        	log.warn "** $state.updateInfo **"
+       } 
+            else{ 
+      		state.Status = "Current"
+      		log.info "$state.Type is the current version"
        }
        
        }
@@ -188,11 +160,8 @@ def cobra(){
 }        
 
 
-
- 
-// App Version   *********************************************************************************
 def setAppVersion(){
-     state.version = "1.0.0"
+     state.version = "1.0.1"
      state.InternalName = "SchedSwitchparent"
      state.Type = "Application"
  //  state.Type = "Driver"
