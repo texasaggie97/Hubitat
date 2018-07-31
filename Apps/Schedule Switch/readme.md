@@ -1,7 +1,5 @@
 # Scheduled Switch
 
-Version 1.0.1
-
 
 
 
