@@ -39,7 +39,7 @@
  *
  * 
  *
- *  V1.0.1 - Code cleanup & revised version checking
+ *  V1.0.1 - Code cleanup & revised version checking - Debug - March was not working correctly when selected
  *  V1.0.0 - POC 
  */
  
