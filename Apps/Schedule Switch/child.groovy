@@ -72,7 +72,7 @@ section ("") {
 	 section(){
 		input "switch1",  "capability.switch",  title: "Switch to Schedule", multiple: false, required: true
 	  
-		input "month1", "enum", title: "Select Month", required: true, submitOnChange: true,  options: [ "Jan", "Feb", "March", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+		input "month1", "enum", title: "Select Month", required: true, submitOnChange: true,  options: [ "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 	
 		input "date1", "enum", title: "Select Date", required: true, submitOnChange: true,  options: [ "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31"]
 		
@@ -129,7 +129,7 @@ state.selectedHour = hour1
 state.selectedMin = min1
 state.schedule1 = "0 ${state.selectedMin} ${state.selectedHour} ${state.selectedDate} ${state.runMonth} ? *"
     
- //   log.info "state.schedule1 = $state.schedule1"
+    log.info "state.schedule1 = $state.schedule1"
     schedule(state.schedule1, switchNow) 
 
 
@@ -192,7 +192,7 @@ def updatecheck(){
     def paramsUD = [uri: "http://update.hubitat.uk/cobra.json"]
        try {
         httpGet(paramsUD) { respUD ->
-//  log.info " Version Checking - Response Data: ${respUD.data}"   // Debug Code 
+  log.info " Version Checking - Response Data: ${respUD.data}"   // Debug Code 
        def copyNow = (respUD.data.copyright)
        state.Copyright = copyNow
             def newver = (respUD.data.versions.(state.Type).(state.InternalName))
