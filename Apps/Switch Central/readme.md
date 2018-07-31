@@ -3,10 +3,10 @@
 
 Files to install:
 
-Switch Central - Parent.groovy
-Switch Central - One To Many.groovy
-Switch Central - Switch Changeover.groovy
-Switch Central - Scheduled Switch.groovy
+1. Switch Central - Parent.groovy
+2. Switch Central - One To Many.groovy
+3. Switch Central - Switch Changeover.groovy
+4. Switch Central - Scheduled Switch.groovy
 
 
 
