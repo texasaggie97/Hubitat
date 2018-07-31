@@ -2,7 +2,6 @@
 
 
 Files to install:
-******************
 
 Switch Central - Parent.groovy
 Switch Central - One To Many.groovy
