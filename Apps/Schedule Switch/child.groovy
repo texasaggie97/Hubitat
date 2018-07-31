@@ -72,13 +72,13 @@ section ("") {
 	 section(){
 		input "switch1",  "capability.switch",  title: "Switch to Schedule", multiple: false, required: true
 	  
-		input "month1", "enum", title: "Select Month", required: true, submitOnChange: true,  options: [ "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+		input "month1", "enum", title: "Select Month", required: true, options: [ "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 	
-		input "date1", "enum", title: "Select Date", required: true, submitOnChange: true,  options: [ "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31"]
+		input "date1", "enum", title: "Select Date", required: true, options: [ "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31"]
 		
-		input "hour1", "enum", title: "Select Hour", required: true, submitOnChange: true,  options: [ "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23"]
+		input "hour1", "enum", title: "Select Hour", required: true,  options: [ "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23"]
 		
-		input "min1", "enum", title: "Select Minute", required: true, submitOnChange: true,  options: [ "0", "5", "10", "15", "20", "25", "30", "35", "40", "45", "50", "55"]
+		input "min1", "enum", title: "Select Minute", required: true, options: [ "0", "5", "10", "15", "20", "25", "30", "35", "40", "45", "50", "55"]
 	
         input "mode1", "bool", title: "Turn Switch On or Off", required: true, submitOnChange: true, defaultValue: false    
 	    }
