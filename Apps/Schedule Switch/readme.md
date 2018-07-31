@@ -1,7 +1,4 @@
-# Hubitat
-
-
-Schedule Switch
+# Scheduled Switch
 
 Version 1.0.1
 
@@ -21,11 +18,11 @@ INSTALL NOTES:
 
 4. Click ‘Load New Apps’
 
-5. Select ‘Schedule Switch’ under ‘User Apps’ (Not the child app)
+5. Select ‘Scheduled Switch’ under ‘User Apps’ (Not the child app)
 
 6. Save
 
-7. Go back to Apps and open Schedule Switch 
+7. Go back to Apps and open Scheduled Switch 
 
 You can now create new child apps directly from here.
 
