@@ -192,7 +192,7 @@ def updatecheck(){
     def paramsUD = [uri: "http://update.hubitat.uk/cobra.json"]
        try {
         httpGet(paramsUD) { respUD ->
-  log.info " Version Checking - Response Data: ${respUD.data}"   // Debug Code 
+//  log.info " Version Checking - Response Data: ${respUD.data}"   // Debug Code 
        def copyNow = (respUD.data.copyright)
        state.Copyright = copyNow
             def newver = (respUD.data.versions.(state.Type).(state.InternalName))
