@@ -33,7 +33,7 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 17/07/2018
+ *  Last Update: 14/03/2018
  *
  *  Changes:
  *
@@ -44,11 +44,12 @@
 
 
 
+
 definition(
     name: "Average Temperature",
     namespace: "Cobra",
     author: "AJ Parker",
-    description: "Virtual Average Temp Device Helper",
+    description: "Virtual Average Temp Device Helper App",
     category: "My Apps",
 
     
@@ -101,6 +102,7 @@ def tempSensorsHandler(evt) {
     LOGDEBUG("Average Temp = $mean")
 	LOGDEBUG("Sending info to $vDevice")
      settings.vDevice.parse("${mean}")
+   
 }
 
 
@@ -139,7 +141,7 @@ def display(){
     
     section{
             paragraph "Version Status: $state.verCheck"
-	    paragraph "Current Version: $state.appversion -  $state.Copyright"
+			paragraph "Current Version: $state.appversion -  $state.Copyright"
 			}
 
 }
@@ -151,7 +153,7 @@ def cobra(){
     def paramsUD = [uri: "http://update.hubitat.uk/cobra.json"]
        try {
         httpGet(paramsUD) { respUD ->
- //  log.info " Version Checking - Response Data: ${respUD.data}"
+//   log.info " Version Checking - Response Data: ${respUD.data}"   // Debug Code 
        def copyNow = (respUD.data.copyright)
        state.Copyright = copyNow
             def newver = (respUD.data.versions.(state.Type).(state.InternalName))
