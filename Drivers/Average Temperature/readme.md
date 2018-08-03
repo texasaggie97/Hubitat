@@ -2,6 +2,7 @@
 
 Average Temperature Device
 
-This driver is used by the Average Temperature App
-You need to install a new virtual device and use this driver
+This driver is used by the Average Temperature App.
+
+To use: Install a new virtual device and assign this driver to it
 
