@@ -33,15 +33,15 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 14/03/2018
+ *  Last Update: 05/08/2018
  *
  *  Changes:
  *
+ *  V1.2.0 - Added selectable decimal places on result
  *  V1.1.0 - Added remote version checking
  *  V1.0.0 - Port to Hubitat
  *
  */
-
 
 
 
@@ -68,6 +68,7 @@ preferences {
     }
      section("Set Virtual Temp Device "){
         input "vDevice", "capability.temperatureMeasurement", title: "Virtual Device"
+        input "decimalUnit", "enum", title: "Max Decimal Places", required:true, defaultValue: "2", options: ["1", "2", "3", "4", "5"]
     }
     section("Logging") {
             input "debugMode", "bool", title: "Enable logging", required: true, defaultValue: false
@@ -87,6 +88,8 @@ def initialize() {
     version()
 	logCheck()
     subscribe(tempSensors, "temperature", tempSensorsHandler)
+    state.DecimalPlaces = decimalUnit.toInteger()
+    log.info "Installed with settings: ${settings}"
 }
 
 def tempSensorsHandler(evt) {
@@ -97,8 +100,8 @@ def tempSensorsHandler(evt) {
     for (sensor in settings.tempSensors) {
     count += 1 
     sum += sensor.currentTemperature }
-
-    mean = sum/count
+	mean1 = sum/count
+    mean = mean1.round(state.DecimalPlaces)
     LOGDEBUG("Average Temp = $mean")
 	LOGDEBUG("Sending info to $vDevice")
      settings.vDevice.parse("${mean}")
@@ -140,7 +143,7 @@ def version(){
 def display(){
     
     section{
-            paragraph "Version Status: $state.verCheck"
+            paragraph "Version Status: $state.Status"
 			paragraph "Current Version: $state.appversion -  $state.Copyright"
 			}
 
@@ -180,7 +183,7 @@ def cobra(){
  
 // App Version   *********************************************************************************
 def setAppVersion(){
-     state.version = "1.1.0"
+     state.version = "1.2.0"
      state.InternalName = "AverageTemp"
      state.Type = "Application"
  //  state.Type = "Driver"

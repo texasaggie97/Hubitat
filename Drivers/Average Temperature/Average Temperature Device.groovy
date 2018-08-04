@@ -17,7 +17,7 @@
  *
  *  Changes: 05/08/2018
  *
- *  V1.2.0 - Added selectable decimal places
+ *  V1.2.0 - Debug
  *  V1.1.0 - Added remote version checking
  *  V1.0.0 - POC
  *
@@ -39,7 +39,7 @@ metadata {
      
       section(){
         input "frequency", "number", required: true, title: "How often to check for trend (Minutes after temp change)", defaultValue: "30"  
-        input "decimalUnit", "enum", title: "Max Decimal Places", required:true, defaultValue: "2", options: ["1", "2", "3", "4", "5"]
+       
   }   
  }
 }
@@ -48,13 +48,13 @@ def updated() {
     log.debug "Updated called"
     unschedule()
     version()
-   state.DecimalPlaces = decimalUnit.toInteger()
+   
 }
 
 
 def parse(message) {
     TRACE("parse(${message})")
-def averageTemp = message.round(state.DecimalPlaces)
+def averageTemp = message
   state.current = averageTemp
   def checkFrequency = 60 * frequency
    runIn(checkFrequency, calculateTrendNow) 
@@ -117,7 +117,7 @@ def cobra(){
     def paramsUD = [uri: "http://update.hubitat.uk/cobra.json"]
        try {
         httpGet(paramsUD) { respUD ->
-//   log.info " Version Checking - Response Data: ${respUD.data}"
+//   log.info " Version Checking - Response Data: ${respUD.data}"  //   Debug test code
        def copyNow = (respUD.data.copyright)
        state.Copyright = copyNow
             def newver = (respUD.data.versions.(state.Type).(state.InternalName))
