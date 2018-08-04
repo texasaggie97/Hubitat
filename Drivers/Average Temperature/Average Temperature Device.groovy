@@ -15,8 +15,9 @@
  *  License  for the specific language governing permissions and limitations
  *  under the License.
  *
- *  Changes: 17/07/2018
+ *  Changes: 05/08/2018
  *
+ *  V1.2.0 - Added selectable decimal places
  *  V1.1.0 - Added remote version checking
  *  V1.0.0 - POC
  *
@@ -38,7 +39,7 @@ metadata {
      
       section(){
         input "frequency", "number", required: true, title: "How often to check for trend (Minutes after temp change)", defaultValue: "30"  
-     
+        input "decimalUnit", "enum", title: "Max Decimal Places", required:true, defaultValue: "2", options: ["1", "2", "3", "4", "5"]
   }   
  }
 }
@@ -47,13 +48,13 @@ def updated() {
     log.debug "Updated called"
     unschedule()
     version()
-   
+   state.DecimalPlaces = decimalUnit.toInteger()
 }
 
 
 def parse(message) {
     TRACE("parse(${message})")
-def averageTemp = message
+def averageTemp = message.round(state.DecimalPlaces)
   state.current = averageTemp
   def checkFrequency = 60 * frequency
    runIn(checkFrequency, calculateTrendNow) 
@@ -111,7 +112,7 @@ def version(){
 
 
 def cobra(){
-    
+   
     setVersion()
     def paramsUD = [uri: "http://update.hubitat.uk/cobra.json"]
        try {
@@ -123,8 +124,8 @@ def cobra(){
             def cobraVer = (respUD.data.versions.(state.Type).(state.InternalName).replace(".", ""))
        def cobraOld = state.version.replace(".", "")
        if(cobraOld < cobraVer){
-		state.Status = "<b>** New Version Available (Version: $newver) **</b>"
-           log.warn "** There is a newer version of this $state.Type available  (Version: $newver) **"
+		state.Status = "<b>** New Version Available (Version: $newver) **</b> " 
+ 		log.warn "** There is a newer version of this $state.Type available  (Version: $newver) ** "
        }    
        else{ 
       state.Status = "Current"
@@ -143,7 +144,7 @@ def cobra(){
  
 // App Version   *********************************************************************************
 def setVersion(){
-     state.version = "1.1.0"
+     state.version = "1.2.0"
      state.InternalName = "AverageTemp"
      state.Type = "Driver"
     
