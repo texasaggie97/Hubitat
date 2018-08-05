@@ -37,6 +37,7 @@
  *
  *  Changes:
  *
+ *  V1.2.1 - Debug
  *  V1.2.0 - Added selectable decimal places on result
  *  V1.1.0 - Added remote version checking
  *  V1.0.0 - Port to Hubitat
@@ -100,11 +101,14 @@ def tempSensorsHandler(evt) {
     for (sensor in settings.tempSensors) {
     count += 1 
     sum += sensor.currentTemperature }
-	mean1 = sum/count
-    mean = mean1.round(state.DecimalPlaces)
-    LOGDEBUG("Average Temp = $mean")
+	state.mean1 = sum/count
+//    log.warn "state.mean1 = $state.mean1"   // debug code
+    state.mean2 = state.mean1.toDouble()
+//    log.warn "state.mean2 = $state.mean2"    //  debug code
+    state.mean = state.mean2.round(state.DecimalPlaces)
+    LOGDEBUG("Average Temp = $state.mean")
 	LOGDEBUG("Sending info to $vDevice")
-     settings.vDevice.parse("${mean}")
+     settings.vDevice.parse("${state.mean}")
    
 }
 
@@ -144,7 +148,7 @@ def display(){
     
     section{
             paragraph "Version Status: $state.Status"
-			paragraph "Current Version: $state.appversion -  $state.Copyright"
+			paragraph "Current Version: $state.version -  $state.Copyright"
 			}
 
 }
@@ -183,7 +187,7 @@ def cobra(){
  
 // App Version   *********************************************************************************
 def setAppVersion(){
-     state.version = "1.2.0"
+     state.version = "1.2.1"
      state.InternalName = "AverageTemp"
      state.Type = "Application"
  //  state.Type = "Driver"
