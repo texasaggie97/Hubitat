@@ -15,8 +15,9 @@
  *  License  for the specific language governing permissions and limitations
  *  under the License.
  *
- *  Changes: 05/08/2018
+ *  Changes: 06/08/2018
  *
+ *  V1.3.0 - Added 'setTemperature' and removed 'parse' button - This must be used with V1.3.0 of the app
  *  V1.2.0 - Debug
  *  V1.1.0 - Added remote version checking
  *  V1.0.0 - POC
@@ -31,8 +32,9 @@ metadata {
         attribute "DriverVersion", "string"
         attribute "DriverAuthor", "string"
         attribute "DriverStatus", "string"
-        command "parse"     // (String "temperature:<value>")
+//        command "parse" , ["number"]   
         command "calculateTrendNow"
+        command "setTemperature", ["number"]
     }
 
  preferences() {
@@ -51,19 +53,20 @@ def updated() {
    
 }
 
+def setTemperature(message){
+//   parse(message) 
+    
+//}
 
-def parse(message) {
-    TRACE("parse(${message})")
+
+//def parse(message) {
+//    TRACE("parse(${message})")
+    TRACE("setTemperature(${message})")
+    
 def averageTemp = message
   state.current = averageTemp
   def checkFrequency = 60 * frequency
    runIn(checkFrequency, calculateTrendNow) 
-
-    
-    
-    
-    
-    
 
     TRACE("event: (${averageTemp})")
     sendEvent(name:"temperature", value: "$averageTemp")
@@ -144,7 +147,7 @@ def cobra(){
  
 // App Version   *********************************************************************************
 def setVersion(){
-     state.version = "1.2.0"
+     state.version = "1.3.0"
      state.InternalName = "AverageTemp"
      state.Type = "Driver"
     

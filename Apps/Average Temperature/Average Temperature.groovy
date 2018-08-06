@@ -33,10 +33,11 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 05/08/2018
+ *  Last Update: 06/08/2018
  *
  *  Changes:
  *
+ *  V1.3.0 - Changed outgoing commands so this is now compatible with a virtual thermostat
  *  V1.2.1 - Debug
  *  V1.2.0 - Added selectable decimal places on result
  *  V1.1.0 - Added remote version checking
@@ -71,6 +72,8 @@ preferences {
         input "vDevice", "capability.temperatureMeasurement", title: "Virtual Device"
         input "decimalUnit", "enum", title: "Max Decimal Places", required:true, defaultValue: "2", options: ["1", "2", "3", "4", "5"]
     }
+    
+   
     section("Logging") {
             input "debugMode", "bool", title: "Enable logging", required: true, defaultValue: false
   	        }
@@ -108,8 +111,12 @@ def tempSensorsHandler(evt) {
     state.mean = state.mean2.round(state.DecimalPlaces)
     LOGDEBUG("Average Temp = $state.mean")
 	LOGDEBUG("Sending info to $vDevice")
-     settings.vDevice.parse("${state.mean}")
-   
+//    if(vDevice){
+//    settings.vDevice.parse("${state.mean}")
+ //   }
+//    if(vStat){
+    settings.vDevice.setTemperature("${state.mean}")
+//    }
 }
 
 
@@ -126,7 +133,7 @@ log.info "Further Logging Disabled"
 }
 def LOGDEBUG(txt){
     try {
-    	if (settings.debugMode) { log.debug("${app.label.replace(" ","_").toUpperCase()}  (Childapp Version: ${state.appversion}) - ${txt}") }
+    	if (settings.debugMode) { log.debug("${app.label.replace(" ","_").toUpperCase()}  (App Version: ${state.appversion}) - ${txt}") }
     } catch(ex) {
     	log.error("LOGDEBUG unable to output requested data!")
     }
@@ -187,7 +194,7 @@ def cobra(){
  
 // App Version   *********************************************************************************
 def setAppVersion(){
-     state.version = "1.2.1"
+     state.version = "1.3.0"
      state.InternalName = "AverageTemp"
      state.Type = "Application"
  //  state.Type = "Driver"
