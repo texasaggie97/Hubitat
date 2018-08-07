@@ -894,8 +894,8 @@ def updatecheck(){
        def cobraOld = state.version.replace(".", "")
        state.updateInfo = (respUD.data.versions.UpdateInfo.(state.Type).(state.InternalName)) 
             if(cobraVer == "NLS"){
-            state.Status = "<b>** This $state.Type is no longer supported by Cobra  **</b>"       
-            log.warn "** This $state.Type is no longer supported by Cobra **"      
+            state.Status = "<b>** This $state.Type is no longer supported by Cobra  **</b> - (However you can continue to use it if you wish)"       
+            log.warn "** This $state.Type is no longer supported by Cobra ** -  (However you can continue to use it if you wish)"      
       }           
       		else if(cobraOld < cobraVer){
         	state.Status = "<b>New Version Available (Version: $newver)</b>"
@@ -917,7 +917,7 @@ def updatecheck(){
 
 
 def setAppVersion(){
-     state.version = "2.4.0"
+     state.version = "2.4.1"
      state.InternalName = "WSchild"
      state.Type = "Application"
  
