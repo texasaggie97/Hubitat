@@ -33,10 +33,12 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 13/07/2018
+ *  Last Update: 07/08/2018
  *
  *  Changes:
  *
+ *  V2.4.0 - Added 'rain_rate' as a trigger
+ *  V2.3.0 - Added remote version checking
  *  V2.2.2 - Debug - state variable not clearing
  *  V2.2.1 - Debug - Typo in switch name
  *  V2.2.0 - Changed method so on/off command is only sent once (not repeatedly)
@@ -82,10 +84,7 @@ preferences {
   def mainPage() {
     dynamicPage(name: "mainPage") {  
         
-        section{
-            paragraph "Child Status: $state.verCheck"
-			paragraph "Child Version: $state.appversion -  Copyright © 2018 Cobra"
-			}
+       display()
         
         
 	section("Input/Output") {
@@ -218,12 +217,10 @@ def updated() {
 
 def initialize() {
 	log.info "Initialised with settings: ${settings}"
-	setAppVersion()
-    cobra()
     logCheck()
-    schedule("0 0 14 ? * FRI *", cobra)
+	version()
   	state.enablecurrS1 = 'on'
-     state.already = 'off'   
+    state.already = 'off'   
         
 	subscribe(enableswitch1, "switch", enableSwitch1Handler)
     subscribe(sensorswitch1, "switch", sensorSwitch1Handler)
@@ -247,6 +244,7 @@ def initialize() {
     if(state.selection ==  "Solar Radiation"){subscribe(sensor1, "solarradiation", solarradiationHandler)}
     if(state.selection == "Temperature Feels Like"){subscribe(sensor1, "feelsLike", feelsLikeHandler)}
     if(state.selection == "Rain in Last Hour"){subscribe(sensor1, "precip_1hr", precip_1hrHandler)}
+    if(state.selection == "Rain Rate"){subscribe(sensor1, "rain_rate", precip_RateHandler)}    
     if(state.selection == "Rain Today"){subscribe(sensor1, "precip_today", precip_todayHandler)}
     if(state.selection == "Wind Speed"){subscribe(sensor1, "wind", windHandler)}
     if(state.selection == "Wind Gust"){subscribe(sensor1, "wind_gust", wind_gustHandler)}
@@ -558,7 +556,14 @@ LOGDEBUG("Sunset =  $evt.value")
     altSwitch(call20, evt20)
 }         
 
-
+def precip_RateHandler(evt){
+    def event21 = evt.value
+    def evt21 = event21.
+        
+    def call21 = 'Precipitation Rate'
+	LOGDEBUG("Precipitation Rate is $evt21")
+    actionNow(call21, evt21)
+}
   
 
 
@@ -856,24 +861,50 @@ def LOGDEBUG(txt){
 }
 
 
-// App & Driver Version   *********************************************************************************
+
+def version(){
+    updatecheck()
+    if (state.Type == "Application"){schedule("0 0 9 ? * FRI *", updatecheck)}
+    if (state.Type == "Driver"){schedule("0 0 8 ? * FRI *", updatecheck)}
+}
+
+def display(){
+    if(state.Status){
+    section{paragraph "Version: $state.version -  $state.Copyright"}
+	if(state.Status != "Current"){
+       section{ 
+       paragraph "$state.Status"
+       paragraph "$state.updateInfo"
+    }
+    }
+}
+}
 
 
-def cobra(){
+def updatecheck(){
     setAppVersion()
     def paramsUD = [uri: "http://update.hubitat.uk/cobra.json"]
        try {
         httpGet(paramsUD) { respUD ->
-  //   log.info "response data: ${respUD.data}"
-       def cobraVer = (respUD.data.versions.(state.InternalName))
-       def cobraOld = state.appversion.replace(".", "")
-       if(cobraOld < cobraVer){
-		state.verCheck = "** New Version Available **"
-           log.warn "There is a newer version of this app available"
-       }    
-       else{ 
-      state.verCheck = "Current"
-      log.info "App is current version"
+//   log.info " Version Checking - Response Data: ${respUD.data}"   // Debug Code ***********************************************
+       def copyNow = (respUD.data.copyright)
+       state.Copyright = copyNow
+            def newver = (respUD.data.versions.(state.Type).(state.InternalName))
+            def cobraVer = (respUD.data.versions.(state.Type).(state.InternalName).replace(".", ""))
+       def cobraOld = state.version.replace(".", "")
+       state.updateInfo = (respUD.data.versions.UpdateInfo.(state.Type).(state.InternalName)) 
+            if(cobraVer == "NLS"){
+            state.Status = "<b>** This $state.Type is no longer supported by Cobra  **</b>"       
+            log.warn "** This $state.Type is no longer supported by Cobra **"      
+      }           
+      		else if(cobraOld < cobraVer){
+        	state.Status = "<b>New Version Available (Version: $newver)</b>"
+        	log.warn "** There is a newer version of this $state.Type available  (Version: $newver) **"
+        	log.warn "** $state.updateInfo **"
+       } 
+            else{ 
+      		state.Status = "Current"
+      		log.info "$state.Type is the current version"
        }
        
        }
@@ -885,10 +916,11 @@ def cobra(){
 
 
 
- 
-// App Version   *********************************************************************************
 def setAppVersion(){
-    state.appversion = "2.2.2"
+     state.version = "2.4.0"
      state.InternalName = "WSchild"
-    
+     state.Type = "Application"
+ 
+
 }
+
