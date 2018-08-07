@@ -37,6 +37,7 @@
  *
  *  Changes:
  *
+ *  V2.4.1 - Debug
  *  V2.4.0 - Added 'rain_rate' as a trigger
  *  V2.3.0 - Added remote version checking
  *  V2.2.2 - Debug - state variable not clearing
@@ -103,6 +104,7 @@ preferences {
           "Forecast High",
           "Forecast Low",
           "Illuminance",
+          "Rain Rate",
           "Rain in Last Hour",
           "Rain Today",
           "Rain Tomorrow",
