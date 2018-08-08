@@ -39,6 +39,7 @@
  *
  *  Last Update 08/08/2018
  *
+ *  V2.1.0 - Added WU 'alerts'
  *  V2.0.0 - Debug & Revised version checking
  *  v1.9.0 - Made external source selectable (for those who have the relevant api key)
  *  V1.8.0 - Added remote version checking & cleaned up code
@@ -127,7 +128,7 @@ metadata {
         attribute "weatherForecast", "string"
         attribute "visibility", "string"
        attribute "chanceOfRain", "string"
-        
+        attribute "alert", "string"
      
      
     
@@ -234,7 +235,13 @@ def PollWUNow(){
             
              // WU No Units ********************
             
-
+def possAlert = (resp2.data.alerts.description)
+               if (possAlert){
+               sendEvent(name: "alert", value: resp2.data.alerts.description, isStateChange: true)  
+               }
+                if (!possAlert){
+               sendEvent(name: "alert", value: " No current weather alerts for this area")
+                }
             
            
 			sendEvent(name: "weather", value: resp2.data.current_observation.weather, isStateChange: true)
@@ -1343,7 +1350,7 @@ def checkInfo(){
  
 
 def setVersion(){
-     state.version = "2.0.0"
+     state.version = "2.1.0"
      state.InternalName = "WeewxExternal"
      state.Type = "Driver"
    

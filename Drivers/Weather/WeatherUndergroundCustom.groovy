@@ -103,8 +103,7 @@ metadata {
         attribute "DriverVersion", "string"
         attribute "DriverStatus", "string"
 		attribute "DriverUpdate", "string"
-		attribute "Copyright", "string"
-
+		
      
         
     }
@@ -480,9 +479,8 @@ def setVersion(){
    
     sendEvent(name: "DriverAuthor", value: "Cobra", isStateChange: true)
     sendEvent(name: "DriverVersion", value: state.version, isStateChange: true)
-    sendEvent(name: "DriverStatus", value: state.Status, isStateChange: true)
-    sendEvent(name: "Copyright", value: state.Copyright, isStateChange: true)
-   
+    
+    
       
 }
 
