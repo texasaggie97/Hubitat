@@ -37,6 +37,7 @@
  *
  *  Changes:
  *
+ *  V2.4.2 - Fixed typo in precip_1hrHandler
  *  V2.4.1 - Debug
  *  V2.4.0 - Added 'rain_rate' as a trigger
  *  V2.3.0 - Added remote version checking
@@ -77,7 +78,7 @@ definition(
 
 preferences {
      page name: "mainPage", title: "", install: false, uninstall: true, nextPage: "restrictionsPage"
-     page name: "restrictionsPage", title: "Final Page", install: true, uninstall: true
+     page name: "restrictionsPage", title: "", install: true, uninstall: true
 }
     
     
@@ -88,7 +89,7 @@ preferences {
        display()
         
         
-	section("Input/Output") {
+	section() {
     input(name: "enableswitch1", type: "capability.switch", title: "Enable/Disable app with this switch", required: false, multiple: false)
 	input(name: "sensor1", type: "capability.sensor", title: "Weather Device", required: true, multiple: false)
     input(name: "sensorswitch1", type: "capability.switch", title: "Switch to control", required: false, multiple: false)
@@ -400,9 +401,8 @@ def feelsLikeHandler(evt){
 
 def precip_1hrHandler(evt){
     def event4 = evt.value
-    def evt4 = event4.
-        
-    def call4 = 'Precipitation in last hour'
+    def evt4 = event4.toDouble()
+	def call4 = 'Precipitation in last hour'
 	LOGDEBUG("Precipitation in last hour is $evt4")
     actionNow(call4, evt4)
 }
@@ -896,8 +896,8 @@ def updatecheck(){
        def cobraOld = state.version.replace(".", "")
        state.updateInfo = (respUD.data.versions.UpdateInfo.(state.Type).(state.InternalName)) 
             if(cobraVer == "NLS"){
-            state.Status = "<b>** This $state.Type is no longer supported by Cobra  **</b> - (However you can continue to use it if you wish)"       
-            log.warn "** This $state.Type is no longer supported by Cobra ** -  (However you can continue to use it if you wish)"      
+            state.Status = "<b>** This $state.Type is no longer supported **</b> - (However you can continue to use it if you wish)"       
+            log.warn "** This $state.Type is no longer supported ** -  (However you can continue to use it if you wish)"      
       }           
       		else if(cobraOld < cobraVer){
         	state.Status = "<b>New Version Available (Version: $newver)</b>"
@@ -919,7 +919,7 @@ def updatecheck(){
 
 
 def setAppVersion(){
-     state.version = "2.4.1"
+     state.version = "2.4.2"
      state.InternalName = "WSchild"
      state.Type = "Application"
  
