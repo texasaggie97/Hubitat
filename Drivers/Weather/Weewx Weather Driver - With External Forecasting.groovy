@@ -39,6 +39,7 @@
  *
  *  Last Update 08/08/2018
  *
+ *  V2.1.1 - Debug - with km/h input not working correctly - Now fixed
  *  V2.1.0 - Added WU 'alerts'
  *  V2.0.0 - Debug & Revised version checking
  *  v1.9.0 - Made external source selectable (for those who have the relevant api key)
@@ -79,6 +80,7 @@ metadata {
         attribute "DriverVersion", "string"
         attribute "DriverStatus", "string"
         attribute "DriverUpdate", "string" 
+        
         attribute "WeewxUptime", "string"
         attribute "WeewxLocation", "string"
         attribute "Refresh-Weewx", "string"
@@ -87,7 +89,7 @@ metadata {
         attribute "distanceUnit", "string"
         attribute "pressureUnit", "string"
         attribute "rainUnit", "string"
-        attribute "summaryFormat", "string"
+        
         
 // Collected Local Station Data       
         attribute "solarradiation", "string"
@@ -110,7 +112,7 @@ metadata {
         attribute "localSunset", "string"
         attribute "moonPhase", "string"
         attribute "moonRise", "string"
-        
+        attribute "weatherSummary", "string"
         
 // External Data (if used)
         attribute "LastUpdate-External", "string"
@@ -127,10 +129,10 @@ metadata {
         attribute "weatherIcon", "string"
         attribute "weatherForecast", "string"
         attribute "visibility", "string"
-       attribute "chanceOfRain", "string"
+        attribute "chanceOfRain", "string"
         attribute "alert", "string"
-     
-     
+        attribute "moonIllumination", "string"
+     	attribute "stationID", "string"
     
  
 
@@ -158,7 +160,7 @@ metadata {
                 input "pollLocation1", "text", required: true, title: "ZIP Code or Location"
                 input "pollInterval1", "enum", title: "External Source Poll Interval", required: true, defaultValue: "3 Hours", options: ["Manual Poll Only", "15 Minutes", "30 Minutes", "1 Hour", "3 Hours"]
                 }
-                
+            input "summaryType", "bool", title: "Full Weather Summary", required: true, defaultValue: false    
               
         }
     }
@@ -166,7 +168,7 @@ metadata {
 
 def updated() {
     log.debug "Updated called"
-    unschedule()
+    
     logCheck()
     version()
     units()
@@ -243,7 +245,9 @@ def possAlert = (resp2.data.alerts.description)
                sendEvent(name: "alert", value: " No current weather alerts for this area")
                 }
             
-           
+            
+            sendEvent(name: "stationID", value: resp2.data.current_observation.station_id, isStateChange: true)
+            sendEvent(name: "moonIllumination", value: resp2.data.moon_phase.percentIlluminated  + "%" , isStateChange: true)
 			sendEvent(name: "weather", value: resp2.data.current_observation.weather, isStateChange: true)
             sendEvent(name: "city", value: resp2.data.current_observation.display_location.city, isStateChange: true)            
 			sendEvent(name: "state", value: resp2.data.current_observation.display_location.state, isStateChange: true) 
@@ -675,8 +679,8 @@ def PollStation()
                 
             } 
             
-            if (windSpeedRaw1.contains("kph")) {
-                 windSpeedRaw1 = windSpeedRaw1.replace("kph", "")
+            if (windSpeedRaw1.contains("km/h")) {
+                 windSpeedRaw1 = windSpeedRaw1.replace("km/h", "")
                 
             	if(speedUnit == "Miles (MPH)"){
             	state.SU = 'mph'
@@ -716,8 +720,8 @@ def PollStation()
                 
             } 
             
-            if (windGustRaw1.contains("kph")) {
-                 windGustRaw1 = windGustRaw1.replace("kph", "")
+            if (windGustRaw1.contains("km/h")) {
+                 windGustRaw1 = windGustRaw1.replace("km/h", "")
                 
             	if(speedUnit == "Miles (MPH)"){
             	state.SU = 'mph'
@@ -1089,15 +1093,69 @@ def PollStation()
 
         }
             
-// **********************************************************************************************            
-  
-   
+// Weather Summary  *****************************************************************************************************   
+            
+/**  
+* weather apixu & wu
+* forecast high temp - 
+* forecast low temp
+* Humidity - station
+* Temperature - station
+* feelslike - station
+* wind dir - Station
+* wind speed - station
+* wind gust - station
+* visibility - apixu & wu
+* chance of rain - WU only
+            
+            
+            
+*/           
+            
+            if(summaryType == true){
+                
+                sendEvent(name: "weatherSummary", value: "Weather summary for " + resp1.data.location + ". Last updated: " + resp1.data.time + ". " + ${state.Weather}
+                          
+                          
+                          
+                          , isStateChange: true)
+                
+            }
+            
+              if(summaryType == false){
+                sendEvent(name: "weatherSummary", value: "summaryType == false" , isStateChange: true) 
+                
+                
+            } 
+            
+            
+// ********************************************************************************************************************** 
    } 
         
     } catch (e) {
         log.error "something went wrong: $e"
     }
-    
+    setSummaryDetails()
+}
+
+def setSummaryDetails(){
+if(extSource == "Apixu"){ 
+state.Weather = (resp2.data.current.condition.text)
+
+
+
+}                                
+ if(extSource == "Weather Underground"){
+// state.Weather = (resp2.data.current_observation.weather) 
+ 
+ 
+ 
+ }           
+
+
+
+
+
 }
 
 
@@ -1286,79 +1344,64 @@ def LOGINFO(txt){
 
 
 
-// Check Version   *********************************************************************************
+
 def version(){
-    updatecheck()
-    if (state.Type == "Application"){schedule("0 0 9 ? * FRI *", updatecheck)}
-    if (state.Type == "Driver"){schedule("0 0 8 ? * FRI *", updatecheck)}
+    unschedule()
+    schedule("0 0 8 ? * FRI *", updateCheck)  // Cron schedule - How often to perform the update check - (This example is 8am every Friday)
+    updateCheck()
 }
-    
 
-    
-
-def updatecheck(){
-    
+def updateCheck(){
     setVersion()
-  
-    def paramsUD = [uri: "http://update.hubitat.uk/cobra.json"]
-       try {
+	def paramsUD = [uri: "http://update.hubitat.uk/cobra.json" ]  
+       	try {
         httpGet(paramsUD) { respUD ->
-//  log.info " Version Checking - Response Data: ${respUD.data}"   // Debug Code 
-       def copyNow = (respUD.data.copyright)
-       state.Copyright = copyNow
-            def newver = (respUD.data.versions.(state.Type).(state.InternalName))
-            def cobraVer = (respUD.data.versions.(state.Type).(state.InternalName).replace(".", ""))
-       def cobraOld = state.version.replace(".", "")
-      state.UpdateInfo = (respUD.data.versions.UpdateInfo.(state.Type).(state.InternalName)) 
+ //  log.warn " Version Checking - Response Data: ${respUD.data}"   // Troubleshooting Debug Code 
+       		def copyrightRead = (respUD.data.copyright)
+       		state.Copyright = copyrightRead
+            def newVerRaw = (respUD.data.versions.Driver.(state.InternalName))
+            def newVer = (respUD.data.versions.Driver.(state.InternalName).replace(".", ""))
+       		def currentVer = state.Version.replace(".", "")
+      		state.UpdateInfo = (respUD.data.versions.UpdateInfo.Driver.(state.InternalName))
+            state.author = (respUD.data.author)
            
-      		if(cobraOld < cobraVer){
-        	state.Status = "<b>New Version Available (Version: $newver)</b>"
-        	log.warn "** There is a newer version of this $state.Type available  (Version: $newver) **"
+		if(newVer == "NLS"){
+            state.Status = "<b>** This driver is no longer supported by $state.author  **</b>"       
+            log.warn "** This driver is no longer supported by $state.author **"      
+      		}           
+		else if(currentVer < newVer){
+        	state.Status = "<b>New Version Available (Version: $newVerRaw)</b>"
+        	log.warn "** There is a newer version of this driver available  (Version: $newVerRaw) **"
         	log.warn "** $state.UpdateInfo **"
-       } 
-            if(cobraOld == cobraVer){ 
+       		} 
+		else{ 
       		state.Status = "Current"
-      		log.info "$state.Type is the current version"
-       }
-       
-       }
-        } 
+      		log.info "You are using the current version of this driver"
+       		}
+      					}
+        	} 
         catch (e) {
-        log.error "Something went wrong: $e"
-    }
-    
-    checkInfo()
-        
-}        
-
-def checkInfo(){
-  if(state.Status == "Current"){
-    state.UpdateInfo = "None"
-    sendEvent(name: "DriverUpdate", value: state.UpdateInfo, isStateChange: true)
-    sendEvent(name: "DriverStatus", value: state.Status, isStateChange: true)
-    }
-    else{
-     sendEvent(name: "DriverUpdate", value: state.UpdateInfo, isStateChange: true)
-     sendEvent(name: "DriverStatus", value: state.Status, isStateChange: true)
-    }   
+        	log.error "Something went wrong: CHECK THE JSON FILE AND IT'S URI -  $e"
+    		}
+   		if(state.status == "Current"){
+			state.UpdateInfo = "N/A"
+		    sendEvent(name: "DriverUpdate", value: state.UpdateInfo, isStateChange: true)
+	 	    sendEvent(name: "DriverStatus", value: state.Status, isStateChange: true)
+			}
+    	else{
+	    	sendEvent(name: "DriverUpdate", value: state.UpdateInfo, isStateChange: true)
+	     	sendEvent(name: "DriverStatus", value: state.Status, isStateChange: true)
+	    }   
+ 			sendEvent(name: "DriverAuthor", value: state.author, isStateChange: true)
+    		sendEvent(name: "DriverVersion", value: state.Version, isStateChange: true)
     
     
-    
-    
+    	//	
 }
-
- 
 
 def setVersion(){
-     state.version = "2.1.0"
-     state.InternalName = "WeewxExternal"
-     state.Type = "Driver"
-   
-    sendEvent(name: "DriverAuthor", value: "Cobra", isStateChange: true)
-    sendEvent(name: "DriverVersion", value: state.version, isStateChange: true)
-    sendEvent(name: "DriverStatus", value: state.Status, isStateChange: true)
- 
-   
+		state.Version = "2.1.1"	
+		state.InternalName = "WeewxExternal"   
 }
 
 
