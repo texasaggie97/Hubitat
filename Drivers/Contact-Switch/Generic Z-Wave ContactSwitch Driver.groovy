@@ -1,4 +1,10 @@
 /**
+ *
+ *  "Generic Z-Wave Contact/Switch Driver"
+ *
+ *	Although originally I ported this from ST it now has the 'switch' capability added
+ *  I've also added the ability to switch on/off when open or closed - You choose
+ * 
  *  Copyright 2018 Cobra
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
@@ -12,6 +18,9 @@
  *
  *  Z-Wave Door/Window Sensor
  *
+ *  Updated 10/08/2018
+ *
+ *  V1.0.0 POC
  */
 
 metadata {
@@ -367,75 +376,63 @@ private isEnerwave() {
 
 
 
+
 def version(){
-    updatecheck()
-    if (state.Type == "Application"){schedule("0 0 9 ? * FRI *", updatecheck)}
-    if (state.Type == "Driver"){schedule("0 0 8 ? * FRI *", updatecheck)}
+    unschedule()
+    schedule("0 0 8 ? * FRI *", updateCheck)  
+    updateCheck()
 }
-    
 
-    
-
-def updatecheck(){
-    
+def updateCheck(){
     setVersion()
-  
-    def paramsUD = [uri: "http://update.hubitat.uk/cobra.json"]
-       try {
+	def paramsUD = [uri: "http://update.hubitat.uk/versions.json"]
+       	try {
         httpGet(paramsUD) { respUD ->
-//  log.info " Version Checking - Response Data: ${respUD.data}"   // Debug Code  ****************************
-       def copyNow = (respUD.data.copyright)
-       state.Copyright = copyNow
-            def newver = (respUD.data.versions.(state.Type).(state.InternalName))
-            def cobraVer = (respUD.data.versions.(state.Type).(state.InternalName).replace(".", ""))
-       def cobraOld = state.version.replace(".", "")
-      state.UpdateInfo = (respUD.data.versions.UpdateInfo.(state.Type).(state.InternalName)) 
+ //  log.warn " Version Checking - Response Data: ${respUD.data}"   // Troubleshooting Debug Code 
+       		def copyrightRead = (respUD.data.copyright)
+       		state.Copyright = copyrightRead
+            def newVerRaw = (respUD.data.versions.Driver.(state.InternalName))
+            def newVer = (respUD.data.versions.Driver.(state.InternalName).replace(".", ""))
+       		def currentVer = state.Version.replace(".", "")
+      		state.UpdateInfo = (respUD.data.versions.UpdateInfo.Driver.(state.InternalName))
+                state.author = (respUD.data.author)
            
-      		if(cobraOld < cobraVer){
-        	state.Status = "<b>New Version Available (Version: $newver)</b>"
-        	log.warn "** There is a newer version of this $state.Type available  (Version: $newver) **"
+		if(newVer == "NLS"){
+            state.status = "<b>** This driver is no longer supported by $state.author  **</b>"       
+            log.warn "** This driver is no longer supported by $state.author **"      
+      		}           
+		else if(currentVer < newVer){
+        	state.status = "<b>New Version Available (Version: $newVerRaw)</b>"
+        	log.warn "** There is a newer version of this driver available  (Version: $newVerRaw) **"
         	log.warn "** $state.UpdateInfo **"
-       } 
-            if(cobraOld == cobraVer){ 
-      		state.Status = "Current"
-      		log.info "$state.Type is the current version"
-       }
-       
-       }
-        } 
+       		} 
+		else{ 
+      		state.status = "Current"
+      		log.info "You are using the current version of this driver"
+       		}
+      					}
+        	} 
         catch (e) {
-        log.error "Something went wrong: $e"
-    }
-    
-    checkInfo()
-        
-}        
-
-def checkInfo(){
-  if(state.Status == "Current"){
-    state.UpdateInfo = "None"
-    sendEvent(name: "DriverUpdate", value: state.UpdateInfo, isStateChange: true)
-    sendEvent(name: "DriverStatus", value: state.Status, isStateChange: true)
-    }
-    else{
-     sendEvent(name: "DriverUpdate", value: state.UpdateInfo, isStateChange: true)
-     sendEvent(name: "DriverStatus", value: state.Status, isStateChange: true)
-    }   
+        	log.error "Something went wrong: CHECK THE JSON FILE AND IT'S URI -  $e"
+    		}
+   		if(state.status == "Current"){
+			state.UpdateInfo = "N/A"
+		    sendEvent(name: "DriverUpdate", value: state.UpdateInfo, isStateChange: true)
+	 	    sendEvent(name: "DriverStatus", value: state.Status, isStateChange: true)
+			}
+    	else{
+	    	sendEvent(name: "DriverUpdate", value: state.UpdateInfo, isStateChange: true)
+	     	sendEvent(name: "DriverStatus", value: state.Status, isStateChange: true)
+	    }   
+ 			sendEvent(name: "DriverAuthor", value: state.author, isStateChange: true)
+    		sendEvent(name: "DriverVersion", value: state.Version, isStateChange: true)
     
     
-    
-    
+    	//	
 }
-
 
 def setVersion(){
-     state.version = "1.0.0"
-     state.InternalName = "ContactSwitch"
-     state.Type = "Driver"
-   
-    sendEvent(name: "DriverAuthor", value: "Cobra", isStateChange: true)
-    sendEvent(name: "DriverVersion", value: state.version, isStateChange: true)
-    sendEvent(name: "DriverStatus", value: state.Status, isStateChange: true)
-   
-      
+		state.Version = "1.0.0"	 
+		state.InternalName = "ContactSwitch"
 }
+

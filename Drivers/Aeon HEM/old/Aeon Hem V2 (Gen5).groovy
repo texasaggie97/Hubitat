@@ -1,40 +1,20 @@
 /*
  *  Aeon HEM V2 (Gen5)
  *
- *  This was originally an ST DTH and was subsiquently worked on by @vjv to bring it to Hubitat
- *  I have reworked it by adding the ability to use a 3rd clamp and adding calculations for cummulative reading
+ *  
  *	
- *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
- *  in compliance with the License. You may obtain a copy of the License at:
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
- *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
- *  for the specific language governing permissions and limitations under the License.
- *
- *  Last Update 10/08/2018
- *
- * 
- *  V1.0.0 POC
  */
 
 // metadata
 metadata {
-	definition (name: "Aeon HEM 2nd Edition (Gen5)", namespace: "Cobra", author: "A.J Parker") {
+	definition (name: "Aeon HEM 2nd Edition (Gen5)", namespace: "Cobra", author: "A J Parker") {
 		capability "Energy Meter"
 		capability "Power Meter"
 		capability "Configuration"
 		capability "Refresh"
 		capability "Sensor"
 		command "manualReset"
-        
-        
-	       
-	attribute "DriverAuthor", "string"
-        attribute "DriverVersion", "string"
-        attribute "DriverStatus", "string"
-	attribute "DriverUpdate", "string"
         
         attribute "LastReset", "string"
         attribute "NextReset", "string"
@@ -85,10 +65,9 @@ metadata {
 			required: false,
 			displayDuringSetup: true
         
-        input "unitSet", "bool", title: "Display Data Units", required: true, defaultValue: false
-        input "currencyFormat", "enum", title: "Currency", required: true, options: ["£", "\$","€"]
-        input "resetInterval", "enum", title: "When to Automatically Reset?", required: false, submitOnChange: true, defaultValue: "None", 
-            options: ["No Reset", "Daily (00:01)", "Weekly (Monday 00:01)", "Monthly (First day 00:01)", "Monthly (Custom Date)", "Annually (First Day 00:01)"]
+       
+        input "currencyFormat", "enum", title: "Currency Format", required: true, options: ["£", "\$","€"]
+        input "resetInterval", "enum", title: "Auto Reset Interval", required: false, submitOnChange: true, defaultValue: "None", options: ["None", "Every Day (00:01)", "Every Week (Monday 00:01)", "Every Month (First day 00:01)", "Monthly (Custom Date)", "Every Year (First Day 00:01)"]
         if(resetInterval == "Monthly (Custom Date)"){
             input "date1", "enum", title: "What Date Every Month", required: true, options: [ "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31"]
         }
@@ -98,7 +77,7 @@ metadata {
 }
 
 def updated(){
-    version()
+    unschedule()
 	if (state.sec && !isConfigured()) {
 		response(configure())
 	}
@@ -107,8 +86,6 @@ def updated(){
     else{ "runEvery${refreshIntervalCmd}"(refresh)}
     setReset()
     state.Currency = currencyFormat
-    state.DisplayUnits = unitSet
-    refresh()
 }
 
 
@@ -116,23 +93,23 @@ def updated(){
 def setReset(){
    def reset1 = resetInterval 
 if(reset1) 
-    if(reset1 == "No Reset"){
+    if(reset1 == "None"){
         log.info " NO reset interval configured"
     }
-    else if (reset1 == "Daily (00:01)"){
+    else if (reset1 == "Every Day (00:01)"){
         log.info "Reset configured for every day"
         schedule("0 1 0 1/1 * ? *", reset) 
     }
-    else if (reset1 == "Weekly (Monday 00:01)"){
+    else if (reset1 == "Every Week (Monday 00:01)"){
         log.info "Reset configured for every week"
         schedule("0 1 0 ? * MON *", reset)  
         
     }
-    else if (reset1 == "Monthly (First day 00:01)"){
+    else if (reset1 == "Every Month (First day 00:01)"){
         log.info "Reset configured for every month"
         schedule("0 1 0 1 1/1 ? *", reset) 
     }
-    else if (reset1 == "Annually (First Day 00:01)"){
+    else if (reset1 == "Every Year (First Day 00:01)"){
         log.info "Reset configured for every year"
         schedule("0 1 0 1 1 ? *", reset) 
     }
@@ -140,7 +117,8 @@ if(reset1)
     else if(reset1 ==  "Monthly (Custom Date)"){
 state.ResetDate = date1
         state.CronSchedule = "0 1 0 ${state.ResetDate} 1/1 ? *"
-       log.info "Custom reset configured for every month on: $state.ResetDate" 						
+            // "0 ${state.selectedMin} ${state.selectedHour} ${state.selectedDate} ${state.runMonth} ? *"
+        						
         schedule(state.CronSchedule, reset)
     }
 }
@@ -202,49 +180,26 @@ def zwaveEvent(hubitat.zwave.commands.meterv3.MeterReport cmd) {
 						previousValue = device.currentValue("energy") ?: cmd.scaledPreviousMeterValue ?: 0
 						BigDecimal costDecimal = cmd.scaledMeterValue * (kWhCost as BigDecimal)
 						def costDisplay = String.format("%5.2f",costDecimal)
-        if(state.DisplayUnits == false){
-        sendEvent(name: "cost", value: costDisplay, unit: "${state.Currency}", isStateChange: true) 
-        }
-        if(state.DisplayUnits == true){
-        sendEvent(name: "cost", value: state.Currency +costDisplay, , isStateChange: true)
-        }    
-            if(state.DisplayUnits == true){
-                map.value = (cmd.scaledMeterValue + " kwh")}
-        	 if(state.DisplayUnits == false){
-                map.value = cmd.scaledMeterValue}
-        
+        sendEvent(name: "cost", value: costDisplay, unit: "${state.Currency}") //, descriptionText: "Display Cost: ${costDisp}")
+						map.value = cmd.scaledMeterValue
             break;
         case 1: //kVAh (not used in the U.S.)
             map.value = cmd.scaledMeterValue
             break;
         case 2: //Watts
             previousValue = device.currentValue("power") ?: cmd.scaledPreviousMeterValue ?: 0
-         if(state.DisplayUnits == true){
-             map.value = (Math.round(cmd.scaledMeterValue) +" watts")}
-         if(state.DisplayUnits == false){
-             map.value = Math.round(cmd.scaledMeterValue)}
-        
-        
+            map.value = Math.round(cmd.scaledMeterValue)
             break;
         case 3: //pulses
 						map.value = Math.round(cmd.scaledMeterValue)
             break;
         case 4: //Volts
             previousValue = device.currentValue("voltage") ?: cmd.scaledPreviousMeterValue ?: 0
-        	map1 = (cmd.scaledMeterValue)
-        	map2 = map1.toDouble()
-        if(state.DisplayUnits == true){
-            map.value = (map2.round(2) +" volts")}
-        if(state.DisplayUnits == false){
-            map.value = map2.round(2)}
+            map.value = cmd.scaledMeterValue
             break;
         case 5: //Amps
             previousValue = device.currentValue("current") ?: cmd.scaledPreviousMeterValue ?: 0
-         if(state.DisplayUnits == true){
-             map.value = (cmd.scaledMeterValue +" amps")}
-         if(state.DisplayUnits == false){
-             map.value = cmd.scaledMeterValue}
-        
+            map.value = cmd.scaledMeterValue
             break;
         case 6: //Power Factor
         case 7: //Scale2 values (not currently implimented or needed)
@@ -278,14 +233,14 @@ def zwaveEvent(hubitat.zwave.commands.multichannelv3.MultiChannelCmdEncap cmd) {
 	                    if (newValue > MAX_WATTS) { return }
 						formattedValue = newValue
 						dispValue = "${formattedValue}"
-						sendEvent(name: "power1", value: dispValue as String, unit: "", descriptionText: "L1 Power: ${formattedValue} Watts", isStateChange: true)
+						sendEvent(name: "power1", value: dispValue as String, unit: "", descriptionText: "L1 Power: ${formattedValue} Watts")
 				}
 				if (encapsulatedCommand.scale == 5 ) {
 						newValue = Math.round(encapsulatedCommand.scaledMeterValue * 100) / 100
 	                    if (newValue > MAX_AMPS) { return }
 						formattedValue = String.format("%5.2f", newValue)
 						dispValue = "${formattedValue}"
-						sendEvent(name: "current1", value: dispValue as String, unit: "", descriptionText: "L1 Current: ${formattedValue} Amps", isStateChange: true)
+						sendEvent(name: "current1", value: dispValue as String, unit: "", descriptionText: "L1 Current: ${formattedValue} Amps")
 				}
 			}
 			else if (cmd.sourceEndPoint == 2) {
@@ -294,30 +249,14 @@ def zwaveEvent(hubitat.zwave.commands.multichannelv3.MultiChannelCmdEncap cmd) {
 	                    if (newValue > MAX_WATTS) { return }
 						formattedValue = newValue
 						dispValue = "${formattedValue}"
-						sendEvent(name: "power2", value: dispValue as String, unit: "", descriptionText: "L2 Power: ${formattedValue} Watts", isStateChange: true)
+						sendEvent(name: "power2", value: dispValue as String, unit: "", descriptionText: "L2 Power: ${formattedValue} Watts")
 				}
 				if (encapsulatedCommand.scale == 5 ) {
 						newValue = Math.round(encapsulatedCommand.scaledMeterValue * 100) / 100
 	                    if (newValue > MAX_AMPS) { return }
 						formattedValue = String.format("%5.2f", newValue)
 						dispValue = "${formattedValue}"
-						sendEvent(name: "current2", value: dispValue as String, unit: "", descriptionText: "L2 Current: ${formattedValue} Amps", isStateChange: true)
-				}
-			}
-            		else if (cmd.sourceEndPoint == 3) {
-				if (encapsulatedCommand.scale == 2 ) {
-						newValue = Math.round(encapsulatedCommand.scaledMeterValue)
-	                    if (newValue > MAX_WATTS) { return }
-						formattedValue = newValue
-						dispValue = "${formattedValue}"
-						sendEvent(name: "power3", value: dispValue as String, unit: "", descriptionText: "L3 Power: ${formattedValue} Watts", isStateChange: true)
-				}
-				if (encapsulatedCommand.scale == 5 ) {
-						newValue = Math.round(encapsulatedCommand.scaledMeterValue * 100) / 100
-	                    if (newValue > MAX_AMPS) { return }
-						formattedValue = String.format("%5.2f", newValue)
-						dispValue = "${formattedValue}"
-						sendEvent(name: "current3", value: dispValue as String, unit: "", descriptionText: "L3 Current: ${formattedValue} Amps", isStateChange: true)
+						sendEvent(name: "current2", value: dispValue as String, unit: "", descriptionText: "L2 Current: ${formattedValue} Amps")
 				}
 			}
 		}
@@ -326,7 +265,7 @@ def zwaveEvent(hubitat.zwave.commands.multichannelv3.MultiChannelCmdEncap cmd) {
 
 def zwaveEvent(hubitat.zwave.Command cmd) {
 	//This will log any unhandled command output to the debug window.
-	log.debug "Unhandled command output: $cmd"
+	log.debug "Unhandled: $cmd"
     createEvent(descriptionText: cmd.toString(), isStateChange: false)
 }
 
@@ -341,18 +280,14 @@ def refresh() {
 	commands(request)
 }
 
-def manualReset(){
-    sendEvent(name: "******", value: "********************",  descriptionText: "***** Manual Reset Initiated *****", isStateChange: false)
-    
-    reset()
-        }
+def manualReset(){reset()}
 
 
 def reset() {
 	
 	//Tapping reset will send the meter reset command to HEM and zero out the kWh data so you can start fresh.
 	//This will also clear the cost data and reset the last reset timestamp. Finally it will poll for latest values from the HEM.
-	//This has no impact on Pole1 or Pole2 (clamp1 and clamp2 subdevice) data as that is sent via reports from the HEM.
+	//This has no impact on Pole1 or Pole2 (clamp1 and clamp2 subdevice) tile data as that is sent via reports from the HEM.
   
     
  //   Define the date format (Default is d/M/YY - UK)
@@ -363,7 +298,7 @@ def reset() {
 
 	def timeString = new Date().format("h:mm a", location.timeZone)    
 	state.LastReset = dateString+" @ "+timeString
-	sendEvent(name: "LastReset", value: state.LastReset, descriptionText: "***** Latest Reset *****", isStateChange: true)
+	sendEvent(name: "LastReset", value: state.LastReset)	
 	def request = [
 		zwave.meterV3.meterReset(),
 		zwave.meterV3.meterGet(scale: 0),	//kWh
@@ -448,67 +383,3 @@ private command(hubitat.zwave.Command cmd) {
 private commands(commands, delay=500) {
 	delayBetween(commands.collect{ command(it) }, delay)
 }
-
-
-def version(){
-    unschedule()
-    schedule("0 0 8 ? * FRI *", updateCheck)  
-    updateCheck()
-}
-
-def updateCheck(){
-    setVersion()
-	def paramsUD = [uri: "http://update.hubitat.uk/versions.json"]
-       	try {
-        httpGet(paramsUD) { respUD ->
- //  log.warn " Version Checking - Response Data: ${respUD.data}"   // Troubleshooting Debug Code 
-       		def copyrightRead = (respUD.data.copyright)
-       		state.Copyright = copyrightRead
-            def newVerRaw = (respUD.data.versions.Driver.(state.InternalName))
-            def newVer = (respUD.data.versions.Driver.(state.InternalName).replace(".", ""))
-       		def currentVer = state.Version.replace(".", "")
-      		state.UpdateInfo = (respUD.data.versions.UpdateInfo.Driver.(state.InternalName))
-                state.author = (respUD.data.author)
-           
-		if(newVer == "NLS"){
-            state.status = "<b>** This driver is no longer supported by $state.author  **</b>"       
-            log.warn "** This driver is no longer supported by $state.author **"      
-      		}           
-		else if(currentVer < newVer){
-        	state.status = "<b>New Version Available (Version: $newVerRaw)</b>"
-        	log.warn "** There is a newer version of this driver available  (Version: $newVerRaw) **"
-        	log.warn "** $state.UpdateInfo **"
-       		} 
-		else{ 
-      		state.status = "Current"
-      		log.info "You are using the current version of this driver"
-       		}
-      					}
-        	} 
-        catch (e) {
-        	log.error "Something went wrong: CHECK THE JSON FILE AND IT'S URI -  $e"
-    		}
-   		if(state.status == "Current"){
-			state.UpdateInfo = "N/A"
-		    sendEvent(name: "DriverUpdate", value: state.UpdateInfo, isStateChange: true)
-	 	    sendEvent(name: "DriverStatus", value: state.Status, isStateChange: true)
-			}
-    	else{
-	    	sendEvent(name: "DriverUpdate", value: state.UpdateInfo, isStateChange: true)
-	     	sendEvent(name: "DriverStatus", value: state.Status, isStateChange: true)
-	    }   
- 			sendEvent(name: "DriverAuthor", value: state.author, isStateChange: true)
-    		sendEvent(name: "DriverVersion", value: state.Version, isStateChange: true)
-    
-    
-    	//	
-}
-
-def setVersion(){
-		sstate.version = "1.0.0"
-     state.InternalName = "AeonHEMV2"
-}
-
-
-
-
