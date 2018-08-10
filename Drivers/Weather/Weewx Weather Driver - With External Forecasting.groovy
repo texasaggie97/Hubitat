@@ -37,7 +37,8 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update 08/08/2018
+ *  Last Update 10/08/2018
+ *
  *
  *  V2.1.1 - Debug - with km/h input not working correctly - Now fixed
  *  V2.1.0 - Added WU 'alerts'

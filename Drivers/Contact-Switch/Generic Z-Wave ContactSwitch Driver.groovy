@@ -28,12 +28,12 @@ metadata {
 		capability "Contact Sensor"
 		capability "Sensor"
 		capability "Battery"
-        capability "Switch"
+        	capability "Switch"
         
         
 		attribute "DriverAuthor", "string"
-        attribute "DriverVersion", "string"
-        attribute "DriverStatus", "string"
+        	attribute "DriverVersion", "string"
+        	attribute "DriverStatus", "string"
 		attribute "DriverUpdate", "string"
 
 		
@@ -129,11 +129,11 @@ def sensorValueEvent(value) {
 	if (value) {
 		createEvent(name: "contact", value: "open", descriptionText: "$device.displayName is open")
         if(mode == false){
-            sendEvent(name: "switch", value: "on")}
-        sendEvent(name: "contact", value: "open")
+                sendEvent(name: "switch", value: "on")}
+        	sendEvent(name: "contact", value: "open")
         
         if(mode == true){
-            sendEvent(name: "switch", value: "off")}
+                sendEvent(name: "switch", value: "off")}
         
         
         
@@ -141,11 +141,11 @@ def sensorValueEvent(value) {
 	} else {
 		createEvent(name: "contact", value: "closed", descriptionText: "$device.displayName is closed")
          if(mode == false){
-             sendEvent(name: "switch", value: "off")}
-        sendEvent(name: "contact", value: "closed")
+             	sendEvent(name: "switch", value: "off")}
+        	sendEvent(name: "contact", value: "closed")
         
         if(mode == true){
-            sendEvent(name: "switch", value: "on")}
+                sendEvent(name: "switch", value: "on")}
         
         
     }	
