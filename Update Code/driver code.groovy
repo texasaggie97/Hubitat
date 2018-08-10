@@ -2,7 +2,39 @@
 
 
 
-// Code snippit version 1.0
+// Code snippit version 1.1
+
+
+
+
+Add to 'Initialise' or 'Update'
+--------------------------------
+
+	version()
+
+---------------------
+
+
+
+Make sure that the following 'attributes' are present at the top of the driver- If not you must add them
+
+
+ 	attribute "DriverAuthor", "string"
+        attribute "DriverVersion", "string"
+        attribute "DriverStatus", "string"
+	attribute "DriverUpdate", "string"
+	
+
+
+
+
+
+
+
+
+Add to bottom of file and amend version and internal name as nesseccary
+------------------------------------------------------------------------
+
 
 
 
