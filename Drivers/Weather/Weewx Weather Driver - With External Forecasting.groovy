@@ -39,7 +39,6 @@
  *
  *  Last Update 10/08/2018
  *
- *
  *  V2.1.1 - Debug - with km/h input not working correctly - Now fixed
  *  V2.1.0 - Added WU 'alerts'
  *  V2.0.0 - Debug & Revised version checking
@@ -113,7 +112,7 @@ metadata {
         attribute "localSunset", "string"
         attribute "moonPhase", "string"
         attribute "moonRise", "string"
-        attribute "weatherSummary", "string"
+//        attribute "weatherSummary", "string"
         
 // External Data (if used)
         attribute "LastUpdate-External", "string"
@@ -161,7 +160,7 @@ metadata {
                 input "pollLocation1", "text", required: true, title: "ZIP Code or Location"
                 input "pollInterval1", "enum", title: "External Source Poll Interval", required: true, defaultValue: "3 Hours", options: ["Manual Poll Only", "15 Minutes", "30 Minutes", "1 Hour", "3 Hours"]
                 }
-            input "summaryType", "bool", title: "Full Weather Summary", required: true, defaultValue: false    
+   //         input "summaryType", "bool", title: "Full Weather Summary", required: true, defaultValue: false    
               
         }
     }
@@ -1113,21 +1112,21 @@ def PollStation()
             
 */           
             
-            if(summaryType == true){
+ //           if(summaryType == true){
                 
-                sendEvent(name: "weatherSummary", value: "Weather summary for " + resp1.data.location + ". Last updated: " + resp1.data.time + ". " + ${state.Weather}
+ //               sendEvent(name: "weatherSummary", value: "Weather summary for " + resp1.data.location + ". Last updated: " + resp1.data.time + ". " + ${state.Weather}
                           
                           
                           
-                          , isStateChange: true)
+ //                         , isStateChange: true)
                 
-            }
+ //           }
             
-              if(summaryType == false){
-                sendEvent(name: "weatherSummary", value: "summaryType == false" , isStateChange: true) 
+   //           if(summaryType == false){
+   //             sendEvent(name: "weatherSummary", value: "summaryType == false" , isStateChange: true) 
                 
                 
-            } 
+    //        } 
             
             
 // ********************************************************************************************************************** 
@@ -1348,7 +1347,7 @@ def LOGINFO(txt){
 
 def version(){
     unschedule()
-    schedule("0 0 8 ? * FRI *", updateCheck)  // Cron schedule - How often to perform the update check - (This example is 8am every Friday)
+    schedule("0 0 8 ? * FRI *", updateCheck)  
     updateCheck()
 }
 
@@ -1357,7 +1356,7 @@ def updateCheck(){
 	def paramsUD = [uri: "http://update.hubitat.uk/cobra.json" ]  
        	try {
         httpGet(paramsUD) { respUD ->
- //  log.warn " Version Checking - Response Data: ${respUD.data}"   // Troubleshooting Debug Code 
+ //  log.warn " Version Checking - Response Data: ${respUD.data}"   // Troubleshooting Debug Code **********************
        		def copyrightRead = (respUD.data.copyright)
        		state.Copyright = copyrightRead
             def newVerRaw = (respUD.data.versions.Driver.(state.InternalName))
