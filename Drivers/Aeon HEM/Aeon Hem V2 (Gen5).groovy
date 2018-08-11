@@ -4,7 +4,8 @@
  *  This was originally an ST DTH and was subsiquently worked on by @vjv to bring it to Hubitat
  *  I have reworked it by adding  calculations for cummulative reading and sending a Pushover summary
  *
- *  I have to credit @ogiewon for his excellent Pushover code which I have added here 
+ *  I have to credit @ogiewon for his excellent Pushover code which I have used here.
+ *  My thanks also goes to @stephack for the code amendments after Hubitat update to httpPost
  *	
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  *  in compliance with the License. You may obtain a copy of the License at:
@@ -49,6 +50,8 @@ metadata {
         attribute "current1", "string" 
         attribute "power2", "string"
         attribute "current2", "string"
+        attribute "power3", "string"
+        attribute "current3", "string"
         
 		fingerprint deviceId: "0x3101", inClusters: "0x98"
 		fingerprint inClusters: "0x5E,0x86,0x72,0x32,0x56,0x60,0x70,0x59,0x85,0x7A,0x73,0xEF,0x5A", outClusters: "0x82"
@@ -223,7 +226,8 @@ def zwaveEvent(hubitat.zwave.commands.meterv3.MeterReport cmd) {
             if(state.DisplayUnits == true){
                 map.value = (cmd.scaledMeterValue + " kwh")}
         	 if(state.DisplayUnits == false){
-                map.value = cmd.scaledMeterValue}
+                 map.value =  cmd.scaledMeterValue}
+            
         state.TotalKwh = map.value
             break;
         case 1: //kVAh (not used in the U.S.)
@@ -388,7 +392,13 @@ def reset() {
 }
 
 def summarise(){
+    if(state.DisplayUnits == true){
  state.msg = "${device.displayName} Summary Report - Generated: $state.LastReset  " +"\r\n" + "Cost this period: $state.Currency$state.TotalCost." +"\r\n" + "Energy this period: $state.TotalKwh."
+    }
+    if(state.DisplayUnits == false){
+ state.msg = "${device.displayName} Summary Report - Generated: $state.LastReset  " +"\r\n" + "Cost this period: $state.Currency$state.TotalCost." +"\r\n" + "Energy this period: $state.TotalKwh"+ "kwh"
+    } 
+    
  log.info "$state.msg"   
  speak(state.msg)   
 }
