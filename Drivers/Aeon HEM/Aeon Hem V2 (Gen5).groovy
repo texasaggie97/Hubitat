@@ -18,8 +18,8 @@
  *
  *  Last Update 11/08/2018
  *
- *
- *  V1.1.1 - Debug date/time in pushover message
+ *  V1.1.2 - Reformatted Pushover message
+ *  V1.1.1 - Debug date/time in Pushover message
  *  V1.1.0 - Added Pushover message summary
  *  V1.0.0 POC
  */
@@ -393,10 +393,10 @@ def reset() {
 
 def summarise(){
     if(state.DisplayUnits == true){
- state.msg = "${device.displayName} Summary Report - Generated: $state.LastReset  " +"\r\n" + "Cost this period: $state.Currency$state.TotalCost." +"\r\n" + "Energy this period: $state.TotalKwh."
+ state.msg = "${device.displayName}"  +"\r\n" + "Summary Report"  +"\r\n" + "Generated: $state.LastReset  " +"\r\n" + "Cost this period: $state.Currency$state.TotalCost" +"\r\n" + "Energy this period: $state.TotalKwh."
     }
     if(state.DisplayUnits == false){
- state.msg = "${device.displayName} Summary Report - Generated: $state.LastReset  " +"\r\n" + "Cost this period: $state.Currency$state.TotalCost." +"\r\n" + "Energy this period: $state.TotalKwh"+ "kwh"
+ state.msg = "${device.displayName}"  +"\r\n" + "Summary Report"  +"\r\n" + "Generated: $state.LastReset  " +"\r\n" + "Cost this period: $state.Currency$state.TotalCost" +"\r\n" + "Energy this period: $state.TotalKwh"+ " kwh"
     } 
     
  log.info "$state.msg"   
@@ -599,6 +599,7 @@ def updateCheck(){
         catch (e) {
         	log.error "Something went wrong: CHECK THE JSON FILE AND IT'S URI -  $e"
     		}
+    
    		if(state.status == "Current"){
 			state.UpdateInfo = "N/A"
 		    sendEvent(name: "DriverUpdate", value: state.UpdateInfo, isStateChange: true)
@@ -616,7 +617,7 @@ def updateCheck(){
 }
 
 def setVersion(){
-		state.version = "1.1.1"
+		state.Version = "1.1.2"
      state.InternalName = "AeonHEMV2"
 }
 
