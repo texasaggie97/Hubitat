@@ -2,7 +2,9 @@
  *  Aeon HEM V2 (Gen5)
  *
  *  This was originally an ST DTH and was subsiquently worked on by @vjv to bring it to Hubitat
- *  I have reworked it by adding the ability to use a 3rd clamp and adding calculations for cummulative reading
+ *  I have reworked it by adding  calculations for cummulative reading and sending a Pushover summary
+ *
+ *  I have to credit @ogiewon for his excellent Pushover code which I have added here 
  *	
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  *  in compliance with the License. You may obtain a copy of the License at:
@@ -13,9 +15,11 @@
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
  *  for the specific language governing permissions and limitations under the License.
  *
- *  Last Update 10/08/2018
+ *  Last Update 11/08/2018
  *
- * 
+ *
+ *  V1.1.1 - Debug date/time in pushover message
+ *  V1.1.0 - Added Pushover message summary
  *  V1.0.0 POC
  */
 
@@ -31,10 +35,10 @@ metadata {
         
         
 	       
-	attribute "DriverAuthor", "string"
+		attribute "DriverAuthor", "string"
         attribute "DriverVersion", "string"
         attribute "DriverStatus", "string"
-	attribute "DriverUpdate", "string"
+		attribute "DriverUpdate", "string"
         
         attribute "LastReset", "string"
         attribute "NextReset", "string"
@@ -92,6 +96,13 @@ metadata {
         if(resetInterval == "Monthly (Custom Date)"){
             input "date1", "enum", title: "What Date Every Month", required: true, options: [ "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31"]
         }
+        input "pushOver", "bool", title: "Send Pushover Message (before reset)", required: true, defaultValue: false
+         if(pushOver == true){
+         input("apiKey", "text", title: "API Key:", description: "Pushover API Key")
+  		input("userKey", "text", title: "User Key:", description: "Pushover User Key")
+  		input("deviceName", "text", title: "Optional Device Name:", description: "If blank, all devices get notified")
+        input("priority", "enum", title: "Default Message Priority", defaultValue: "NORMAL", options:["LOW", "NORMAL", "HIGH"])
+         }
         input "refreshInterval", "enum", title: "Auto Refresh Interval", required: true, defaultValue: "5 Minutes", options: ["Manual Refresh Only", "5 Minutes", "10 Minutes", "15 Minutes", "30 Minutes", "1 Hour", "3 Hours"]
 	}
 
@@ -202,6 +213,7 @@ def zwaveEvent(hubitat.zwave.commands.meterv3.MeterReport cmd) {
 						previousValue = device.currentValue("energy") ?: cmd.scaledPreviousMeterValue ?: 0
 						BigDecimal costDecimal = cmd.scaledMeterValue * (kWhCost as BigDecimal)
 						def costDisplay = String.format("%5.2f",costDecimal)
+        state.TotalCost = costDisplay
         if(state.DisplayUnits == false){
         sendEvent(name: "cost", value: costDisplay, unit: "${state.Currency}", isStateChange: true) 
         }
@@ -212,7 +224,7 @@ def zwaveEvent(hubitat.zwave.commands.meterv3.MeterReport cmd) {
                 map.value = (cmd.scaledMeterValue + " kwh")}
         	 if(state.DisplayUnits == false){
                 map.value = cmd.scaledMeterValue}
-        
+        state.TotalKwh = map.value
             break;
         case 1: //kVAh (not used in the U.S.)
             map.value = cmd.scaledMeterValue
@@ -304,7 +316,7 @@ def zwaveEvent(hubitat.zwave.commands.multichannelv3.MultiChannelCmdEncap cmd) {
 						sendEvent(name: "current2", value: dispValue as String, unit: "", descriptionText: "L2 Current: ${formattedValue} Amps", isStateChange: true)
 				}
 			}
-            		else if (cmd.sourceEndPoint == 3) {
+            else if (cmd.sourceEndPoint == 3) {
 				if (encapsulatedCommand.scale == 2 ) {
 						newValue = Math.round(encapsulatedCommand.scaledMeterValue)
 	                    if (newValue > MAX_WATTS) { return }
@@ -342,7 +354,7 @@ def refresh() {
 }
 
 def manualReset(){
-    sendEvent(name: "******", value: "********************",  descriptionText: "***** Manual Reset Initiated *****", isStateChange: false)
+  //  sendEvent(name:"Manual Reset", value: "",  descriptionText: "***** Manual Reset Initiated *****", isStateChange: false)
     
     reset()
         }
@@ -364,6 +376,7 @@ def reset() {
 	def timeString = new Date().format("h:mm a", location.timeZone)    
 	state.LastReset = dateString+" @ "+timeString
 	sendEvent(name: "LastReset", value: state.LastReset, descriptionText: "***** Latest Reset *****", isStateChange: true)
+     if(pushOver == true){summarise() }
 	def request = [
 		zwave.meterV3.meterReset(),
 		zwave.meterV3.meterGet(scale: 0),	//kWh
@@ -372,6 +385,12 @@ def reset() {
 		zwave.meterV3.meterGet(scale: 5),	//Amps
 	]
 	commands(request)
+}
+
+def summarise(){
+ state.msg = "${device.displayName} Summary Report - Generated: $state.LastReset  " +"\r\n" + "Cost this period: $state.Currency$state.TotalCost." +"\r\n" + "Energy this period: $state.TotalKwh."
+ log.info "$state.msg"   
+ speak(state.msg)   
 }
 
 def configure() {
@@ -449,6 +468,88 @@ private commands(commands, delay=500) {
 	delayBetween(commands.collect{ command(it) }, delay)
 }
 
+def speak(msg) {
+    deviceNotification(msg)
+    state.msg = ""
+}
+
+def getPriority(){
+    [
+    "LOW":-1,
+    "NORMAL":0,
+    "HIGH":1,
+	]
+    
+}
+
+def deviceNotification(message) {
+    if(message.startsWith("[L]")){ 
+        customPriority = "LOW"
+        message = message.minus("[L]")
+    }
+    if(message.startsWith("[N]")){ 
+        customPriority = "NORMAL"
+        message = message.minus("[N]")
+    }
+    if(message.startsWith("[H]")){
+        customPriority = "HIGH"
+        message = message.minus("[H]")
+    }
+    if(customPriority){ priority = customPriority}
+                       
+    log.debug "Sending Message: ${message} Priority: ${priority}"
+
+  // Define the initial postBody keys and values for all messages
+  def postBody = [
+    token: "$apiKey",
+    user: "$userKey",
+    message: "${message}",
+    priority: getPriority()[priority]
+  ]
+
+  // We only have to define the device if we are sending to a single device
+  if (deviceName)
+  {
+    log.debug "Sending Pushover to Device: $deviceName"
+    postBody['device'] = "$deviceName"
+  }
+  else
+  {
+    log.debug "Sending Pushover to All Devices"
+  }
+
+  // Prepare the package to be sent
+  def params = [
+    uri: "https://api.pushover.net/1/messages.json",
+    contentType: "application/json",
+	requestContentType: "application/x-www-form-urlencoded",
+    body: postBody
+  ]
+
+  log.debug postBody
+
+  if ((apiKey =~ /[A-Za-z0-9]{30}/) && (userKey =~ /[A-Za-z0-9]{30}/))
+  {
+    log.debug "Sending Pushover: API key '${apiKey}' | User key '${userKey}'"
+    httpPost(params){response ->
+      if(response.status != 200)
+      {
+        sendPush("ERROR: 'Pushover Me When' received HTTP error ${response.status}. Check your keys!")
+        log.error "Received HTTP error ${response.status}. Check your keys!"
+      }
+      else
+      {
+        log.debug "HTTP response received [$response.status]"
+      }
+    }
+  }
+  else {
+    // Do not sendPush() here, the user may have intentionally set up bad keys for testing.
+    log.error "API key '${apiKey}' or User key '${userKey}' is not properly formatted!"
+  }
+    
+}
+
 
 def version(){
     unschedule()
@@ -458,7 +559,7 @@ def version(){
 
 def updateCheck(){
     setVersion()
-	def paramsUD = [uri: "http://update.hubitat.uk/versions.json"]
+	def paramsUD = [uri: "http://update.hubitat.uk/cobra.json"]
        	try {
         httpGet(paramsUD) { respUD ->
  //  log.warn " Version Checking - Response Data: ${respUD.data}"   // Troubleshooting Debug Code 
@@ -505,7 +606,7 @@ def updateCheck(){
 }
 
 def setVersion(){
-		sstate.version = "1.0.0"
+		state.version = "1.1.1"
      state.InternalName = "AeonHEMV2"
 }
 
