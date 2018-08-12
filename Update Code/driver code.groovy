@@ -2,8 +2,8 @@
 
 
 
-// Code snippit version 1.1
-
+// Code snippit version 1.2
+// Case issue with 'state.Status' variable
 
 
 
@@ -62,16 +62,16 @@ def updateCheck(){
                 state.author = (respUD.data.author)
            
 		if(newVer == "NLS"){
-            state.status = "<b>** This driver is no longer supported by $state.author  **</b>"       
+            state.Status = "<b>** This driver is no longer supported by $state.author  **</b>"       
             log.warn "** This driver is no longer supported by $state.author **"      
       		}           
 		else if(currentVer < newVer){
-        	state.status = "<b>New Version Available (Version: $newVerRaw)</b>"
+        	state.Status = "<b>New Version Available (Version: $newVerRaw)</b>"
         	log.warn "** There is a newer version of this driver available  (Version: $newVerRaw) **"
         	log.warn "** $state.UpdateInfo **"
        		} 
 		else{ 
-      		state.status = "Current"
+      		state.Status = "Current"
       		log.info "You are using the current version of this driver"
        		}
       					}
@@ -79,7 +79,7 @@ def updateCheck(){
         catch (e) {
         	log.error "Something went wrong: CHECK THE JSON FILE AND IT'S URI -  $e"
     		}
-   		if(state.status == "Current"){
+   		if(state.Status == "Current"){
 			state.UpdateInfo = "N/A"
 		    sendEvent(name: "DriverUpdate", value: state.UpdateInfo, isStateChange: true)
 	 	    sendEvent(name: "DriverStatus", value: state.Status, isStateChange: true)
