@@ -441,7 +441,7 @@ def configure() {
     	clamp1Watts =c1Thresh.toInteger()
     }
      def clamp2Watts = 25
-    if(c1Thresh){
+    if(c2Thresh){
     	clamp2Watts =c2Thresh.toInteger()
     }
      def clamp3Watts = 25
