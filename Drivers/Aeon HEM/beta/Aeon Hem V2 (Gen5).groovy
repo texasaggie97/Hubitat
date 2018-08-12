@@ -96,9 +96,9 @@ metadata {
 			displayDuringSetup: true
         
         input "totalThresh", "enum", title: "Overall Wattage Threshold to Report Change", required: true, options: [ "1", "5", "10", "20", "30", "40", "50", "100"]
-        input "c1Thresh", "enum", title: "Clamp1 Wattage Threshold to Report Change", required: true, options: [ "1", "5", "10", "20", "30", "40", "50", "100"]
-        input "c2Thresh", "enum", title: "Clamp2 Wattage Threshold to Report Change", required: true, options: [ "1", "5", "10", "20", "30", "40", "50", "100"]
-        input "c3Thresh", "enum", title: "Clamp3 Wattage Threshold to Report Change", required: true, options: [ "1", "5", "10", "20", "30", "40", "50", "100"]
+        input "c1Thresh", "enum", title: "Clamp1 Wattage Threshold to Report Change", required: false, options: [ "1", "5", "10", "20", "30", "40", "50", "100"]
+        input "c2Thresh", "enum", title: "Clamp2 Wattage Threshold to Report Change", required: false, options: [ "1", "5", "10", "20", "30", "40", "50", "100"]
+        input "c3Thresh", "enum", title: "Clamp3 Wattage Threshold to Report Change", required: false, options: [ "1", "5", "10", "20", "30", "40", "50", "100"]
         
         input "unitSet", "bool", title: "Display Data Units", required: true, defaultValue: false
         input "currencyFormat", "enum", title: "Currency", required: true, options: ["£", "\$","€"]
