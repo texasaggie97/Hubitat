@@ -18,9 +18,12 @@
  *
  *  Z-Wave Door/Window Sensor
  *
- *  Updated 10/08/2018
+ *  Updated 13/08/2018
  *
- *  V1.0.0 POC
+ *
+ *
+ *  V1.1.0 - Set initial state to 'off' and cleaned up the code a little
+ *  V1.0.0 - POC
  */
 
 metadata {
@@ -28,12 +31,12 @@ metadata {
 		capability "Contact Sensor"
 		capability "Sensor"
 		capability "Battery"
-        	capability "Switch"
+        capability "Switch"
         
         
 		attribute "DriverAuthor", "string"
-        	attribute "DriverVersion", "string"
-        	attribute "DriverStatus", "string"
+        attribute "DriverVersion", "string"
+        attribute "DriverStatus", "string"
 		attribute "DriverUpdate", "string"
 
 		
@@ -73,15 +76,7 @@ metadata {
 	}
 }
 
-def on(){
-sendEvent(name: "switch", value: "on")    
-    
-}
 
-def off(){
- sendEvent(name: "switch", value: "off")   
-    
-}
 
 
 private getCommandClassVersions() {
@@ -116,12 +111,14 @@ def installed() {
 	version()
 	sendEvent(name: "checkInterval", value: 2 * 4 * 60 * 60 + 2 * 60, displayed: false, data: [protocol: "zwave", hubHardwareId: device.hub.hardwareID])
 	sendEvent(name: "battery", unit: "%", value: 100)
+    off()
 	response(initialPoll())
 }
 
 def updated() {
 	version()
 	sendEvent(name: "checkInterval", value: 2 * 4 * 60 * 60 + 2 * 60, displayed: false, data: [protocol: "zwave", hubHardwareId: device.hub.hardwareID])
+    off()
 }
 
 
@@ -129,11 +126,11 @@ def sensorValueEvent(value) {
 	if (value) {
 		createEvent(name: "contact", value: "open", descriptionText: "$device.displayName is open")
         if(mode == false){
-                sendEvent(name: "switch", value: "on")}
-        	sendEvent(name: "contact", value: "open")
+            sendEvent(name: "switch", value: "on")}
+        sendEvent(name: "contact", value: "open")
         
         if(mode == true){
-                sendEvent(name: "switch", value: "off")}
+            sendEvent(name: "switch", value: "off")}
         
         
         
@@ -141,11 +138,11 @@ def sensorValueEvent(value) {
 	} else {
 		createEvent(name: "contact", value: "closed", descriptionText: "$device.displayName is closed")
          if(mode == false){
-             	sendEvent(name: "switch", value: "off")}
-        	sendEvent(name: "contact", value: "closed")
+             sendEvent(name: "switch", value: "off")}
+        sendEvent(name: "contact", value: "closed")
         
         if(mode == true){
-                sendEvent(name: "switch", value: "on")}
+            sendEvent(name: "switch", value: "on")}
         
         
     }	
@@ -372,7 +369,15 @@ private isEnerwave() {
 	zwaveInfo?.mfr?.equals("011A") && zwaveInfo?.prod?.equals("0601") && zwaveInfo?.model?.equals("0901")
 }
 
+def on(){
+sendEvent(name: "switch", value: "on")    
+    
+}
 
+def off(){
+ sendEvent(name: "switch", value: "off")   
+    
+}
 
 
 
@@ -385,7 +390,7 @@ def version(){
 
 def updateCheck(){
     setVersion()
-	def paramsUD = [uri: "http://update.hubitat.uk/cobra.json"]
+	def paramsUD = [uri: "http://update.hubitat.uk/versions.json"]
        	try {
         httpGet(paramsUD) { respUD ->
  //  log.warn " Version Checking - Response Data: ${respUD.data}"   // Troubleshooting Debug Code 
@@ -432,7 +437,7 @@ def updateCheck(){
 }
 
 def setVersion(){
-		state.Version = "1.0.0"	 
+		state.Version = "1.1.0"	 
 		state.InternalName = "ContactSwitch"
 }
 
