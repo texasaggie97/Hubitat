@@ -22,7 +22,7 @@
  *
  *
  *
- *  V1.1.0 - Set initial state to 'off' and cleaned up the code a little
+ *  V1.1.0 - Set initial state to off and cleaned up code a little
  *  V1.0.0 - POC
  */
 
@@ -390,7 +390,7 @@ def version(){
 
 def updateCheck(){
     setVersion()
-	def paramsUD = [uri: "http://update.hubitat.uk/versions.json"]
+	def paramsUD = [uri: "http://update.hubitat.uk/cobra.json"]
        	try {
         httpGet(paramsUD) { respUD ->
  //  log.warn " Version Checking - Response Data: ${respUD.data}"   // Troubleshooting Debug Code 
