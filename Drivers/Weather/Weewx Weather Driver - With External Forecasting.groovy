@@ -39,6 +39,8 @@
  *
  *  Last Update 10/08/2018
  *
+ *
+ *  V2.2.0 - Added Daily temp max & min for both inside and outside THIS REQUIRED ADDITIONS TO 'DAILY.JSON.TEMPL'
  *  V2.1.1 - Debug - with km/h input not working correctly - Now fixed
  *  V2.1.0 - Added WU 'alerts'
  *  V2.0.0 - Debug & Revised version checking
@@ -112,6 +114,13 @@ metadata {
         attribute "localSunset", "string"
         attribute "moonPhase", "string"
         attribute "moonRise", "string"
+        attribute "tempMaxToday", "string"
+        attribute "tempMinToday", "string"
+        attribute "tempMaxInsideToday", "string"
+        attribute "tempMinInsideToday", "string"
+        
+        
+        
 //        attribute "weatherSummary", "string"
         
 // External Data (if used)
@@ -187,8 +196,11 @@ def updated() {
     if(pollInterval1 == "Manual Poll Only"){LOGINFO( "MANUAL POLLING ONLY")}
     else{"runEvery${pollIntervalCmd1}"(pollSchedule1)}
     
-
+		
+    
 }
+
+
 
 
 def units(){
@@ -896,13 +908,172 @@ def PollStation()
             } 
            
                     
-                    
-                    
-                    
-                    
-                    
-                    
-  
+// ************************** MIN Outside TEMPERATURE *******************************************************************************                     
+
+             LOGINFO("Checking Min Outside Temperature")
+              def tempMinRaw1 = (resp1.data.stats.sinceMidnight.mintemptoday) 
+            	if(tempMinRaw1 ==null || tempMinRaw1.contains("N/A")){
+                state.MinTemperature = 'No Station Data'}
+            
+            if (tempMinRaw1.contains("F")) {
+                tempMinRaw1 = tempMinRaw1.replace(fcode, "")
+                
+                if(temperatureUnit == "Fahrenheit (°F)"){
+            	state.TU = '°F'
+                state.MinTemperature = tempMinRaw1
+                LOGINFO("Min Temperature Input = F - Output = F -- No conversion required")
+                }
+                
+                if(temperatureUnit == "Celsius (°C)"){
+                state.TU = '°C'
+                def tempMin = convertFtoC(tempMinRaw1) 
+                state.MinTemperature = tempMin 
+                
+                }
+                
+            } 
+            
+            if (tempMinRaw1.contains("C")) {
+                tempMinRaw1 = tempMinRaw1.replace(ccode, "")
+                
+            	if(temperatureUnit == "Fahrenheit (°F)"){
+            	state.TU = '°F'
+                    def tempMin = convertCtoF(tempMinRaw1)
+                state.MinTemperature = tempMin
+                }
+                if(temperatureUnit == "Celsius (°C)"){
+                state.TU = '°C'
+                state.MinTemperature = tempMinRaw1 
+                 LOGINFO("Min Temperature Input = C - Output = C --No conversion required")
+                }
+                
+            } 
+            
+            
+ // ************************** MAX Outside TEMPERATURE *******************************************************************************                     
+
+             LOGINFO("Checking Max Outside Temperature")
+              def tempMaxRaw1 = (resp1.data.stats.sinceMidnight.maxtemptoday) 
+            	if(tempMaxRaw1 ==null || tempMaxRaw1.contains("N/A")){
+                state.MaxTemperature = 'No Station Data'}
+            
+            if (tempMaxRaw1.contains("F")) {
+                tempMaxRaw1 = tempMaxRaw1.replace(fcode, "")
+                
+                if(temperatureUnit == "Fahrenheit (°F)"){
+            	state.TU = '°F'
+                state.MaxTemperature = tempMinRaw1
+                LOGINFO("Max Temperature Input = F - Output = F -- No conversion required")
+                }
+                
+                if(temperatureUnit == "Celsius (°C)"){
+                state.TU = '°C'
+                def tempMax = convertFtoC(tempMaxRaw1) 
+                state.MaxTemperature = tempMax 
+                
+                }
+                
+            } 
+            
+            if (tempMaxRaw1.contains("C")) {
+                tempMaxRaw1 = tempMaxRaw1.replace(ccode, "")
+                
+            	if(temperatureUnit == "Fahrenheit (°F)"){
+            	state.TU = '°F'
+                    def tempMax = convertCtoF(tempMinRaw1)
+                state.MaxTemperature = tempMax
+                }
+                if(temperatureUnit == "Celsius (°C)"){
+                state.TU = '°C'
+                state.MaxTemperature = tempMaxRaw1 
+                 LOGINFO("Max Temperature Input = C - Output = C --No conversion required")
+                }
+                
+            }            
+            
+// ************************** MIN Inside TEMPERATURE *******************************************************************************                     
+
+             LOGINFO("Checking Min Inside Temperature")
+              def tempMinInRaw1 = (resp1.data.stats.sinceMidnight.mininsidetemptoday) 
+            	if(tempMinInRaw1 ==null || tempMinInRaw1.contains("N/A")){
+                state.MinInsideTemperature = 'No Station Data'}
+            
+            if (tempMinInRaw1.contains("F")) {
+                tempMinInRaw1 = tempMinInRaw1.replace(fcode, "")
+                
+                if(temperatureUnit == "Fahrenheit (°F)"){
+            	state.TU = '°F'
+                state.MinInsideTemperature = tempMinInRaw1
+                LOGINFO("Min Temperature Input = F - Output = F -- No conversion required")
+                }
+                
+                if(temperatureUnit == "Celsius (°C)"){
+                state.TU = '°C'
+                def tempMinIn = convertFtoC(tempMinInRaw1) 
+                state.MinInsideTemperature = tempMinIn 
+                
+                }
+                
+            } 
+            
+            if (tempMinInRaw1.contains("C")) {
+                tempMinInRaw1 = tempMinInRaw1.replace(ccode, "")
+                
+            	if(temperatureUnit == "Fahrenheit (°F)"){
+            	state.TU = '°F'
+                    def tempMinIn = convertCtoF(tempMinInRaw1)
+                state.MinInsideTemperature = tempMinIn
+                }
+                if(temperatureUnit == "Celsius (°C)"){
+                state.TU = '°C'
+                state.MinInsideTemperature = tempMinInRaw1 
+                 LOGINFO("Min Temperature Input = C - Output = C --No conversion required")
+                }
+                
+            }    
+            
+            
+  // ************************** MAX Inside TEMPERATURE *******************************************************************************                     
+
+             LOGINFO("Checking Max Inside Temperature")
+              def tempMaxInRaw1 = (resp1.data.stats.sinceMidnight.maxinsidetemptoday) 
+            	if(tempMaxInRaw1 ==null || tempMaxInRaw1.contains("N/A")){
+                state.MaxInsideTemperature = 'No Station Data'}
+            
+            if (tempMaxInRaw1.contains("F")) {
+                tempMaxInRaw1 = tempMaxInRaw1.replace(fcode, "")
+                
+                if(temperatureUnit == "Fahrenheit (°F)"){
+            	state.TU = '°F'
+                state.MaxInsideTemperature = tempMaxInRaw1
+                LOGINFO("Max Temperature Input = F - Output = F -- No conversion required")
+                }
+                
+                if(temperatureUnit == "Celsius (°C)"){
+                state.TU = '°C'
+                def tempMaxIn = convertFtoC(tempMaxInRaw1) 
+                state.MaxInsideTemperature = tempMaxIn 
+                
+                }
+                
+            } 
+            
+            if (tempMaxInRaw1.contains("C")) {
+                tempMaxInRaw1 = tempMaxInRaw1.replace(ccode, "")
+                
+            	if(temperatureUnit == "Fahrenheit (°F)"){
+            	state.TU = '°F'
+                    def tempMaxIn = convertCtoF(tempMaxInRaw1)
+                state.MaxInsideTemperature = tempMaxIn
+                }
+                if(temperatureUnit == "Celsius (°C)"){
+                state.TU = '°C'
+                state.MaxInsideTemperature = tempMaxInRaw1 
+                 LOGINFO("Max Temperature Input = C - Output = C --No conversion required")
+                }
+                
+            }             
+            
             
 // ************************** UV ************************************************************************************************            
             LOGINFO("Checking UV")
@@ -915,7 +1086,7 @@ def PollStation()
    
                     
  // Calculate UV likelyhood of causing harm to someone *****************************************************     
-                    
+          LOGINFO("Checking UV Harm")          
                     
                     LOGINFO ( "state.UV -- $state.UV")
                     if(state.UV <= '0.1'){
@@ -993,7 +1164,8 @@ def PollStation()
                 
             } 
            
-// ************************** WIND DIR ****************************************************************************************                     
+// ************************** WIND DIR ****************************************************************************************  
+             LOGINFO("Checking Wind direction")
             def windDirRaw = (resp1.data.stats.current.windDirText)
             	if(windDirRaw != null){
                     if(windDirRaw.contains("N/A")){sendEvent(name: "wind_dir", value:"No Station Data", isStateChange: true)}
@@ -1003,7 +1175,8 @@ def PollStation()
                     
             
 
-// ************************** PRESSURE TREND ************************************************************************************             
+// ************************** PRESSURE TREND ************************************************************************************   
+             LOGINFO("Checking Pressure Trend")
              def pressureTrend = (resp1.data.stats.current.barometerTrendData) 
                   if(pressureTrend != null){
                       if(pressureTrend.contains("N/A")){sendEvent(name: "pressure_trend", value:"No Station Data", isStateChange: true)}
@@ -1066,9 +1239,11 @@ def PollStation()
                   sendEvent(name: "precip_1hr", value: state.Rainrate +" " +state.RU, isStateChange: true)
                   sendEvent(name: "feelsLike", value: state.FeelsLike +" " +state.TU, isStateChange: true)
                   
-                  
-    
-                  
+                  sendEvent(name: "tempMaxToday", value: state.MaxTemperature +" " +state.TU, isStateChange: true)
+    			  sendEvent(name: "tempMinToday", value: state.MinTemperature +" " +state.TU, isStateChange: true)
+                  sendEvent(name: "tempMaxInsideToday", value: state.MaxInsideTemperature +" " +state.TU, isStateChange: true)
+    			  sendEvent(name: "tempMinInsideToday", value: state.MinInsideTemperature +" " +state.TU, isStateChange: true)
+
               }
             
 // // Send Events  - WITHOUT UNITS ****************************************************************************************
@@ -1089,7 +1264,11 @@ def PollStation()
                   sendEvent(name: "precip_today", value: state.RainToday, isStateChange: true)  
                   sendEvent(name: "precip_1hr", value: state.Rainrate, isStateChange: true)  
                   sendEvent(name: "feelsLike", value: state.FeelsLike, isStateChange: true) 
-            
+             	  sendEvent(name: "tempMaxToday", value: state.MaxTemperature, isStateChange: true)
+    			  sendEvent(name: "tempMinToday", value: state.MinTemperature, isStateChange: true)
+                  sendEvent(name: "tempMaxInsideToday", value: state.MaxInsideTemperature, isStateChange: true)
+    			  sendEvent(name: "tempMinInsideToday", value: state.MinInsideTemperature, isStateChange: true)
+              
 
         }
             
@@ -1356,7 +1535,7 @@ def updateCheck(){
 	def paramsUD = [uri: "http://update.hubitat.uk/cobra.json" ]  
        	try {
         httpGet(paramsUD) { respUD ->
- //  log.warn " Version Checking - Response Data: ${respUD.data}"   // Troubleshooting Debug Code **********************
+//   log.warn " Version Checking - Response Data: ${respUD.data}"   // Troubleshooting Debug Code **********************
        		def copyrightRead = (respUD.data.copyright)
        		state.Copyright = copyrightRead
             def newVerRaw = (respUD.data.versions.Driver.(state.InternalName))
@@ -1383,7 +1562,7 @@ def updateCheck(){
         catch (e) {
         	log.error "Something went wrong: CHECK THE JSON FILE AND IT'S URI -  $e"
     		}
-   		if(state.status == "Current"){
+   		if(state.Status == "Current"){
 			state.UpdateInfo = "N/A"
 		    sendEvent(name: "DriverUpdate", value: state.UpdateInfo, isStateChange: true)
 	 	    sendEvent(name: "DriverStatus", value: state.Status, isStateChange: true)
@@ -1400,7 +1579,7 @@ def updateCheck(){
 }
 
 def setVersion(){
-		state.Version = "2.1.1"	
+		state.Version = "2.2.0"	
 		state.InternalName = "WeewxExternal"   
 }
 
