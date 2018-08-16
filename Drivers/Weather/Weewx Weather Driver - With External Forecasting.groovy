@@ -37,7 +37,7 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update 10/08/2018
+ *  Last Update 16/08/2018
  *
  *
  *  V2.2.0 - Added Daily temp max & min for both inside and outside THIS REQUIRED ADDITIONS TO 'DAILY.JSON.TEMPL'
