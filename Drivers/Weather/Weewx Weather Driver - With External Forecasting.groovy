@@ -1711,7 +1711,7 @@ def updateCheck(){
         catch (e) {
         	log.error "Something went wrong: CHECK THE JSON FILE AND IT'S URI -  $e"
     		}
-   		if(state.status == "Current"){
+   		if(state.Status == "Current"){
 			state.UpdateInfo = "N/A"
 		    sendEvent(name: "DriverUpdate", value: state.UpdateInfo, isStateChange: true)
 	 	    sendEvent(name: "DriverStatus", value: state.Status, isStateChange: true)
