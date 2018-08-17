@@ -37,9 +37,11 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update 16/08/2018
+ *  Last Update 17/08/2018
  *
  *
+ *
+ *  V2.3.0 - Added 'forecastIcon' for use with SharpTools 
  *  V2.2.0 - Added Daily temp max & min for both inside and outside THIS REQUIRED ADDITIONS TO 'DAILY.JSON.TEMPL'
  *  V2.1.1 - Debug - with km/h input not working correctly - Now fixed
  *  V2.1.0 - Added WU 'alerts'
@@ -136,6 +138,7 @@ metadata {
         attribute "rainTomorrow", "string"
         attribute "rainDayAfterTomorrow", "string"
         attribute "weatherIcon", "string"
+        attribute "forecastIcon", "string"
         attribute "weatherForecast", "string"
         attribute "visibility", "string"
         attribute "chanceOfRain", "string"
@@ -270,7 +273,7 @@ def possAlert = (resp2.data.alerts.description)
 			sendEvent(name: "Refresh-External", value: pollInterval1, isStateChange: true)             
 			sendEvent(name: "country", value: resp2.data.current_observation.display_location.country, isStateChange: true) // resp2.data.city.country, isStateChange: true)
             sendEvent(name: "weatherIcon", value: resp2.data.current_observation.icon, isStateChange: true)  // Current Conditions Icon
-            // sendEvent(name: "weatherIcon", value: resp2.data.forecast.simpleforecast.forecastday[0].icon, isStateChange: true) // Forecast Icon
+            sendEvent(name: "forecastIcon", value: resp2.data.forecast.simpleforecast.forecastday[0].icon, isStateChange: true) // Forecast Icon
             
             
             
@@ -395,7 +398,7 @@ def PollApixuNow(){
     
             
             // Apixu No Units ********************
-
+				 
               sendEvent(name: "weather", value: resp2.data.current.condition.text, isStateChange: true)
               sendEvent(name: "weatherForecast", value: resp2.data.forecast.forecastday.day[1].condition.text, isStateChange: true)
               sendEvent(name: "city", value: resp2.data.location.name, isStateChange: true)
@@ -403,8 +406,27 @@ def PollApixuNow(){
               sendEvent(name: "country", value: resp2.data.location.country, isStateChange: true)
               sendEvent(name: "LastUpdate-External", value: resp2.data.current.last_updated, isStateChange: true)  
               sendEvent(name: "Refresh-External", value: pollInterval1, isStateChange: true) 
-              sendEvent(name: "weatherIcon", value: resp2.data.current.condition.icon, isStateChange: true)  // Current Conditions Icon
-      //      sendEvent(name: "weatherIcon", value: resp2.data.forecast.forecastday.day[1].condition.icon, isStateChange: true)  // Forecast Icon
+              sendEvent(name: "weatherIcon", value: resp2.data.current.condition.text, isStateChange: true)  // Current Conditions Icon
+            
+             def daynight = (resp2.data.forecast.forecastday.day[1].condition.icon)
+            LOGDEBUG("daynight = $daynight")
+              if(daynight.contains("day")) {
+            LOGDEBUG("Daytime")
+                  def icon1 = (resp2.data.forecast.forecastday.day[1].condition.code)
+            	  sendEvent(name: "forecastIcon", value: mapIcon(icon1,'day'), isStateChange: true)
+              }
+            
+              if(daynight.contains("night")) {
+            LOGDEBUG("Nighttime")
+                 def icon1 = (resp2.data.forecast.forecastday.day[1].condition.code)
+                 sendEvent(name: "forecastIcon", value: mapIcon(icon1,'night'), isStateChange: true) 
+              }
+            
+            
+            
+         
+            
+            
                     
     // Apixu With Units ***************************************************************
             
@@ -1319,7 +1341,7 @@ def PollStation()
 
 def setSummaryDetails(){
 if(extSource == "Apixu"){ 
-state.Weather = (resp2.data.current.condition.text)
+// state.Weather = (resp2.data.current.condition.text)
 
 
 
@@ -1491,6 +1513,133 @@ def convertKelvinToC(tempIn){
 }
 
 
+def mapIcon(codein,dayNight){
+   LOGINFO("Calling mapIcon")
+   def period = dayNight.toString()
+   def iconCode1 = codein.toString()
+   def iconCode = iconCode1 +period 
+
+
+   LOGINFO("Icon Code = $iconCode1 - period = $period")  
+   
+   
+ def iconMap=[
+'1000day': "sunny",
+'1000night': "nt_clear",
+'1003day': "partlycloudy",
+'1003night': "partlycloudy",
+'1006day': "cloudy",
+'1006night': "nt_cloudy",
+'1009day': "overcast",
+'1009night': "nt_overcast",
+'1030day': "mist",
+'1030night': "nt_mist",
+'1063day': "chancerain",
+'1063night': "nt_chancerain",
+'1066day': "chancesnow",
+'1066night': "nt_chancesnow",
+'1069day': "chancesleet",
+'1069night': "nt_chancesleet",
+'1072day': "chancesleet",
+'1072night': "nt_chancesleet",
+'1087day': "tstorms",
+'1087night': "nt_tstorms",
+'1114day': "flurries",
+'1114night': "nt_flurries",
+'1117day': "snow",
+'1117night': "nt_snow",
+'1135day': "fog",
+'1135night': "nt_fog",
+'1147day': "fog",
+'1147night': "nt_fog",
+'1150day': "rain",
+'1150night': "nt_rain",
+'1153day': "rain",
+'1153night': "nt_rain",
+'1168day': "sleet",
+'1168night': "nt_sleet",
+'1171day': "sleet",
+'1171night': "nt_sleet",
+'1180day': "rain",
+'1180night': "nt_rain",
+'1183day': "rain",
+'1183night': "nt_rain",
+'1186day' : "rain",
+'1186night': "nt_rain",
+'1189day': "rain",
+'1189night': "nt_rain",
+'1192day': "rain",
+'1192night': "nt_rain",
+'1195day': "rain",
+'1195night' : "nt_rain",
+'1198day': "sleet",
+'1198night': "nt_sleet",
+'1201day': "sleet",
+'1201night': "nt_sleet",
+'1204day': "sleet",
+'1204night': "nt_sleet",
+'1207day': "sleet",
+'1207night': "nt_sleet",
+'1210day' : "snow",
+'1210night': "nt_snow",
+'1213day': "snow",
+'1213night': "nt_snow",
+'1216day': "snow",
+'1216night': "nt_snow",
+'1219day': "snow",
+'1219night': "nt_snow",
+'1222day': "snow",
+'1222night': "nt_snow",
+'1225day': "snow",
+'1225night': "nt_snow",
+'1237day': "sleet",
+'1237night': "nt_sleet",
+'1240day': "rain",
+'1240night': "nt_rain",
+'1243day': "rain",
+'1243night': "nt_rain",
+'1246day': "rain",
+'1246night': "nt_rain",
+'1249day': "sleet",
+'1249night': "nt_sleet",
+'1252day': "sleet",
+'1252night': "nt_sleet",
+'1255day': "snow",
+'1255night': "nt_snows",
+'1258day': "snow",
+'1258night': "nt_snow",
+'1261day': "sleet",
+'1261night': "nt_sleet",
+'1264day': "sleet",
+'1264night': "nt_sleet",
+'1273day': "tstorms",
+'1273night': "nt_tstorms",
+'1276day': "tstorms",
+'1276night': "nt_tstorms",
+'1279day': "snow",
+'1279night': "nt_snow",
+'1282day': "snow",
+'1282night': "nt_snow"
+
+
+      ] 
+
+    
+    
+    
+    
+    
+def iconText = "${iconMap.get(iconCode)}"
+ LOGINFO("Icon Text = $iconText")
+  return iconText
+    
+}
+
+
+
+
+
+
 
 
 
@@ -1535,7 +1684,7 @@ def updateCheck(){
 	def paramsUD = [uri: "http://update.hubitat.uk/cobra.json" ]  
        	try {
         httpGet(paramsUD) { respUD ->
-//   log.warn " Version Checking - Response Data: ${respUD.data}"   // Troubleshooting Debug Code **********************
+ //  log.warn " Version Checking - Response Data: ${respUD.data}"   // Troubleshooting Debug Code **********************
        		def copyrightRead = (respUD.data.copyright)
        		state.Copyright = copyrightRead
             def newVerRaw = (respUD.data.versions.Driver.(state.InternalName))
@@ -1562,7 +1711,7 @@ def updateCheck(){
         catch (e) {
         	log.error "Something went wrong: CHECK THE JSON FILE AND IT'S URI -  $e"
     		}
-   		if(state.Status == "Current"){
+   		if(state.status == "Current"){
 			state.UpdateInfo = "N/A"
 		    sendEvent(name: "DriverUpdate", value: state.UpdateInfo, isStateChange: true)
 	 	    sendEvent(name: "DriverStatus", value: state.Status, isStateChange: true)
@@ -1579,7 +1728,7 @@ def updateCheck(){
 }
 
 def setVersion(){
-		state.Version = "2.2.0"	
+		state.Version = "2.3.0"	
 		state.InternalName = "WeewxExternal"   
 }
 
