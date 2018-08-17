@@ -16,8 +16,10 @@
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
  *  for the specific language governing permissions and limitations under the License.
  *
- *  Last Update 08/08/2018
+ *  Last Update 17/08/2018
  *
+ *
+ *  V2.7.0 - Added 'forecastIcon' for use with Sharptools
  *  V2.6.0 - Updated remote version checking
  *  V2.5.0 - Removed capabilities/attributes switch and reformatted all in lowercase - @Cobra 04/05/2018
  *  V2.4.1 - Debug - Changed the switchable capabilities to allow them to be seen by 'rule machine'- @Cobra 03/05/2018
@@ -64,7 +66,8 @@ metadata {
         attribute "localSunset", "string"
         attribute "weather", "string"
         attribute "feelsLike", "number"
-        attribute "weatherIcon", "string"
+        attribute "forecastIcon", "string"
+	attribute "weatherIcon", "string"
 		attribute "city", "string"
         attribute "state", "string"
         attribute "percentPrecip", "string"
@@ -205,7 +208,7 @@ def ForcePoll()
             sendEvent(name: "percentPrecip", value: resp1.data.forecast.simpleforecast.forecastday[0].pop , isStateChange: true)
             sendEvent(name: "localSunrise", value: resp1.data.sun_phase.sunrise.hour + ":" + resp1.data.sun_phase.sunrise.minute, descriptionText: "Sunrise today is at $localSunrise", isStateChange: true)
         	sendEvent(name: "localSunset", value: resp1.data.sun_phase.sunset.hour + ":" + resp1.data.sun_phase.sunset.minute, descriptionText: "Sunset today at is $localSunset", isStateChange: true)
-             
+             sendEvent(name: "forecastIcon", value: resp1.data.forecast.simpleforecast.forecastday[0].icon, isStateChange: true)
             
  // Select Icon
                 if(iconType == false){   
@@ -457,7 +460,7 @@ def updatecheck(){
 
 def checkInfo(){
   if(state.Status == "Current"){
-    state.UpdateInfo = "None"
+    state.UpdateInfo = "N/A"
     sendEvent(name: "DriverUpdate", value: state.UpdateInfo, isStateChange: true)
     sendEvent(name: "DriverStatus", value: state.Status, isStateChange: true)
     }
@@ -473,7 +476,7 @@ def checkInfo(){
 
 
 def setVersion(){
-     state.version = "2.6.0"
+     state.version = "2.7.0"
      state.InternalName = "WUWeather"
      state.Type = "Driver"
    
