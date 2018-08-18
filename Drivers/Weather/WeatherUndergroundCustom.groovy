@@ -18,7 +18,7 @@
  *
  *  Last Update 17/08/2018
  *
- *
+ *  V2.8.0 - Added switchable 'forecastIcon' to show current or forcast icon
  *  V2.7.0 - Added 'forecastIcon' for use with Sharptools
  *  V2.6.0 - Updated remote version checking
  *  V2.5.0 - Removed capabilities/attributes switch and reformatted all in lowercase - @Cobra 04/05/2018
@@ -208,14 +208,16 @@ def ForcePoll()
             sendEvent(name: "percentPrecip", value: resp1.data.forecast.simpleforecast.forecastday[0].pop , isStateChange: true)
             sendEvent(name: "localSunrise", value: resp1.data.sun_phase.sunrise.hour + ":" + resp1.data.sun_phase.sunrise.minute, descriptionText: "Sunrise today is at $localSunrise", isStateChange: true)
         	sendEvent(name: "localSunset", value: resp1.data.sun_phase.sunset.hour + ":" + resp1.data.sun_phase.sunset.minute, descriptionText: "Sunset today at is $localSunset", isStateChange: true)
-             sendEvent(name: "forecastIcon", value: resp1.data.forecast.simpleforecast.forecastday[0].icon, isStateChange: true)
+             
             
  // Select Icon
                 if(iconType == false){   
                    sendEvent(name: "weatherIcon", value: resp1.data.forecast.simpleforecast.forecastday[0].icon, isStateChange: true)
+                   sendEvent(name: "forecastIcon", value: resp1.data.forecast.simpleforecast.forecastday[0].icon, isStateChange: true)
                 }
                 if(iconType == true){ 
 			       sendEvent(name: "weatherIcon", value: resp1.data.current_observation.icon, isStateChange: true)
+                   sendEvent(name: "forecastIcon", value: resp1.data.current_observation.icon, isStateChange: true)
                 }    
            
            
@@ -476,7 +478,7 @@ def checkInfo(){
 
 
 def setVersion(){
-     state.version = "2.7.0"
+     state.version = "2.8.0"
      state.InternalName = "WUWeather"
      state.Type = "Driver"
    
