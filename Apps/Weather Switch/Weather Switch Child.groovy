@@ -37,8 +37,8 @@
  *
  *  Changes:
  *
- *
-*   V2.4.3 - Changed input of threshold to allow decimal inputs
+ *  V2.4.4 - Debug & added uninstall logging
+ *  V2.4.3 - Changed input of threshold to allow decimal inputs
  *  V2.4.2 - Fixed typo in precip_1hrHandler
  *  V2.4.1 - Debug
  *  V2.4.0 - Added 'rain_rate' as a trigger
@@ -69,7 +69,7 @@ definition(
     name: "Weather Switch Child",
     namespace: "Cobra",
     author: "Andrew Parker",
-    description: "Turns On/Off a switch based upon weather reports",
+    description: "Turns On/Off a switch based upon weather events",
     category: "",
     parent: "Cobra:Weather Switch",
     
@@ -143,6 +143,14 @@ preferences {
      input(name: "actionMatch", type: "enum", title: "Action when this condition matches", required: true, options: ["Low", "Moderate", "High", "VeryHigh", "Extreme"])   
      input(name: "action1", type: "bool", title: "Turn switch On or Off when condition matches", required: true, defaultValue: true)        
         }   
+         else if(state.selection == "Sunrise"){
+     input(name: "actionMatch", type: "time", title: "Action when this time matches", required: true)   
+     input(name: "action1", type: "bool", title: "Turn switch On or Off when condition matches", required: true, defaultValue: true)        
+        }  
+         else if(state.selection == "Sunset"){
+     input(name: "actionMatch", type: "time", title: "Action when this time matches", required: true)   
+     input(name: "action1", type: "bool", title: "Turn switch On or Off when condition matches", required: true, defaultValue: true)        
+        }   
         
         else{
      input(name: "threshold1", type: "decimal", title: "Threshold", required: true, description: "Trigger above or below this number", defaultValue: '0')
@@ -193,7 +201,7 @@ def restrictionsPage() {
            
        
        section() {
-                label title: "Enter a name for this automation child", required: false
+                label title: "Enter a name for this automation", required: false
             }
       section() {
             input "debugMode", "bool", title: "Enable logging", required: true, defaultValue: false
@@ -218,6 +226,10 @@ def updated() {
 
 	unsubscribe()
 	initialize()
+}
+
+def uninstalled(){
+   log.info "Child app uninstalled: ${app.label}" 
 }
 
 def initialize() {
@@ -920,7 +932,7 @@ def updatecheck(){
 
 
 def setAppVersion(){
-     state.version = "2.4.3"
+     state.version = "2.4.4"
      state.InternalName = "WSchild"
      state.Type = "Application"
  

@@ -38,7 +38,7 @@
  *  Changes:
  *
  * 
- *
+ *  V1.3.1 - Added uninstall logging
  *  V1.3.0 - Code cleanup & forced hitting 'done' before further config at install
  *  V1.2.0 - Added remote version checking
  *  V1.1.0 - Debug
@@ -90,6 +90,11 @@ def initialize() {
     childApps.each {child ->
     log.info "Child app: ${child.label}"
     }
+    
+}
+def uninstalled(){
+   log.info "Parent app uninstalled: ${app.label}" 
+    
     
 }
 
@@ -177,7 +182,7 @@ def updateCheck(){
 }
 
 def setVersion(){
-		state.version = "1.3.0"	 
+		state.version = "1.3.1"	 
 		state.InternalName = "WSparent"  
 }
 
