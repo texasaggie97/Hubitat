@@ -33,13 +33,13 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 21/06/2017
+ *  Last Update: 20/08/2018
  *
  *  Changes:
  *
  * 
- *
- *  V2.1.0 - Added remote version checking
+ *  V2.2.0 - Code cleanup & forced hitting 'done' before further config at install
+ *  V2.1.0 - debug
  *  V2.0.0 - Initial port to Hubitat
  *  V1.0.0 - POC
  *
@@ -52,35 +52,35 @@
     author: "Andrew Parker",
     description: "Parent App for Presence Automation.",
    category: "Fun & Social",
-    iconUrl: "https://raw.githubusercontent.com/cobravmax/SmartThings/master/icons/presence.png",
-    iconX2Url: "https://raw.githubusercontent.com/cobravmax/SmartThings/master/icons/presence.png",
-    iconX3Url: "https://raw.githubusercontent.com/cobravmax/SmartThings/master/icons/presence.png",)
+    iconUrl: "",
+    iconX2Url: "",
+    iconX3Url: "",)
+
 
 preferences {
-    
-    page(name: "mainPage", title: "Automations", install: true, uninstall: true,submitOnChange: true) {
-    
-    section() {
-    
-        paragraph image: "https://raw.githubusercontent.com/cobravmax/SmartThings/master/icons/presence.png",
-                  title: "Presence Sensor Control",
-                  required: false,
-                  "This parent app is a container for all presence child apps"
-    }
-section{
-            paragraph "Parent Status: $state.verCheck"
-			paragraph "Parent Version: $state.appversion -  Copyright © 2018 Cobra"
-			}
-    
-        section {
-            app(name: "switchPresenceAutomation", appName: "Presence_Central_Child", namespace: "Cobra", title: "Create New Presence Automation", multiple: true)
-           
-            }
-            
-           
-            
-    }
+	
+     page name: "mainPage", title: "", install: true, uninstall: true
+     
 }
+
+def mainPage() {
+    dynamicPage(name: "mainPage") {
+      installCheck()
+        
+if(state.appInstalled == 'COMPLETE'){
+			display()
+  section ("Add An Event"){
+		app(name: "switchPresenceAutomation", appName: "Presence_Central_Child", namespace: "Cobra", title: "Create New Presence Automation", multiple: true)
+            }
+  section("App name") {
+        label title: "Enter a name for parent app (optional)", required: false
+            }    
+	}
+  }
+}
+
+
+
 
 def installed() {
     log.debug "Installed with settings: ${settings}"
@@ -94,9 +94,7 @@ def updated() {
 }
 
 def initialize() {
-    setAppVersion()
-    cobra()
-    schedule("0 0 14 ? * FRI *", cobra)
+    version()
     log.debug "there are ${childApps.size()} child smartapps"
     childApps.each {child ->
         log.debug "child app: ${child.label}"
@@ -104,34 +102,71 @@ def initialize() {
 }
 
 
-
-def cobra(){
-    setAppVersion()
-    def paramsUD = [uri: "http://update.hubitat.uk/cobra.json"]
-       try {
-        httpGet(paramsUD) { respUD ->
-  //   log.info "response data: ${respUD.data}"
-       def cobraVer = (respUD.data.versions.(state.InternalName))
-       def cobraOld = state.appversion.replace(".", "")
-       if(cobraOld < cobraVer){
-		state.verCheck = "** New Version Available **"
-           log.warn "There is a newer version of this app available"
-       }    
-       else{ 
-      state.verCheck = "Current"
-       }
-       
-       }
-        } 
-        catch (e) {
-        log.error "Something went wrong: $e"
+def installCheck(){         
+   state.appInstalled = app.getInstallationState() 
+  if(state.appInstalled != 'COMPLETE'){
+section{paragraph "Please hit 'Done' to install Weather Switch"}
+  }
+    else{
+ //       log.info "Parent Installed OK"
     }
-}        
+	}
+
+def version(){
+	unschedule()
+	schedule("0 0 9 ? * FRI *", updateCheck) //  Check for updates at 9am every Friday
+	updateCheck()  
+}
+
+def display(){
+	if(state.status){
+	section{paragraph "Version: $state.version -  $state.Copyright"}
+	if(state.status != "Current"){
+	section{ 
+	paragraph "$state.status"
+	paragraph "$state.UpdateInfo"
+    }
+    }
+}
+}
 
 
- 
-// App Version   *********************************************************************************
-def setAppVersion(){
-    state.appversion = "2.1.0"
-    state.InternalName = "PCparent"
+def updateCheck(){
+    setVersion()
+	def paramsUD = [uri: "http://update.hubitat.uk/cobra.json"]
+       	try {
+        httpGet(paramsUD) { respUD ->
+ //  log.warn " Version Checking - Response Data: ${respUD.data}"   // Troubleshooting Debug Code 
+       		def copyrightRead = (respUD.data.copyright)
+       		state.Copyright = copyrightRead
+            def newVerRaw = (respUD.data.versions.Application.(state.InternalName))
+            def newVer = (respUD.data.versions.Application.(state.InternalName).replace(".", ""))
+       		def currentVer = state.version.replace(".", "")
+      		state.UpdateInfo = (respUD.data.versions.UpdateInfo.Application.(state.InternalName))
+                state.author = (respUD.data.author)
+           
+		if(newVer == "NLS"){
+            state.status = "<b>** This app is no longer supported by $state.author  **</b>"       
+            log.warn "** This app is no longer supported by $state.author **"      
+      		}           
+		else if(currentVer < newVer){
+        	state.status = "<b>New Version Available (Version: $newVerRaw)</b>"
+        	log.warn "** There is a newer version of this app available  (Version: $newVerRaw) **"
+        	log.warn "** $state.UpdateInfo **"
+       		} 
+		else{ 
+      		state.status = "Current"
+      		log.info "You are using the current version of this app"
+       		}
+      					}
+        	} 
+        catch (e) {
+        	log.error "Something went wrong: CHECK THE JSON FILE AND IT'S URI -  $e"
+    		}
+ 	
+}
+
+def setVersion(){
+		state.version = "2.2.0"	 
+		state.InternalName = "PCparent"  
 }
