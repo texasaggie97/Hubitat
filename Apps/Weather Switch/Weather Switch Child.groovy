@@ -37,6 +37,8 @@
  *
  *  Changes:
  *
+ *
+*   V2.4.3 - Changed input of threshold to allow decimal inputs
  *  V2.4.2 - Fixed typo in precip_1hrHandler
  *  V2.4.1 - Debug
  *  V2.4.0 - Added 'rain_rate' as a trigger
@@ -143,7 +145,7 @@ preferences {
         }   
         
         else{
-     input(name: "threshold1", type: "number", title: "Threshold", required: true, description: "Trigger above or below this number", defaultValue: '0')
+     input(name: "threshold1", type: "decimal", title: "Threshold", required: true, description: "Trigger above or below this number", defaultValue: '0')
    	 input(name: "switchMode1", type: "bool", title: "On = Trigger Above Threshold - Off = Trigger Below Threshold", required: true, defaultValue: true )      
      input(name: "action1", type: "bool", title: "Turn switch On or Off when trigger active", required: true, defaultValue: true)         
         }
@@ -560,8 +562,7 @@ LOGDEBUG("Sunset =  $evt.value")
 
 def precip_RateHandler(evt){
     def event21 = evt.value
-    def evt21 = event21.
-        
+    def evt21 = event21.toDouble()
     def call21 = 'Precipitation Rate'
 	LOGDEBUG("Precipitation Rate is $evt21")
     actionNow(call21, evt21)
