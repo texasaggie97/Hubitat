@@ -105,7 +105,7 @@ def initialize() {
 def installCheck(){         
    state.appInstalled = app.getInstallationState() 
   if(state.appInstalled != 'COMPLETE'){
-section{paragraph "Please hit 'Done' to install Weather Switch"}
+section{paragraph "Please hit 'Done' to install Presence Central"}
   }
     else{
  //       log.info "Parent Installed OK"
