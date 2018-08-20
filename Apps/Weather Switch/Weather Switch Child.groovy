@@ -33,7 +33,7 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 07/08/2018
+ *  Last Update: 20/08/2018
  *
  *  Changes:
  *
@@ -920,7 +920,7 @@ def updatecheck(){
 
 
 def setAppVersion(){
-     state.version = "2.4.2"
+     state.version = "2.4.3"
      state.InternalName = "WSchild"
      state.Type = "Application"
  

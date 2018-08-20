@@ -33,13 +33,13 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 21/06/2018
+ *  Last Update: 20/08/2018
  *
  *  Changes:
  *
  * 
  *
- *
+ *  V1.3.0 - Code cleanup & forced hitting 'done' before further config at install
  *  V1.2.0 - Added remote version checking
  *  V1.1.0 - Debug
  *  V1.0.0 - POC
@@ -52,7 +52,7 @@ definition(
     name:"Weather Switch",
     namespace: "Cobra",
     author: "Andrew Parker",
-    description: "This is the 'Parent' app for Weather Switch",
+    description: "Control a switch in response to a weather condition or event ",
     category: "Convenience",
     iconUrl: "",
     iconX2Url: "",
@@ -67,7 +67,7 @@ definition(
 
 preferences {
 	
-     page name: "mainPage", title: "", install: true, uninstall: true // ,submitOnChange: true 
+     page name: "mainPage", title: "", install: true, uninstall: true
      
 } 
 
@@ -84,95 +84,104 @@ def updated() {
 }
 
 def initialize() {
-	setAppVersion()
-    schedule("0 0 14 ? * FRI *", cobra)
-    cobra()
-    log.info "There are ${childApps.size()} child smartapps"
+	version()
+   
+    log.info "There are ${childApps.size()} child apps"
     childApps.each {child ->
     log.info "Child app: ${child.label}"
     }
+    
 }
- 
- 
- 
+
+
 def mainPage() {
     dynamicPage(name: "mainPage") {
-      
-		section {    
-			paragraph image: "https://raw.githubusercontent.com/cobravmax/SmartThings/master/icons/cobra.png",
-				title: "Weather Switch",
-				required: false,
-				"This parent app is a container for all Weather Event child apps"
-			}
-            
-		section{
-            paragraph "Parent Status: $state.verCheck"
-			paragraph "Parent Version: $state.appversion -  Copyright © 2018 Cobra"
-			}
-    
-		
-  
-     
-     
-// New Child Apps 
-      
-      
-      
+      installCheck()
         
-      section ("Add An Event"){
-		app(name: "weatherApp", appName: "Weather Switch Child", namespace: "Cobra", title: "Add a new event automation child", multiple: true)
-		
-            
+if(state.appInstalled == 'COMPLETE'){
+			display()
+  section ("Add An Event"){
+		app(name: "weatherApp", appName: "Weather Switch Child", namespace: "Cobra", title: "Add a new weather event automation", multiple: true)
             }
-                  
-   
-           
-           
-// End: New Child Apps
-  
-  
-              section("App name") {
-                label title: "Enter a name for parent app (optional)", required: false
-            }
-  
-  
-  
-  
-  
- } // DynamicPage 
-  
-  } // Mainpage
-
-
-
-
-def cobra(){
-    setAppVersion()
-    def paramsUD = [uri: "http://update.hubitat.uk/cobra.json"]
-       try {
-        httpGet(paramsUD) { respUD ->
-  //   log.info "response data: ${respUD.data}"
-       def cobraVer = (respUD.data.versions.(state.InternalName))
-       def cobraOld = state.appversion.replace(".", "")
-       if(cobraOld < cobraVer){
-		state.verCheck = "** New Version Available **"
-           log.warn "There is a newer version of this app available"
-       }    
-       else{ 
-      state.verCheck = "Current"
-       }
-       
-       }
-        } 
-        catch (e) {
-        log.error "Something went wrong: $e"
-    }
-}        
-
-
- 
-// App Version   *********************************************************************************
-def setAppVersion(){
-    state.appversion = "1.2.0"
-     state.InternalName = "WSparent"
+  section("App name") {
+        label title: "Enter a name for parent app (optional)", required: false
+            }    
+	}
+  }
 }
+
+
+
+def installCheck(){         
+   state.appInstalled = app.getInstallationState() 
+  if(state.appInstalled != 'COMPLETE'){
+section{paragraph "Please hit 'Done' to install Weather Switch"}
+  }
+    else{
+ //       log.info "Parent Installed OK"
+    }
+	}
+
+def version(){
+	unschedule()
+	schedule("0 0 9 ? * FRI *", updateCheck) //  Check for updates at 9am every Friday
+	updateCheck()  
+}
+
+def display(){
+	if(state.status){
+	section{paragraph "Version: $state.version -  $state.Copyright"}
+	if(state.status != "Current"){
+	section{ 
+	paragraph "$state.status"
+	paragraph "$state.UpdateInfo"
+    }
+    }
+}
+}
+
+
+def updateCheck(){
+    setVersion()
+	def paramsUD = [uri: "http://update.hubitat.uk/cobra.json"]
+       	try {
+        httpGet(paramsUD) { respUD ->
+ //  log.warn " Version Checking - Response Data: ${respUD.data}"   // Troubleshooting Debug Code 
+       		def copyrightRead = (respUD.data.copyright)
+       		state.Copyright = copyrightRead
+            def newVerRaw = (respUD.data.versions.Application.(state.InternalName))
+            def newVer = (respUD.data.versions.Application.(state.InternalName).replace(".", ""))
+       		def currentVer = state.version.replace(".", "")
+      		state.UpdateInfo = (respUD.data.versions.UpdateInfo.Application.(state.InternalName))
+                state.author = (respUD.data.author)
+           
+		if(newVer == "NLS"){
+            state.status = "<b>** This app is no longer supported by $state.author  **</b>"       
+            log.warn "** This app is no longer supported by $state.author **"      
+      		}           
+		else if(currentVer < newVer){
+        	state.status = "<b>New Version Available (Version: $newVerRaw)</b>"
+        	log.warn "** There is a newer version of this app available  (Version: $newVerRaw) **"
+        	log.warn "** $state.UpdateInfo **"
+       		} 
+		else{ 
+      		state.status = "Current"
+      		log.info "You are using the current version of this app"
+       		}
+      					}
+        	} 
+        catch (e) {
+        	log.error "Something went wrong: CHECK THE JSON FILE AND IT'S URI -  $e"
+    		}
+ 	
+}
+
+def setVersion(){
+		state.version = "1.3.0"	 
+		state.InternalName = "WSparent"  
+}
+
+
+
+
+
