@@ -36,11 +36,11 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 21/06/2018
+ *  Last Update: 20/08/2018
  *
  *  Changes:
  *
- *  V2.5.0 - Added remote version checking 
+ *  V2.5.0 - code cleanup & Added remote version checking 
  *  V2.4.0 - Re-enabled TTS talking as an action option
  *  V2.3.1 - Added ability to configure Pushover priority from GUI
  *  V2.3.0 - Added 'PushOver' messaging option
@@ -59,7 +59,7 @@
  *  V1.0.1 - debug
  *  V1.0.0 - POC
  *
- *  Features to come....  control a garage door
+ *  Features to come....  control a garage door?
  *  
  */
 
@@ -97,9 +97,8 @@ def updated() {
 }
 def initialize() {
  log.info "Initialised with settings: ${settings}"
-    setAppVersion()
-    cobra()
     logCheck()
+    version()
     switchRunCheck()
     state.timer1 = true
 	state.timerDoor = true
@@ -107,7 +106,6 @@ def initialize() {
 	state.riseSetGo = true
 
 // Basic Subscriptions 
-    schedule("0 0 14 ? * FRI *", cobra)
 	subscribe(location, "hsmStatus", statusHandler)
 	subscribe(enableSwitch, "switch", switchEnable)
 	subscribe(location, "sunriseTime", sunriseSunsetTimeHandler)
@@ -165,15 +163,12 @@ def mainPage() {
     dynamicPage(name: "mainPage") {
       
         section {
-        paragraph image: "https://raw.githubusercontent.com/cobravmax/SmartThings/master/icons/presence.png",
-                  title: "Presence Control Child",
+        paragraph title: "Presence Control Child",
                   required: false,
                   "This child app allows you to define different actions upon arrival or departure of one or more presence sensors"
                   }
-     section{
-            paragraph "Child Status: $state.verCheck"
-			paragraph "Child Version: $state.appversion -  Copyright © 2018 Cobra"
-			}  
+   display()
+        
       section() {
         	basicInputs()
           	  	}
@@ -294,7 +289,7 @@ def presenceActions(){
 
 
 def outputActions(){
-input "presenceAction", "enum", title: "What action to take?",required: true, submitOnChange: true, options: ["Control A Switch", "Change Mode",  "Control a Lock", "Send An SMS Message", "PushOver Message", "Speak A Message", "Set Safety Monitor Mode"]
+input "presenceAction", "enum", title: "What action to take?",required: true, submitOnChange: true, options: ["Control A Switch", "Change Mode",  "Control a Lock", "Send An SMS Message", "PushOver Message", "Speak A Message", "Flash Lights", "Set Safety Monitor Mode"]
 
     // Removed from 'action' options until active/re-coded  ********************************************************************************************************************************
     // , "Control a Door", 
@@ -1614,7 +1609,7 @@ log.info "Further Logging Disabled"
 }
 def LOGDEBUG(txt){
     try {
-    	if (settings.debugMode) { log.debug("${app.label.replace(" ","_").toUpperCase()}  (Childapp Version: ${state.appversion}) - ${txt}") }
+    	if (settings.debugMode) { log.debug("${app.label.replace(" ","_").toUpperCase()}  (Childapp Version: ${state.version}) - ${txt}") }
     } catch(ex) {
     	log.error("LOGDEBUG unable to output requested data!")
     }
@@ -1623,35 +1618,63 @@ def LOGDEBUG(txt){
 
 
 
-def cobra(){
-    setAppVersion()
-    def paramsUD = [uri: "http://update.hubitat.uk/cobra.json"]
-       try {
-        httpGet(paramsUD) { respUD ->
-  //   log.info "response data: ${respUD.data}"
-       def cobraVer = (respUD.data.versions.(state.InternalName))
-       def cobraOld = state.appversion.replace(".", "")
-       if(cobraOld < cobraVer){
-		state.verCheck = "** New Version Available **"
-           log.warn "There is a newer version of this app available"
-       }    
-       else{ 
-      state.verCheck = "Current"
-      log.info "App is current version"
-       }
-       
-       }
-        } 
-        catch (e) {
-        log.error "Something went wrong: $e"
+def version(){
+	unschedule()
+	schedule("0 0 9 ? * FRI *", updateCheck) //  Check for updates at 9am every Friday
+	updateCheck()  
+}
+
+def display(){
+	if(state.status){
+	section{paragraph "Version: $state.version -  $state.Copyright"}
+	if(state.status != "Current"){
+	section{ 
+	paragraph "$state.status"
+	paragraph "$state.UpdateInfo"
     }
-}        
+    }
+}
+}
 
 
- 
-// App Version   *********************************************************************************
-def setAppVersion(){
-    state.appversion = "2.5.0"
-     state.InternalName = "PCchild"
-   
+def updateCheck(){
+    setVersion()
+	def paramsUD = [uri: "http://update.hubitat.uk/cobra.json"]
+       	try {
+        httpGet(paramsUD) { respUD ->
+//  log.warn " Version Checking - Response Data: ${respUD.data}"   // Troubleshooting Debug Code 
+       		def copyrightRead = (respUD.data.copyright)
+       		state.Copyright = copyrightRead
+            def newVerRaw = (respUD.data.versions.Application.(state.InternalName))
+            def newVer = (respUD.data.versions.Application.(state.InternalName).replace(".", ""))
+       		def currentVer = state.version.replace(".", "")
+      		state.UpdateInfo = (respUD.data.versions.UpdateInfo.Application.(state.InternalName))
+                state.author = (respUD.data.author)
+           
+		if(newVer == "NLS"){
+            state.status = "<b>** This app is no longer supported by $state.author  **</b>"       
+            log.warn "** This app is no longer supported by $state.author **"      
+      		}           
+		else if(currentVer < newVer){
+        	state.status = "<b>New Version Available (Version: $newVerRaw)</b>"
+        	log.warn "** There is a newer version of this app available  (Version: $newVerRaw) **"
+        	log.warn "** $state.UpdateInfo **"
+       		} 
+		else{ 
+      		state.status = "Current"
+      		log.info "You are using the current version of this app"
+       		}
+      					}
+        	} 
+        catch (e) {
+        	log.error "Something went wrong: CHECK THE JSON FILE AND IT'S URI -  $e"
+    		}
+   		
+    
+    	//	
+}
+
+def setVersion(){
+		state.version = "2.5.0"
+     		state.InternalName = "PCchild"
 }
