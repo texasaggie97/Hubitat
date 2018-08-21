@@ -18,10 +18,10 @@
  *
  *  Z-Wave Door/Window Sensor
  *
- *  Updated 21/08/2018
+ *  Updated 13/08/2018
  *
- *  V1.3.0 - Added ability to reverse open/closed operation independently from switch
- *  V1.2.0 - Added 'force Open' and 'Force Closed'
+ *
+ *
  *  V1.1.0 - Set initial state to off and cleaned up code a little
  *  V1.0.0 - POC
  */
@@ -32,8 +32,7 @@ metadata {
 		capability "Sensor"
 		capability "Battery"
         capability "Switch"
-        command "forceOpen"
-        command "forceClosed"
+        
         
 		attribute "DriverAuthor", "string"
         attribute "DriverVersion", "string"
@@ -68,7 +67,7 @@ metadata {
             section("Switch Mode"){
 
                 input "mode", "bool", title: ("Reverse Switch Mode")    
-                input "mode1", "bool", title: ("Reverse Contact Mode")
+                
             }
             
         }
@@ -123,30 +122,27 @@ def updated() {
 }
 
 
-def forceOpen(){
-   sensorValueEvent(1) 
-    
-}
-def forceClosed(){
-    sensorValueEvent(0)  
-}
-
-
 def sensorValueEvent(value) {
 	if (value) {
 		createEvent(name: "contact", value: "open", descriptionText: "$device.displayName is open")
-        if(mode == false){ sendEvent(name: "switch", value: "on")}        
-        if(mode1 == false){sendEvent(name: "contact", value: "open")}
-        if(mode == true){sendEvent(name: "switch", value: "off")}
-        if(mode1 == true){sendEvent(name: "contact", value: "closed")}
-       
-         
+        if(mode == false){
+            sendEvent(name: "switch", value: "on")}
+        sendEvent(name: "contact", value: "open")
+        
+        if(mode == true){
+            sendEvent(name: "switch", value: "off")}
+        
+        
+        
+        
 	} else {
 		createEvent(name: "contact", value: "closed", descriptionText: "$device.displayName is closed")
-        if(mode == false){sendEvent(name: "switch", value: "off")}
-        if(mode1 == false){sendEvent(name: "contact", value: "closed")}
-        if(mode == true){sendEvent(name: "switch", value: "on")}
-        if(mode1 == true){sendEvent(name: "contact", value: "open")}
+         if(mode == false){
+             sendEvent(name: "switch", value: "off")}
+        sendEvent(name: "contact", value: "closed")
+        
+        if(mode == true){
+            sendEvent(name: "switch", value: "on")}
         
         
     }	
@@ -441,7 +437,7 @@ def updateCheck(){
 }
 
 def setVersion(){
-		state.Version = "1.3.0"	 
+		state.Version = "1.1.0"	 
 		state.InternalName = "ContactSwitch"
 }
 
