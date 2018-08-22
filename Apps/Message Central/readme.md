@@ -11,7 +11,7 @@ This is a port from SmartThings of my Message Central smartapp
 INSTALL NOTES:
 ********************
 
-1. Copy the Parent code from GitHub into a ‘New App’ under the ‘Apps Code’ menu then click ‘Save’
+1. Copy the Parent code from GitHub into a ‘New App’ under the ‘Apps Code’ menu then click ‘Done’
 
 2. Copy the Child code from GitHub into a second ‘New App’ & save this too
 

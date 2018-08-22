@@ -33,11 +33,11 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 21/03/2018
+ *  Last Update: 22/08/2018
  *
  *  Changes:
  *
- *
+ *  V2.1.0 - Code cleanup and remote version checking
  *  V2.0.0 - Port to Hubitat (disabled missed messages child)
  *  V1.1.0 - Added second child to remind of missed alerts
  *  V1.0.2 - Added icons
@@ -51,35 +51,17 @@
     name: "Message Central",
     namespace: "Cobra",
     author: "Andrew Parker",
-    description: "Parent App for Message Automation.",
+    description: "Message Automation.",
    category: "Fun & Social",
-    iconUrl: "https://raw.githubusercontent.com/cobravmax/SmartThings/master/icons/voice.png",
-    iconX2Url: "https://raw.githubusercontent.com/cobravmax/SmartThings/master/icons/voice.png",
-    iconX3Url: "https://raw.githubusercontent.com/cobravmax/SmartThings/master/icons/voice.png")
+    iconUrl: "",
+    iconX2Url: "",
+    iconX3Url: "")
 
 preferences {
     
-    page(name: "mainPage", title: "Automations", install: true, uninstall: true,submitOnChange: true) {
+    page name: "mainPage", title: "", install: true, uninstall: true
     
-    section() {
-    
-        paragraph image: "https://raw.githubusercontent.com/cobravmax/SmartThings/master/icons/voice.png",
-                  title: "Multiple Message Control",
-                  required: false,
-                  "This parent app is a container for all message child apps"
-    }
-    section() {
-           paragraph image: "https://raw.githubusercontent.com/cobravmax/SmartThings/master/icons/cobra3.png",
-                         "Parent Version: 1.1.0 -  Copyright © 2018 Cobra"
-    }
-    section {
-            app(name: "switchMessageAutomation", appName: "Message_Central_Child", namespace: "Cobra", title: "Create New Triggered Message", multiple: true)
-     //       app(name: "switchMessageAutomation1", appName: "Missed_Voice_Alerts", namespace: "Cobra", title: "Create New Missed Time Alert Message", multiple: true)
-            }
-            
-           
-            
-    }
+   
 }
 
 def installed() {
@@ -89,11 +71,13 @@ def installed() {
 
 def updated() {
     log.debug "Updated with settings: ${settings}"
-    unsubscribe()
+    
     initialize()
 }
 
 def initialize() {
+    version()
+    
     log.debug "there are ${childApps.size()} child smartapps"
     childApps.each {child ->
         log.debug "child app: ${child.label}"
@@ -102,3 +86,90 @@ def initialize() {
    
     
 }
+
+def mainPage() {
+    dynamicPage(name: "mainPage") {
+installCheck()
+if(state.appInstalled == 'COMPLETE'){
+			display()
+    
+     section (""){
+            app(name: "switchMessageAutomation", appName: "Message_Central_Child", namespace: "Cobra", title: "Create New Triggered Message", multiple: true)
+            }  
+     section(" ") {
+        label title: "Enter a name for parent app (optional)", required: false
+            }      
+		}
+    }
+}
+    
+    
+def installCheck(){         
+   state.appInstalled = app.getInstallationState() 
+  if(state.appInstalled != 'COMPLETE'){
+section{paragraph "Please hit 'Done' to install Message Central"}
+  }
+    else{
+ //       log.info "Parent Installed OK"
+    }
+	}
+
+def version(){
+	unschedule()
+	schedule("0 0 9 ? * FRI *", updateCheck) //  Check for updates at 9am every Friday
+	updateCheck()  
+}
+
+def display(){
+	if(state.status){
+	section{paragraph "Version: $state.version -  $state.Copyright"}
+	if(state.status != "Current"){
+	section{ 
+	paragraph "$state.status"
+	paragraph "$state.UpdateInfo"
+    }
+    }
+}
+}
+
+
+def updateCheck(){
+    setVersion()
+	def paramsUD = [uri: "http://update.hubitat.uk/cobra.json"]
+       	try {
+        httpGet(paramsUD) { respUD ->
+ //  log.warn " Version Checking - Response Data: ${respUD.data}"   // Troubleshooting Debug Code 
+       		def copyrightRead = (respUD.data.copyright)
+       		state.Copyright = copyrightRead
+            def newVerRaw = (respUD.data.versions.Application.(state.InternalName))
+            def newVer = (respUD.data.versions.Application.(state.InternalName).replace(".", ""))
+       		def currentVer = state.version.replace(".", "")
+      		state.UpdateInfo = (respUD.data.versions.UpdateInfo.Application.(state.InternalName))
+                state.author = (respUD.data.author)
+           
+		if(newVer == "NLS"){
+            state.status = "<b>** This app is no longer supported by $state.author  **</b>"       
+            log.warn "** This app is no longer supported by $state.author **"      
+      		}           
+		else if(currentVer < newVer){
+        	state.status = "<b>New Version Available (Version: $newVerRaw)</b>"
+        	log.warn "** There is a newer version of this app available  (Version: $newVerRaw) **"
+        	log.warn "** $state.UpdateInfo **"
+       		} 
+		else{ 
+      		state.status = "Current"
+      		log.info "You are using the current version of this app"
+       		}
+      					}
+        	} 
+        catch (e) {
+        	log.error "Something went wrong: CHECK THE JSON FILE AND IT'S URI -  $e"
+    		}
+ 	
+}
+
+def setVersion(){
+		state.version = "2.1.0"	 
+		state.InternalName = "MCparent"  
+}
+

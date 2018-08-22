@@ -30,10 +30,13 @@
  *-------------------------------------------------------------------------------------------------------------------
  *
  *
- *  Last Update: 16/07/2018
+ *  Last Update: 22/08/2018
  *
  *  Changes:
  *
+ *
+ *
+ *  V10.5.0 - Debug disable switch & power input (allow decimal input)
  *  V10.4.0 - Sorted out %date% %year% & %day% variables (to correct errors in different format for Hubitat)
  *  V10.3.0 - Added Mode restriction in Hubitat format (previous format was not working correctly) and debug/reformat of version checking
  *  V10.2.1 - Debug 'colon' was being spoken - now replaced with a space in message conversion
@@ -129,8 +132,8 @@ def initialize() {
 	  log.info "Initialised with settings: ${settings}"
       
       logCheck()
-     version()
-      schedule("0 0 14 ? * FRI *", cobra)
+      version()
+     
       switchRunCheck()
       state.timer1 = true
       state.timer2 = true
@@ -151,9 +154,6 @@ def initialize() {
 // Subscriptions    
 
 subscribe(enableSwitch, "switch", switchEnable)
-
-
-
 
 
 if(trigger == 'Time'){
@@ -697,7 +697,7 @@ else if(state.selection == 'Contact'){
 
 else if(state.selection == 'Power'){
 	input "powerSensor", "capability.powerMeter", title: "Select power sensor to trigger message", required: false, multiple: false 
-    input(name: "belowThreshold", type: "number", title: "Power Threshold (Watts)", required: true, description: "this number of watts")
+    input(name: "belowThreshold", type: "decimal", title: "Power Threshold (Watts)", required: true, description: "this number of watts")
     input "actionType1", "bool", title: "Select Power Sensor action type: \r\n \r\n On = Alert when power goes ABOVE configured threshold  \r\n Off = Alert when power goes BELOW configured threshold", required: true, defaultValue: false
 	input(name: "delay1", type: "number", title: "Only if it stays that way for this number of minutes...", required: true, description: "this number of minutes", defaultValue: '0')
     
@@ -730,7 +730,7 @@ else if(state.selection == 'Power'){
 
 else if(state.selection == 'Appliance Power Monitor'){
 	input "powerSensor", "capability.powerMeter", title: "Select power sensor to trigger message", required: true, multiple: false 
-    input(name: "belowThreshold", type: "number", title: "Below Power Threshold (Watts)", required: true, description: "Trigger below this number of watts", defaultValue: '0')
+    input(name: "belowThreshold", type: "decimal", title: "Below Power Threshold (Watts)", required: true, description: "Trigger below this number of watts", defaultValue: '0')
     input(name: "delay2", type: "number", title: "Only if it stays that way for this number of minutes...", required: true, description: "this number of minutes", defaultValue: '0')
     input(name: "aboveThreshold", type: "number", title: "Activate Power Threshold (Watts)", required: true, description: "Start monitoring above this number of watts", defaultValue: '0')
 	
@@ -1012,7 +1012,7 @@ LOGDEBUG( "Activate threshold reached or exceeded setting state.activate to: $st
 
  if(state.appgo == true && state.activate == true){
 LOGDEBUG( "powerApplianceNow -  Power is: $state.meterValue")
-    state.belowValue = belowThreshold as int
+    state.belowValue = belowThreshold as double
     if (state.meterValue < state.belowValue) {
    def mydelay = 60 * delay2 
    LOGDEBUG( "Checking again after delay: $delay2 minutes... Power is: $state.meterValue")
@@ -2088,7 +2088,7 @@ state.actionEvent = evt.value as double
 def checkNow1(){
 if( actionType1 == false){
 LOGDEBUG( "checkNow1 -  Power is: $state.meterValue")
-    state.belowValue = belowThreshold as int
+    state.belowValue = belowThreshold as double
     if (state.meterValue < state.belowValue) {
    def mydelay = 60 * delay1 
    LOGDEBUG( "Checking again after delay: $delay1 minutes... Power is: $state.meterValue")
@@ -2098,7 +2098,7 @@ LOGDEBUG( "checkNow1 -  Power is: $state.meterValue")
       
 else if( actionType1 == true){
 LOGDEBUG( "checkNow1 -  Power is: $state.meterValue")
-    state.belowValue = belowThreshold as int
+    state.belowValue = belowThreshold as double
     if (state.meterValue > state.belowValue) {
    def mydelay = 60 * delay1
    LOGDEBUG( "Checking again after delay: $delay1 minutes... Power is: $state.meterValue")
@@ -2208,7 +2208,7 @@ LOGDEBUG( "Timer reset - Messages allowed")
 // PushOver Message Actions =============================
 def pushOver(msgType, inMsg){
        modeCheck()
-    if(state.modeCheck == true){  
+    if(state.modeCheck == true && state.appgo == true){  
     if(state.timer1 == true){
 // compileMsg(inMsg)
     newMessage = state.fullPhrase
@@ -2270,7 +2270,7 @@ def pushOver(msgType, inMsg){
  }
 }
     else{
-        LOGDEBUG("Not in correct 'mode' to continue")
+        LOGDEBUG("One or more conditions not met - Unable to continue")
     }
 }
 
@@ -2997,65 +2997,64 @@ private getyear() {
 }
 
 
-// Check Version   *********************************************************************************
 def version(){
-    cobra()
-    if (state.Type == "Application"){
-    schedule("0 0 14 ? * FRI *", cobra)
-    }
-    if (state.Type == "Driver"){
-    schedule("0 45 16 ? * MON *", cobra)
-    }
+	unschedule()
+	schedule("0 0 9 ? * FRI *", updateCheck) //  Check for updates at 9am every Friday
+	updateCheck()  
 }
 
 def display(){
-    
-    section{
-            paragraph "Version Status: $state.verCheck"
-			paragraph "Current Version: $state.version -  $state.Copyright"
-			}
-
-}
-
-
-def cobra(){
-    
-    setVersion()
-    def paramsUD = [uri: "http://update.hubitat.uk/cobra.json"]
-       try {
-        httpGet(paramsUD) { respUD ->
-   log.info " Version Checking - Response Data: ${respUD.data}"
-       def copyNow = (respUD.data.copyright)
-       state.Copyright = copyNow
-            def newver = (respUD.data.versions.(state.Type).(state.InternalName))
-            def cobraVer = (respUD.data.versions.(state.Type).(state.InternalName).replace(".", ""))
-       def cobraOld = state.version.replace(".", "")
-       if(cobraOld < cobraVer){
-		state.Status = "<b>** New Version Available (Version: $newver) **</b>"
-           log.warn "** There is a newer version of this $state.Type available  (Version: $newver) **"
-       }    
-       else{ 
-      state.Status = "Current"
-      log.info "$state.Type is the current version"
-       }
-       
-       }
-        } 
-        catch (e) {
-        log.error "Something went wrong: $e"
+	if(state.status){
+	section{paragraph "Version: $state.version -  $state.Copyright"}
+	if(state.status != "Current"){
+	section{ 
+	paragraph "$state.status"
+	paragraph "$state.UpdateInfo"
     }
-}        
-
-
-
- 
-// App Version   *********************************************************************************
-def setVersion(){
-     state.version = "10.4.0"
-     state.InternalName = "MCchild"
-     state.Type = "Application"
-
-
+    }
 }
+}
+
+
+def updateCheck(){
+    setVersion()
+	def paramsUD = [uri: "http://update.hubitat.uk/cobra.json"]
+       	try {
+        httpGet(paramsUD) { respUD ->
+ //  log.warn " Version Checking - Response Data: ${respUD.data}"   // Troubleshooting Debug Code 
+       		def copyrightRead = (respUD.data.copyright)
+       		state.Copyright = copyrightRead
+            def newVerRaw = (respUD.data.versions.Application.(state.InternalName))
+            def newVer = (respUD.data.versions.Application.(state.InternalName).replace(".", ""))
+       		def currentVer = state.version.replace(".", "")
+      		state.UpdateInfo = (respUD.data.versions.UpdateInfo.Application.(state.InternalName))
+                state.author = (respUD.data.author)
+           
+		if(newVer == "NLS"){
+            state.status = "<b>** This app is no longer supported by $state.author  **</b>"       
+            log.warn "** This app is no longer supported by $state.author **"      
+      		}           
+		else if(currentVer < newVer){
+        	state.status = "<b>New Version Available (Version: $newVerRaw)</b>"
+        	log.warn "** There is a newer version of this app available  (Version: $newVerRaw) **"
+        	log.warn "** $state.UpdateInfo **"
+       		} 
+		else{ 
+      		state.status = "Current"
+      		log.info "You are using the current version of this app"
+       		}
+      					}
+        	} 
+        catch (e) {
+        	log.error "Something went wrong: CHECK THE JSON FILE AND IT'S URI -  $e"
+    		}
+ 	
+}
+
+def setVersion(){
+		state.version = "10.5.0"	 
+		state.InternalName = "MCchild"  
+}
+
 
 
