@@ -123,7 +123,7 @@ log.info "Further Logging Disabled"
 }
 def LOGDEBUG(txt){
     try {
-    	if (settings.debugMode) { log.debug("${app.label.replace(" ","_").toUpperCase()}  (Childapp Version: ${state.appversion}) - ${txt}") }
+    	if (settings.debugMode) { log.debug("${app.label.replace(" ","_").toUpperCase()}  (App Version: ${state.version}) - ${txt}") }
     } catch(ex) {
     	log.error("LOGDEBUG unable to output requested data!")
     }
