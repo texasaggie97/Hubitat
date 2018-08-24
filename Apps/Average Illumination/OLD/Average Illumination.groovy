@@ -39,9 +39,6 @@
  *
  *  Changes:
  *
- *
- *
- *  V1.1.0 - Added ability to set how often data is sent to the virtual device
  *  V1.0.0 - POC
  *
  */
@@ -71,9 +68,6 @@ section("") {
      section("Set Virtual Illuminance Sensor "){
         input "vDevice", "capability.sensor", title: "Virtual Device"
     }
-     section(){
-     input "sendInterval", "number", title: "How Often To Update Virtual Device (Minutes)", required: true, defaultValue: "0"
-     }
     section("Logging") {
             input "debugMode", "bool", title: "Enable logging", required: true, defaultValue: false
   	        }
@@ -89,7 +83,6 @@ def updated() {
 }
 
 def initialize() {
-  state.sendOK = true     
 version()
 logCheck()
     subscribe(illumSensors, "illuminance", illuminanceHandler)
@@ -109,27 +102,12 @@ LOGDEBUG( "Sensor data count = $count" )
     sum += sensor.currentIlluminance }
 LOGDEBUG( "Total Combined value =  $sum")
 
-    state.mean = sum/count
-    LOGDEBUG("Average Illuminance = $state.mean")
+    mean = sum/count
+    LOGDEBUG("Average Illuminance = $mean")
+	LOGDEBUG("Sending info to $vDevice")
 
-    if(state.sendOK == true){
-        def timeCheck = 60 * sendInterval  
-        LOGDEBUG("Sending info to $vDevice then waiting $timeCheck seconds before I can send again")
-     settings.vDevice.setLux("${state.mean}")
-        state.sendOK = false
-       runIn(timeCheck, resetNow) 
-     }
-    else {
-     LOGDEBUG("Waiting for timer to expire")  
-    }
-}                           
-
-
-def resetNow(){
- LOGDEBUG("Timer reset")    
-    state.sendOK = true
- }
-
+     settings.vDevice.setLux("${mean}")
+}
 
 
 // define debug action
@@ -207,7 +185,7 @@ def updateCheck(){
 }
 
 def setVersion(){
-		state.version = "1.1.0"	 
+		state.version = "1.0.0"	 
 		state.InternalName = "AverageIllum"
 }
 
