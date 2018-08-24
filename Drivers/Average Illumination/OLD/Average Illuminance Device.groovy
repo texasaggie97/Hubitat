@@ -38,18 +38,15 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update 24/08/2018
+ *  Last Update 23/08/2018
  *
- *
- *
- *  V1.1.0 - Urgent Update - Stripped out variable logging as it was causing the hub problems
  *  V1.0.0 - POC
  */
 
 
 
 metadata {
-	definition (name: "Average Virtual Illuminance Device", namespace: "Cobra", author: "Cobra") {
+	definition (name: "Average Illuminance Device", namespace: "Cobra", author: "Cobra") {
 		capability "Illuminance Measurement"
 		capability "Sensor"
         command "setLux", ["decimal"]
@@ -59,10 +56,52 @@ metadata {
         attribute "DriverUpdate", "string" 
 	}
     
-
+    preferences {
+    	section("Setting") {
+			input "logging", "enum", title: "Log Level", required: true, defaultValue: "DEBUG", options: ["TRACE", "DEBUG", "INFO", "WARN", "ERROR"]
+        }
+    }
 
 }
 
+def determineLogLevel(data) {
+	if(data.toUpperCase() == "TRACE") {
+    	return 0
+    } else if(data.toUpperCase() == "DEBUG") {
+    	return 1
+    } else if(data.toUpperCase() == "INFO") {
+    	return 2
+    } else if(data.toUpperCase() == "WARN") {
+    	return 3
+    } else {
+    	return 4
+    }
+}
+
+def log(data1, type) {
+    
+ //   data1 = "Received LUX data -- $data " // + data
+    
+    try {
+        if(determineLogLevel(type) >= determineLogLevel(logging)) {
+            if(type.toUpperCase() == "TRACE") {
+                log.trace "${data1}"
+            } else if(type.toUpperCase() == "DEBUG") {
+                log.debug "${data1}"
+            } else if(type.toUpperCase() == "INFO") {
+                log.info "${data1}"
+            } else if(type.toUpperCase() == "WARN") {
+                log.warn "${data1}"
+            } else if(type.toUpperCase() == "ERROR") {
+                log.error "${data1}"
+            } else {
+                log.error "Illuminance Device -- Invalid Log Setting"
+            }
+        }
+    } catch(e) {
+    	log.error ${e}
+    }
+}
 def parse(String description) {
 	def name = parseName(description)
 	def value = parseValue(description)
@@ -91,11 +130,7 @@ def setLux(val) {
 	sendEvent(name: "illuminance", value: val, unit: lx)
 }
 
-
-
-
 def updated() {version()}
-
 def version(){
     unschedule()
     schedule("0 0 8 ? * FRI *", updateCheck)  
@@ -151,7 +186,7 @@ def updateCheck(){
 }
 
 def setVersion(){
-		state.Version = "1.1.0"	
+		state.Version = "1.0.0"	
 		state.InternalName = "AverageIllum"   
 }
 
