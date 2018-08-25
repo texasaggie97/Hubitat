@@ -41,7 +41,7 @@
  *  Last Update 24/08/2018
  *
  *
- *  V1.2.0 - Added 'Units' to events
+ *
  *  V1.1.0 - Urgent Update - Stripped out variable logging as it was causing the hub problems
  *  V1.0.0 - POC
  */
@@ -66,9 +66,7 @@ metadata {
 def parse(String description) {
 	def name = parseName(description)
 	def value = parseValue(description)
-	def unit = name == "illuminance" ? "lux" : null
- log.warn "Parse unit = $unit"   
-    
+	def unit = name == "illuminance" ? lx : null
 	def result = createEvent(name: name, value: value, unit: unit)
 	log.debug "Parse returned ${result?.descriptionText}"
 	return result
@@ -83,15 +81,14 @@ private String parseName(String description) {
 
 private String parseValue(String description) {
 		if (description?.startsWith("illuminance: ")) {
-		return zigbee.parseHALuxValue(description, "illuminance: ", "lux")
+		return zigbee.parseHALuxValue(description, "illuminance: ", lx)
 		} 
     	null
 }
 
 def setLux(val) {
     log.debug "Setting illuminance for ${device.displayName} from external input, illuminance = ${val}."
-	sendEvent(name: "illuminance", value: val, unit: "lux")
- //   log.warn "set lux unit = $unit" 
+	sendEvent(name: "illuminance", value: val, unit: lx)
 }
 
 
@@ -154,7 +151,7 @@ def updateCheck(){
 }
 
 def setVersion(){
-		state.Version = "1.2.0"	
+		state.Version = "1.1.0"	
 		state.InternalName = "AverageIllum"   
 }
 
