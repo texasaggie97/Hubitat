@@ -17,7 +17,7 @@
  *
  *  Changes: 28/08/2018
  *
- *
+ *  V1.5.1 - debug default trend value
  *  V1.5.0 - Added 'Trend'
  *  V1.4.0 - Code cleanup and revised remote version checking for use with 'Average All' app also added 'unit' selection for dashboards
  *  V1.3.0 - Added 'setTemperature' and removed 'parse' button - This must be used with V1.3.0 of the app
@@ -43,7 +43,7 @@ metadata {
  preferences() {
      
       section(){
-        input "frequency", "number", required: true, title: "How often to check for trend (Minutes after temp change)", defaultValue: "30"  
+        input "frequency", "number", required: true, title: "How often to check for trend (Minutes after temp change)", defaultValue: 30  
        
   }   
      section("") {
@@ -157,7 +157,7 @@ def updateCheck(){
 }
 
 def setVersion(){
-		state.Version = "1.5.0"	
+		state.Version = "1.5.1"	
 		state.InternalName = "AverageTemp"  
 }
 

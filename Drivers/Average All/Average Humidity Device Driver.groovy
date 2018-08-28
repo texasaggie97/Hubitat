@@ -37,7 +37,7 @@
  *
  *
  *  
- *  
+ *  V1.0.1 - debug default trend value
  *  V1.0.0 - POC
  */
 
@@ -59,7 +59,7 @@ metadata {
     preferences() {
      
       section(){
-        input "frequency", "number", required: true, title: "How often to check for trend (Minutes after humidity change)", defaultValue: "30"  
+        input "frequency", "number", required: true, title: "How often to check for trend (Minutes after humidity change)", defaultValue: 30  
        
   } 
  } 
@@ -163,7 +163,7 @@ def updateCheck(){
 }
 
 def setVersion(){
-		state.Version = "1.0.0"	
+		state.Version = "1.0.1"	
 		state.InternalName = "AverageHumidity"   
 }
 

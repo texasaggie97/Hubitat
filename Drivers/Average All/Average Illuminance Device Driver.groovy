@@ -38,6 +38,8 @@
  *
  *  Last Update 28/08/2018
  *
+ *
+ *  V1.3.1 - debug default trend value
  *  V1.3.0 - Added 'Trend'
  *  V1.2.0 - Added 'Units' to events & Cleaned out old ST code
  *  V1.1.0 - Urgent Update - Stripped out variable logging as it was causing the hub problems
@@ -62,7 +64,7 @@ metadata {
  preferences() {
      
       section(){
-        input "frequency", "number", required: true, title: "How often to check for trend (Minutes after illuminance change)", defaultValue: "30"  
+        input "frequency", "number", required: true, title: "How often to check for trend (Minutes after illuminance change)", defaultValue: 30  
        
   } 
  }
@@ -108,7 +110,10 @@ def calculateTrendNow(){
 }
 
 
-def updated() {version()}
+def updated() {
+    version()
+
+}
 
 def version(){
     unschedule()
@@ -165,7 +170,7 @@ def updateCheck(){
 }
 
 def setVersion(){
-		state.Version = "1.3.0"	
+		state.Version = "1.3.1"	
 		state.InternalName = "AverageIllum"   
 }
 
