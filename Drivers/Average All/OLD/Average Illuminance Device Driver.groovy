@@ -3,6 +3,9 @@
  *
  *  Copyright 2018 Andrew Parker
  *
+ *  This driver was originally born from an idea by @bobgodbold and I thank him for that!
+ *  @bobgodbold ported some of the original code from SmartThings before I adapted it (after stripping out the old ST code) to it's present form
+ *  
  *
  *  
  *  This driver is free!
@@ -36,18 +39,20 @@
  *  Last Update 28/08/2018
  *
  *
- *  V1.0.2 - Debug
- *  V1.0.1 - debug default trend value
+ *  V1.3.1 - debug default trend value
+ *  V1.3.0 - Added 'Trend'
+ *  V1.2.0 - Added 'Units' to events & Cleaned out old ST code
+ *  V1.1.0 - Urgent Update - Stripped out variable logging as it was causing the hub problems
  *  V1.0.0 - POC
  */
 
 
 
 metadata {
-	definition (name: "Average Humidity Device Driver", namespace: "Cobra", author: "Cobra") {
-		capability "Relative Humidity Measurement"
+	definition (name: "Average Illuminance Device Driver", namespace: "Cobra", author: "Cobra") {
+		capability "Illuminance Measurement"
 		capability "Sensor"
-        command "setHumidity", ["decimal"]
+        command "setLux", ["decimal"]
         command "calculateTrendNow"
         
         attribute "trend", "string"
@@ -56,51 +61,48 @@ metadata {
         attribute "DriverStatus", "string"
         attribute "DriverUpdate", "string" 
 	}
-    preferences() {
+ preferences() {
      
       section(){
-        input "frequency", "number", required: true, title: "How often to check for trend (Minutes after humidity change)", defaultValue: 30  
+        input "frequency", "number", required: true, title: "How often to check for trend (Minutes after illuminance change)", defaultValue: 30  
        
   } 
- } 
+ }
 
 
 }
 
 
-def setHumidity(val) {
-// version()
-    log.debug "Setting humidity for ${device.displayName} from external input, humidity = ${val}."
-	sendEvent(name: "humidity", value: val, unit: "%")
-    def averageHumid = val.toFloat()
-  state.current = averageHumid
-  def checkFrequency1 = frequency
-    def checkFrequency = 60 * checkFrequency1
-    log.info "checkFrequency = $checkFrequency"
+def setLux(val) {
+    log.debug "Setting illuminance for ${device.displayName} from external input, illuminance = ${val}."
+	sendEvent(name: "illuminance", value: val, unit: "lux")
+ //   log.warn "set lux unit = $unit" 
+    def averageLux = val
+  state.current = averageLux
+  def checkFrequency = 60 * frequency
    runIn(checkFrequency, calculateTrendNow) 
+    
+    
 }
 
 def calculateTrendNow(){
     
-   state.previous = state.calc1
+   state.previous = state.calc
     log.info "state.previous = $state.previous"
-    log.info "state.calc1 = $state.calc1"
-   state.calc1 = state.current
+   state.calc = state.current
      log.info "state.current = $state.current"
-     log.info "state.calc1 = $state.calc1"
-    log.info "state.previous = $state.previous"
     
-    if(state.previous > state.calc1){ 
+    if(state.previous > state.current){ 
         state.trend = "Falling"
-   		log.info "Humidity Falling"
+   		log.info "Illuminance Falling"
     }
-   else if(state.previous < state.calc1){ 
+   else if(state.previous < state.current){ 
        state.trend = "Rising"
-   log.info "Humidity Rising"
+   log.info "Illuminance Rising"
    } 
     else {
         state.trend = "Static"
-        log.info "Humidity Static"
+        log.info "Illuminance Static"
          }
      sendEvent(name:"trend", value: state.trend)
 
@@ -110,11 +112,8 @@ def calculateTrendNow(){
 
 def updated() {
     version()
-state.calc = " "
+
 }
-
-
-
 
 def version(){
     unschedule()
@@ -171,8 +170,8 @@ def updateCheck(){
 }
 
 def setVersion(){
-		state.Version = "1.0.2"	
-		state.InternalName = "AverageHumidity"   
+		state.Version = "1.3.1"	
+		state.InternalName = "AverageIllum"   
 }
 
 

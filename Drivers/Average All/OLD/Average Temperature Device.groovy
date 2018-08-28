@@ -17,7 +17,6 @@
  *
  *  Changes: 28/08/2018
  *
- *  V1.5.2 - Debug
  *  V1.5.1 - debug default trend value
  *  V1.5.0 - Added 'Trend'
  *  V1.4.0 - Code cleanup and revised remote version checking for use with 'Average All' app also added 'unit' selection for dashboards
@@ -37,14 +36,14 @@ metadata {
         attribute "DriverVersion", "string"
         attribute "DriverAuthor", "string"
         attribute "DriverStatus", "string"
-        command "trendNow"
+        command "calculateTrendNow"
         command "setTemperature", ["number"]
     }
 
  preferences() {
      
       section(){
-        input "frequency", "number", required: true, title: "How often to check for trend (Minutes after temp change)", defaultValue: '30'  
+        input "frequency", "number", required: true, title: "How often to check for trend (Minutes after temp change)", defaultValue: 30  
        
   }   
      section("") {
@@ -55,7 +54,6 @@ metadata {
 
 def updated() {
     log.debug "Updated called"
-    state.calc = " "
     version()
    
 }
@@ -63,13 +61,10 @@ def updated() {
 def setTemperature(message){
     log.info "setTemperature(${message})"
     
-def averageTemp = message.toFloat()
+def averageTemp = message
   state.current = averageTemp
-    
-  def checkFrequency1 = frequency
-    def checkFrequency = 60 * checkFrequency1
-    log.info "checkFrequency = $checkFrequency"
-   runIn(checkFrequency, trendNow) 
+  def checkFrequency = 60 * frequency
+   runIn(checkFrequency, calculateTrendNow) 
 
     log.info "event: (${averageTemp})"
     
@@ -83,25 +78,22 @@ def averageTemp = message.toFloat()
 }
 
 
-def trendNow(){
+def calculateTrendNow(){
     
-   state.previous = state.calc1
+   state.previous = state.calc
     log.info "state.previous = $state.previous"
-    log.info "state.calc1 = $state.calc1"
-   state.calc1 = state.current
+   state.calc = state.current
      log.info "state.current = $state.current"
-     log.info "state.calc1 = $state.calc1"
-    log.info "state.previous = $state.previous"
     
-    if(state.previous > state.calc1){ 
+    if(state.previous > state.current){ 
         state.trend = "Falling"
    		log.info "Temp Falling"
     }
-   else if(state.previous < state.calc1){ 
+   else if(state.previous < state.current){ 
        state.trend = "Rising"
    log.info "Temp Rising"
    } 
-    else if(state.previous == state.calc1){ 
+    else {
         state.trend = "Static"
         log.info "Temp Static"
          }
@@ -165,7 +157,7 @@ def updateCheck(){
 }
 
 def setVersion(){
-		state.Version = "1.5.2"	
+		state.Version = "1.5.1"	
 		state.InternalName = "AverageTemp"  
 }
 

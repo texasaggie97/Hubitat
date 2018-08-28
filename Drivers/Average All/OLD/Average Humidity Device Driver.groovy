@@ -36,7 +36,7 @@
  *  Last Update 28/08/2018
  *
  *
- *  V1.0.2 - Debug
+ *  
  *  V1.0.1 - debug default trend value
  *  V1.0.0 - POC
  */
@@ -72,29 +72,24 @@ def setHumidity(val) {
 // version()
     log.debug "Setting humidity for ${device.displayName} from external input, humidity = ${val}."
 	sendEvent(name: "humidity", value: val, unit: "%")
-    def averageHumid = val.toFloat()
+    def averageHumid = val
   state.current = averageHumid
-  def checkFrequency1 = frequency
-    def checkFrequency = 60 * checkFrequency1
-    log.info "checkFrequency = $checkFrequency"
+  def checkFrequency = 60 * frequency
    runIn(checkFrequency, calculateTrendNow) 
 }
 
 def calculateTrendNow(){
     
-   state.previous = state.calc1
+   state.previous = state.calc
     log.info "state.previous = $state.previous"
-    log.info "state.calc1 = $state.calc1"
-   state.calc1 = state.current
+   state.calc = state.current
      log.info "state.current = $state.current"
-     log.info "state.calc1 = $state.calc1"
-    log.info "state.previous = $state.previous"
     
-    if(state.previous > state.calc1){ 
+    if(state.previous > state.current){ 
         state.trend = "Falling"
    		log.info "Humidity Falling"
     }
-   else if(state.previous < state.calc1){ 
+   else if(state.previous < state.current){ 
        state.trend = "Rising"
    log.info "Humidity Rising"
    } 
@@ -108,10 +103,7 @@ def calculateTrendNow(){
 }
 
 
-def updated() {
-    version()
-state.calc = " "
-}
+def updated() {version()}
 
 
 
@@ -171,7 +163,7 @@ def updateCheck(){
 }
 
 def setVersion(){
-		state.Version = "1.0.2"	
+		state.Version = "1.0.1"	
 		state.InternalName = "AverageHumidity"   
 }
 
