@@ -239,6 +239,7 @@ subscribe(restrictPresenceSensor1, "presence", restrictPresence1SensorHandler)
 }    
 
     if(weather1){
+        state.wholeNumber = wholeNumbersOnly
     	subscribe(weather1, "weatherSummary", weatherSummaryHandler)
 		subscribe(weather1, "weather", weatherNow) 
 		subscribe(weather1, "forecastHigh", weatherForecastHigh) 
@@ -250,7 +251,7 @@ subscribe(restrictPresenceSensor1, "presence", restrictPresence1SensorHandler)
         subscribe(weather1, "wind", weatherWindSpeed) 
         subscribe(weather1, "wind_gust", weatherWindGust) 
         subscribe(weather1, "visibility", weatherVisibility) 
- 		subscribe(weather1, "percentPrecip", weatherChanceOfRain)
+ 		subscribe(weather1, "chanceOfRain", weatherChanceOfRain)
     }
 
 }
@@ -404,7 +405,9 @@ def restrictionsPage() {
        } 
         section("Weather Device") { 
        input "weather1", "capability.sensor", title: "If using any of the weather variables, choose weather device", required: false, multiple: false, submitOnChange: true
-       
+            if(weather1){
+                input "wholeNumbersOnly", "bool", title: "If using the weather variables only say whole numbers (not decimals)", required: true, defaultValue: false, submitOnChange: true
+            }
        } 
            
            
@@ -1004,27 +1007,62 @@ def weatherNow(evt){
 
 
 def weatherForecastHigh(evt){
- state.weatherForecastHigh = evt.value
+    if(state.wholeNumber == true){
+ state.weatherForecastHigh = evt.value.toInteger()
+      }
+        else{
+            state.weatherForecastHigh = evt.value
+            }
  LOGDEBUG("Running weatherForecastHigh.. ")
   LOGDEBUG("state.weatherForecastHigh = $state.weatherForecastHigh")  
 }
 def weatherForecastLow(evt){
- state.weatherForecastLow = evt.value
+     if(state.wholeNumber == true){
+ state.weatherForecastLow = evt.value.toInteger()
+     }
+    else{
+        state.weatherForecastLow = evt.value
+    }
+        
  LOGDEBUG("Running weatherForecastLow.. ")
   LOGDEBUG("state.weatherForecastLow = $state.weatherForecastLow")  
 }
 def weatherHumidity(evt){
- state.weatherHumidity = evt.value
+    if(state.wholeNumber == true){
+    state.weatherHumidity1 = (evt.value.minus('%'))
+    state.weatherHumidity2 = state.weatherHumidity1.toInteger()
+    state.weatherHumidity = state.weatherHumidity2 
+    }
+    else{
+        state.weatherHumidity = (evt.value.minus('%')) 
+    }
  LOGDEBUG("Running weatherHumidity.. ")
   LOGDEBUG("state.weatherHumidity = $state.weatherHumidity")  
 }
 def weatherTemperature(evt){
- state.weatherTemperature = evt.value
+    if(state.wholeNumber == true){
+     state.weatherTemperature1 = evt.value
+      state.weatherTemperature2 = state.weatherTemperature1.toDouble()
+      state.weatherTemperature = state.weatherTemperature2.toInteger()  
+        
+    }
+        else{
+        state.weatherTemperature = evt.value    
+        }
+    
+ 
  LOGDEBUG("Running weatherTemperature.. ")
   LOGDEBUG("state.weatherTemperature = $state.weatherTemperature")  
 }
 def weatherFeelsLike(evt){
- state.weatherFeelsLike = evt.value
+    if(state.wholeNumber == true){
+ state.weatherFeelsLike1 = evt.value
+     state.weatherFeelsLike2 = state.weatherFeelsLike1.toDouble()   
+    state.weatherFeelsLike = state.weatherFeelsLike2.toInteger()   
+    }
+    else{
+     state.weatherFeelsLike = evt.value    
+    }
  LOGDEBUG("Running weatherFeelsLike.. ")
   LOGDEBUG("state.weatherFeelsLike = $state.weatherFeelsLike")  
 }
@@ -1034,22 +1072,39 @@ def weatherWindDir(evt){
   LOGDEBUG("state.weatherWindDir = $state.weatherWindDir")  
 }
 def weatherWindSpeed(evt){
- state.weatherWindSpeed = evt.value
+     if(state.wholeNumber == true){
+ state.weatherWindSpeed = evt.value.toInteger()
+     }
+    else{
+    state.weatherWindSpeed = evt.value    
+    }
  LOGDEBUG("Running weatherWindSpeed.. ")
   LOGDEBUG("state.weatherWindSpeed = $state.weatherWindSpeed")  
 }
 def weatherWindGust(evt){
- state.weatherWindGust = evt.value
+    if(state.wholeNumber == true){
+ state.weatherWindGust = evt.value.toInteger()
+    }
+    else{
+     state.weatherWindGust = evt.value   
+    }
  LOGDEBUG("Running weatherWindGust.. ")
   LOGDEBUG("state.weatherWindGust = $state.weatherWindGust")  
 }
 def weatherVisibility(evt){
- state.weatherVisibility = evt.value
+    if(state.wholeNumber == true){
+ state.weatherVisibility1 = evt.value.toDouble()
+   state.weatherVisibility = state.weatherVisibility1.toInteger()     
+        
+    }
+    else{
+     state.weatherVisibility = evt.value   
+    }
  LOGDEBUG("Running weatherVisibility.. ")
   LOGDEBUG("state.weatherVisibility = $state.weatherVisibility")  
 }
 def weatherChanceOfRain(evt){
- state.weatherChanceOfRain = evt.value
+ state.weatherChanceOfRain = (evt.value.minus('%')) 
  LOGDEBUG("Running weatherChanceOfRain.. ")
   LOGDEBUG("state.weatherChanceOfRain = $state.weatherChanceOfRain")  
 }
