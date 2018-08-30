@@ -33,9 +33,9 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update 28/08/2018
+ *  Last Update 30/08/2018
  *
- *
+ *  V1.1.0 - forced state change on new input
  *  V1.0.2 - Debug
  *  V1.0.1 - debug default trend value
  *  V1.0.0 - POC
@@ -71,7 +71,7 @@ metadata {
 def setHumidity(val) {
 // version()
     log.debug "Setting humidity for ${device.displayName} from external input, humidity = ${val}."
-	sendEvent(name: "humidity", value: val, unit: "%")
+	sendEvent(name: "humidity", value: val, unit: "%", isStateChange: true)
     def averageHumid = val.toFloat()
   state.current = averageHumid
   def checkFrequency1 = frequency
@@ -102,7 +102,7 @@ def calculateTrendNow(){
         state.trend = "Static"
         log.info "Humidity Static"
          }
-     sendEvent(name:"trend", value: state.trend)
+     sendEvent(name:"trend", value: state.trend, isStateChange: true)
 
     
 }
@@ -171,7 +171,7 @@ def updateCheck(){
 }
 
 def setVersion(){
-		state.Version = "1.0.2"	
+		state.Version = "1.1.0"	
 		state.InternalName = "AverageHumidity"   
 }
 

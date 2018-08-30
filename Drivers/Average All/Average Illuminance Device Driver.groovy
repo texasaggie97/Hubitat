@@ -36,8 +36,10 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update 28/08/2018
+ *  Last Update 30/08/2018
  *
+ *
+ *  V1.4.0 - Forced state change on input
  *  V1.3.2 - Debug
  *  V1.3.1 - debug default trend value
  *  V1.3.0 - Added 'Trend'
@@ -75,7 +77,7 @@ metadata {
 
 def setLux(val) {
     log.debug "Setting illuminance for ${device.displayName} from external input, illuminance = ${val}."
-	sendEvent(name: "illuminance", value: val, unit: "lux")
+	sendEvent(name: "illuminance", value: val, unit: "lux", isStateChange: true)
  //   log.warn "set lux unit = $unit" 
     def averageLux = val.toFloat()
   state.current = averageLux
@@ -109,7 +111,7 @@ def calculateTrendNow(){
         state.trend = "Static"
         log.info "Illuminance Static"
          }
-     sendEvent(name:"trend", value: state.trend)
+     sendEvent(name:"trend", value: state.trend, isStateChange: true)
 
     
 }
@@ -175,7 +177,7 @@ def updateCheck(){
 }
 
 def setVersion(){
-		state.Version = "1.3.2"	
+		state.Version = "1.4.0"	
 		state.InternalName = "AverageIllum"   
 }
 

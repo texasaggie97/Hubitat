@@ -15,8 +15,10 @@
  *  License  for the specific language governing permissions and limitations
  *  under the License.
  *
- *  Changes: 28/08/2018
+ *  Changes: 30/08/2018
  *
+ *
+ *  V1.6.0 - Forced state change on input
  *  V1.5.2 - Debug
  *  V1.5.1 - debug default trend value
  *  V1.5.0 - Added 'Trend'
@@ -74,10 +76,10 @@ def averageTemp = message.toFloat()
     log.info "event: (${averageTemp})"
     
     if(unitSelect == "C"){ 
-    sendEvent(name:"temperature", value: "$averageTemp" , unit: "C")
+    sendEvent(name:"temperature", value: "$averageTemp" , unit: "C", isStateChange: true)
     }
    if(unitSelect == "F"){ 
-    sendEvent(name:"temperature", value: "$averageTemp" , unit: "F")
+    sendEvent(name:"temperature", value: "$averageTemp" , unit: "F", isStateChange: true)
     } 
     
 }
@@ -105,7 +107,7 @@ def trendNow(){
         state.trend = "Static"
         log.info "Temp Static"
          }
-     sendEvent(name:"trend", value: state.trend)
+     sendEvent(name:"trend", value: state.trend, isStateChange: true)
 
     
 }
@@ -165,7 +167,7 @@ def updateCheck(){
 }
 
 def setVersion(){
-		state.Version = "1.5.2"	
+		state.Version = "1.6.0"	
 		state.InternalName = "AverageTemp"  
 }
 
