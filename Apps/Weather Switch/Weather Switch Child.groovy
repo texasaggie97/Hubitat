@@ -636,7 +636,13 @@ def minTempInsideTodayHandler(evt){
     actionNow(call26, evt26)
 }       
 
-
+def humidityHandler(evt){
+ def event27 = evt.value
+    def evt27 = event27.toDouble()
+    def call27 = 'Humidity'
+	LOGDEBUG("Humidity is $evt27")
+    actionNow(call27, evt27)
+}          
 
 
 
