@@ -37,10 +37,10 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update 30/08/2018
+ *  Last Update 17/08/2018
  *
  *
- *  V2.4.0 - Added 'Poll' button for use with Message Central
+ *
  *  V2.3.0 - Added 'forecastIcon' for use with SharpTools 
  *  V2.2.0 - Added Daily temp max & min for both inside and outside THIS REQUIRED ADDITIONS TO 'DAILY.JSON.TEMPL'
  *  V2.1.1 - Debug - with km/h input not working correctly - Now fixed
@@ -75,7 +75,7 @@ metadata {
         command "PollStation"
 		command "PollExternal"
         command "PollInside"
-        command "poll"
+        
 
 		
         
@@ -203,11 +203,7 @@ def updated() {
     
 }
 
-def poll(){
-    log.info " Manual Poll"
-    PollExternal()
-    PollStation()
-}
+
 
 
 def units(){
@@ -1732,7 +1728,7 @@ def updateCheck(){
 }
 
 def setVersion(){
-		state.Version = "2.4.0"	
+		state.Version = "2.3.0"	
 		state.InternalName = "WeewxExternal"   
 }
 

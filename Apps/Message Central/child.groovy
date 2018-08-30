@@ -30,12 +30,12 @@
  *-------------------------------------------------------------------------------------------------------------------
  *
  *
- *  Last Update: 22/08/2018
+ *  Last Update: 30/08/2018
  *
  *  Changes:
  *
  *
- *
+ *  V10.6.0 - Added weather variables (use with weather driver or individual sensors)
  *  V10.5.0 - Debug disable switch & power input (allow decimal input)
  *  V10.4.0 - Sorted out %date% %year% & %day% variables (to correct errors in different format for Hubitat)
  *  V10.3.0 - Added Mode restriction in Hubitat format (previous format was not working correctly) and debug/reformat of version checking
@@ -227,6 +227,9 @@ subscribe(openSensor, "contact", tooLongOpen)
 state.timeDelay = 0
 	}
     
+    
+
+    
 if (restrictPresenceSensor){
 subscribe(restrictPresenceSensor, "presence", restrictPresenceSensorHandler)
 }    
@@ -235,7 +238,20 @@ if (restrictPresenceSensor1){
 subscribe(restrictPresenceSensor1, "presence", restrictPresence1SensorHandler)
 }    
 
-
+    if(weather1){
+    	subscribe(weather1, "weatherSummary", weatherSummaryHandler)
+		subscribe(weather1, "weather", weatherNow) 
+		subscribe(weather1, "forecastHigh", weatherForecastHigh) 
+        subscribe(weather1, "forecastLow", weatherForecastLow) 
+        subscribe(weather1, "humidity", weatherHumidity) 
+        subscribe(weather1, "temperature", weatherTemperature) 
+        subscribe(weather1, "feelsLike", weatherFeelsLike) 
+        subscribe(weather1, "wind_dir", weatherWindDir) 
+        subscribe(weather1, "wind", weatherWindSpeed) 
+        subscribe(weather1, "wind_gust", weatherWindGust) 
+        subscribe(weather1, "visibility", weatherVisibility) 
+ 		subscribe(weather1, "percentPrecip", weatherChanceOfRain)
+    }
 
 }
 
@@ -333,10 +349,27 @@ def pageHelpVariables(){
     AvailableVariables += " %group2%		- 		Replaced with the a random message from Group2\n\n"
     AvailableVariables += " %group3%		- 		Replaced with the a random message from Group3\n\n"
       
-//	AvailableVariables += " %weather% 		- 		Replaced with the current weather forcast\n\n"
+	
 	AvailableVariables += " %opencontact% 	- 		Replaced with a list of configured contacts if they are open\n\n"
+    AvailableVariables += " %closedcontact% - 		Replaced with a list of configured contacts if they are closed\n\n"
 	AvailableVariables += " %device% 		- 		Replaced with the name of the triggering device\n\n"
-	AvailableVariables +=  " %event% 		- 		Replaced with what triggered the action (e.g. On/Off, Wet/Dry)" 	
+	AvailableVariables +=  " %event% 		- 		Replaced with what triggered the action (e.g. On/Off, Wet/Dry) \n\n" 
+      
+    AvailableVariables += " Weather Variables (Available if your weather device supports them as attributes)\n\n"  
+    AvailableVariables +=  " %wsum% 		- 		Replaced with a weather summary  \n\n" 
+    AvailableVariables +=  " %high%   		- 		Replaced with a 'Forecast High' \n\n" 
+    AvailableVariables +=  " %low%   		- 		Replaced with a 'Forecast Low \n\n" 
+    AvailableVariables +=  " %hum%  		- 		Replaced with a 'Humidity' \n\n" 
+    AvailableVariables +=  " %wnow% 		- 		Replaced with 'Weather Now' \n\n" 
+    AvailableVariables +=  " %rain%   		- 		Replaced with 'Chance of Rain' \n\n" 
+    AvailableVariables +=  " %vis%    		- 		Replaced with 'Visibility' \n\n" 
+    AvailableVariables +=  " %wgust% 		- 		Replaced with 'Wind Gust'  \n\n" 
+    AvailableVariables +=  " %wspeed% 		- 		Replaced with 'Wind Speed'  \n\n"
+    AvailableVariables +=  " %wdir%   		- 		Replaced with 'Wind Direction'  \n\n"
+    AvailableVariables +=  " %feel%   		- 		Replaced with 'FeelsLike'  \n\n"
+    AvailableVariables +=  " %temp% 		- 		Replaced with 'Temperature' "
+    
+      
 
 	paragraph(AvailableVariables)
 	}
@@ -363,13 +396,16 @@ def restrictionsPage() {
        dynamicPage(name: "restrictionsPage") {
        
          section("Time Format") { 
-      input "hour24", "bool", title: "If using the %time% variable, On = 24hr format - Off = 12Hr format", required: true, defaultValue: false
+      input "hour24", "bool", title: "If using the %time% variable, On = 24hr format - Off = 12Hr format", required: true, defaultValue: false, submitOnChange: true
        }
-       section("Check Open Contacts") { 
-       input "sensors", "capability.contactSensor", title: "If using the %opencontact% variable, choose window/door contact", required: false, multiple: true, submitOnChange: true
+       section("Check Contacts") { 
+       input "sensors", "capability.contactSensor", title: "If using the %opencontact% or %closedcontact% variable, choose window/door contact", required: false, multiple: true, submitOnChange: true
        
        } 
+        section("Weather Device") { 
+       input "weather1", "capability.sensor", title: "If using any of the weather variables, choose weather device", required: false, multiple: false, submitOnChange: true
        
+       } 
            
            
       }  
@@ -946,6 +982,81 @@ if(state.selection == 'Contact - Open Too Long'){
 
 
 // Handlers
+private timeOfDayIsBetween(fromTime, toTime, checkDate, timeZone)     {
+     return (!checkDate.before(fromTime) && !checkDate.after(toTime))
+}
+private timeOfDayIsBetween1(fromTime2, toTime2, checkDate, timeZone)     {
+     return (!checkDate.before(fromTime2) && !checkDate.after(toTime2))
+}
+
+
+def weatherSummaryHandler(evt){
+ state.weatherSummary = evt.value
+ LOGDEBUG("Running weatherSummaryHandler.. ")
+  LOGDEBUG(" state.weatherSummary = $state.weatherSummary")  
+}
+
+def weatherNow(evt){
+ state.weatherNow = evt.value
+ LOGDEBUG("Running weatherNow.. ")
+  LOGDEBUG(" state.weatherNow = $state.weatherNow")  
+}
+
+
+def weatherForecastHigh(evt){
+ state.weatherForecastHigh = evt.value
+ LOGDEBUG("Running weatherForecastHigh.. ")
+  LOGDEBUG("state.weatherForecastHigh = $state.weatherForecastHigh")  
+}
+def weatherForecastLow(evt){
+ state.weatherForecastLow = evt.value
+ LOGDEBUG("Running weatherForecastLow.. ")
+  LOGDEBUG("state.weatherForecastLow = $state.weatherForecastLow")  
+}
+def weatherHumidity(evt){
+ state.weatherHumidity = evt.value
+ LOGDEBUG("Running weatherHumidity.. ")
+  LOGDEBUG("state.weatherHumidity = $state.weatherHumidity")  
+}
+def weatherTemperature(evt){
+ state.weatherTemperature = evt.value
+ LOGDEBUG("Running weatherTemperature.. ")
+  LOGDEBUG("state.weatherTemperature = $state.weatherTemperature")  
+}
+def weatherFeelsLike(evt){
+ state.weatherFeelsLike = evt.value
+ LOGDEBUG("Running weatherFeelsLike.. ")
+  LOGDEBUG("state.weatherFeelsLike = $state.weatherFeelsLike")  
+}
+def weatherWindDir(evt){
+ state.weatherWindDir = evt.value
+ LOGDEBUG("Running weatherWindDir.. ")
+  LOGDEBUG("state.weatherWindDir = $state.weatherWindDir")  
+}
+def weatherWindSpeed(evt){
+ state.weatherWindSpeed = evt.value
+ LOGDEBUG("Running weatherWindSpeed.. ")
+  LOGDEBUG("state.weatherWindSpeed = $state.weatherWindSpeed")  
+}
+def weatherWindGust(evt){
+ state.weatherWindGust = evt.value
+ LOGDEBUG("Running weatherWindGust.. ")
+  LOGDEBUG("state.weatherWindGust = $state.weatherWindGust")  
+}
+def weatherVisibility(evt){
+ state.weatherVisibility = evt.value
+ LOGDEBUG("Running weatherVisibility.. ")
+  LOGDEBUG("state.weatherVisibility = $state.weatherVisibility")  
+}
+def weatherChanceOfRain(evt){
+ state.weatherChanceOfRain = evt.value
+ LOGDEBUG("Running weatherChanceOfRain.. ")
+  LOGDEBUG("state.weatherChanceOfRain = $state.weatherChanceOfRain")  
+}
+
+
+
+
 
 def mp3EventHandler(){
 if(state.appgo == true){
@@ -1568,7 +1679,7 @@ log.info "Further Logging Disabled"
 }
 def LOGDEBUG(txt){
     try {
-    	if (settings.debugMode) { log.debug("${app.label.replace(" ","_").toUpperCase()}  (Childapp Version: ${state.appversion}) - ${txt}") }
+    	if (settings.debugMode) { log.debug("${app.label.replace(" ","_").toUpperCase()}  (Childapp Version: ${state.version}) - ${txt}") }
     } catch(ex) {
     	log.error("LOGDEBUG unable to output requested data!")
     }
@@ -2366,7 +2477,7 @@ LOGDEBUG("$enableSwitch is off so cannot continue")
 def checkVolume(){
 def timecheck = fromTime2
 if (timecheck != null){
-def between2 = timeOfDayIsBetween(fromTime2, toTime2, new Date(), location.timeZone)
+def between2 = timeOfDayIsBetween1(fromTime2, toTime2, new Date(), location.timeZone)
     if (between2) {
     
     state.volume = volume2
@@ -2545,106 +2656,36 @@ LOGDEBUG("Timer 2 reset - Messages allowed")
 
 
 
-
-private getWeatherReport() {
-	  log.debug "WU: test called"
-    def params = [
-        uri: "http://api.wunderground.com/api/86fdafd2f21b4711/conditions/forecastday:0/q/dh6%202ts.json"
-    ]
-    log.debug "params: ${params}"
-    try {
-        httpGet(params) { resp ->
-      //      resp.headers.each {
-        //    log.debug "Response: ${it.name} : ${it.value}"
-      //  }
-    //    log.debug "response contentType: ${resp.contentType}"
-        log.debug "response data: ${resp.data}"
-    //       sendEvent(name: "temperature", value: resp.data.current_observation.temp_c, unit: "C")
-  //        sendEvent(name: "solarradiation", value: resp.data.current_observation.solarradiation, unit: "W")
-   //         sendEvent(name: "humidity", value: resp.data.current_observation.relative_humidity, unit: "%")
-            // Map solarradiation to illuminance for now
-  //         sendEvent(name: "illuminance", value: resp.data.current_observation.solarradiation, unit: "lux")
-  //          sendEvent(name: "observation_time", value: resp.data.current_observation.observation_time)
-  //          sendEvent(name: "weather", value: resp.data.current_observation.weather)
-  //          sendEvent(name: "feelsLike", value: resp.data.current_observation.feelslike_c, unit: "C")
-   //         sendEvent(name: "precip_1hr_in", value: resp.data.current_observation.precip_1hr_in, unit: "IN")
-   //         sendEvent(name: "precip_today_in", value: resp.data.current_observation.precip_today_in, unit: "IN")
-   //         sendEvent(name: "wind_string", value: resp.data.current_observation.wind_string)
-   //         sendEvent(name: "wind_mph", value: resp.data.current_observation.wind_mph, unit: "MPH")
-   //         sendEvent(name: "pressure_in", value: resp.data.current_observation.pressure_in, unit: "mi")
-   //         sendEvent(name: "dewpoint_f", value: resp.data.current_observation.dewpoint_c, unit: "C")
-   //         sendEvent(name: "UV", value: resp.data.current_observation.UV)
-    //        sendEvent(name: "visibility_mi", value: resp.data.current_observation.visibility_mi, unit: "mi")
-            
-    //        sendEvent(name: "forecastHigh", value: resp.data.forecast.simpleforecast.forecastday[0].high.celsius, unit: "C")
-    //        sendEvent(name: "forecastLow", value: resp.data.forecast.simpleforecast.forecastday[0].low.celsius, unit: "C")
-       //     sendEvent(name: "forecastConditions", value: resp.data.forecast.simpleforecast.forecastday[0].conditions)
-          
-        //    sb << resp.data.current_observation.feelslike_c
-        }
-      //  def msgWeather = sb.toString()
-       sb << resp.data.forecast.txt_forecast.forecastday[0].fcttext_metric  
-        log.info "$sb"
-        
-        
-        //	def msgWeather = sb.toString()
-     //   msgWeather = msgWeather.replaceAll(/([0-9]+)C/,'$1 degrees')
-    //    msgWeather = msgWeather.replaceAll(/([0-9]+)F/,'$1 degrees')
-        
-    return msgWeather
-   
-   
-	}
-        catch (e) {
-        log.error "something went wrong: $e"
-    }
-}
-
-private getWeatherReport1() {
-	if (location.timeZone || zipCode) {
-		def isMetric = location.temperatureScale == "C"
-        def sb = new StringBuilder()
-      //	def weather = getWeatherFeature("forecast", zipCode)
-        	def weather = "http://api.wunderground.com/api/86fdafd2f21b4711/conditions/forecast/q/dh6%202ts.json"
-
-			if (isMetric) {
-        		sb << weather.forecast.txt_forecast.forecastday[0].fcttext_metric 
-             //   	sb << "http://api.wunderground.com/api/86fdafd2f21b4711/conditions/forecast/q/dh6%202ts.json" 
-        	}
-        	else {
-          		sb << weather.forecast.txt_forecast.forecastday[0].fcttext
-        	}
-        
-        
-		def msgWeather = sb.toString()
-        msgWeather = msgWeather.replaceAll(/([0-9]+)C/,'$1 degrees')
-        msgWeather = msgWeather.replaceAll(/([0-9]+)F/,'$1 degrees')
-        
-    return msgWeather
-   
-   
-	}
-	else {
-		msgWeather = "Please set the location of your hub with the SmartThings mobile app, or enter a zip code to receive weather forecasts."
-	
-    }
-}
-
 private compileMsg(msg) {
+    
 	LOGDEBUG("compileMsg - msg = ${msg}")
+    
+    if(weather1){
+        weather1.poll()
+    }
+    
     def msgComp = ""
     msgComp = msg.toUpperCase()
     LOGDEBUG("msgComp = $msgComp")
-    
+    if (msgComp.contains("%WNOW%")) {msgComp = msgComp.toUpperCase().replace('%WNOW%', state.weatherNow )}
+    if (msgComp.contains("%RAIN%")) {msgComp = msgComp.toUpperCase().replace('%RAIN%', state.weatherChanceOfRain )}
+    if (msgComp.contains("%VIS%")) {msgComp = msgComp.toUpperCase().replace('%VIS%', state.weatherVisibility )}
+    if (msgComp.contains("%WGUST%")) {msgComp = msgComp.toUpperCase().replace('%WGUST%', state.weatherWindGust )}
+    if (msgComp.contains("%WSPEED%")) {msgComp = msgComp.toUpperCase().replace('%WSPEED%', state.weatherWindSpeed )}
+    if (msgComp.contains("%WDIR%")) {msgComp = msgComp.toUpperCase().replace('%WDIR%', state.weatherWindDir )}
+    if (msgComp.contains("%FEEL%")) {msgComp = msgComp.toUpperCase().replace('%FEEL%', state.weatherFeelsLike )}
+    if (msgComp.contains("%TEMP%")) {msgComp = msgComp.toUpperCase().replace('%TEMP%', state.weatherTemperature )}
+    if (msgComp.contains("%HUM%")) {msgComp = msgComp.toUpperCase().replace('%HUM%', state.weatherHumidity )}
+    if (msgComp.contains("%LOW%")) {msgComp = msgComp.toUpperCase().replace('%LOW%', state.weatherForecastLow )}
+    if (msgComp.contains("%HIGH%")) {msgComp = msgComp.toUpperCase().replace('%HIGH%', state.weatherForecastHigh )} 
+    if (msgComp.contains("%WSUM%")) {msgComp = msgComp.toUpperCase().replace('%WSUM%', state.weatherSummary )} 
     if (msgComp.contains("%TIME%")) {msgComp = msgComp.toUpperCase().replace('%TIME%', getTime(false,true))}  
     if (msgComp.contains(":")) {msgComp = msgComp.toUpperCase().replace(':', ' ')}
     if (msgComp.contains("%DAY%")) {msgComp = msgComp.toUpperCase().replace('%DAY%', getDay() )}  
 	if (msgComp.contains("%DATE%")) {msgComp = msgComp.toUpperCase().replace('%DATE%', getdate() )}  
     if (msgComp.contains("%YEAR%")) {msgComp = msgComp.toUpperCase().replace('%YEAR%', getyear() )}  
- 
-//    if (msgComp.contains("%WEATHER%")) {msgComp = msgComp.toUpperCase().replace('%WEATHER%', getWeatherReport() )}  
-    
-	if (msgComp.contains("%OPENCONTACT%")) {msgComp = msgComp.toUpperCase().replace('%OPENCONTACT%', getContactReport() )}  
+ 	if (msgComp.contains("%OPENCONTACT%")) {msgComp = msgComp.toUpperCase().replace('%OPENCONTACT%', getContactReportOpen() )}  
+    if (msgComp.contains("%CLOSEDCONTACT%")) {msgComp = msgComp.toUpperCase().replace('%CLOSEDCONTACT%', getContactReportClosed() )} 
 	if (msgComp.contains("%DEVICE%")) {msgComp = msgComp.toUpperCase().replace('%DEVICE%', getNameofDevice() )}  
 	if (msgComp.contains("%EVENT%")) {msgComp = msgComp.toUpperCase().replace('%EVENT%', getWhatHappened() )}  
     if (msgComp.contains("%GREETING%")) {msgComp = msgComp.toUpperCase().replace('%GREETING%', getGreeting() )}      
@@ -2798,8 +2839,8 @@ return state.nameOfDevice
 
 }
 
-private getContactReport(){
-LOGDEBUG("Calling getContactReport")
+private getContactReportOpen(){
+LOGDEBUG("Calling getContactReportOpen")
 
 def open = sensors.findAll { it?.latestValue("contact") == 'open' }
 		if (open) { 
@@ -2809,6 +2850,19 @@ LOGDEBUG("Open windows or doors: ${open.join(',,, ')}")
 return anyOpen
 	}
 }
+
+private getContactReportClosed(){
+LOGDEBUG("Calling getContactReportClosed")
+
+def open = sensors.findAll { it?.latestValue("contact") == 'closed' }
+		if (closed) { 
+LOGDEBUG("Closed windows or doors: ${closed.join(',,, ')}")
+           def anyClosed = "${closed.join(',,, ')}"
+            
+return anyClosed
+	}
+}
+
 
 
 private convertWeatherMessage(msgIn){
@@ -3052,7 +3106,7 @@ def updateCheck(){
 }
 
 def setVersion(){
-		state.version = "10.5.0"	 
+		state.version = "10.6.0"	 
 		state.InternalName = "MCchild"  
 }
 
