@@ -33,14 +33,28 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 04/05/2018
+ *  Last Update: 20/08/2018
  *
  *  Changes:
  *
- *
+ *  V2.4.4 - Debug & added uninstall logging
+ *  V2.4.3 - Changed input of threshold to allow decimal inputs
+ *  V2.4.2 - Fixed typo in precip_1hrHandler
+ *  V2.4.1 - Debug
+ *  V2.4.0 - Added 'rain_rate' as a trigger
+ *  V2.3.0 - Added remote version checking
+ *  V2.2.2 - Debug - state variable not clearing
+ *  V2.2.1 - Debug - Typo in switch name
+ *  V2.2.0 - Changed method so on/off command is only sent once (not repeatedly)
+ *  V2.1.1 - Debug
+ *  V2.1.0 - Dropped driver requirement checking & added remote version checking
+ *  V2.0.1.172 - Driver requirement updated
+ *  V2.0.1.150 - Driver requirement updated
+ *  V2.0.1.140 - debug
+ *  V2.0.0.130 - Recode for new supported weewx/apixu driver
  *  V1.6.0.250 - New driver and changed attributes to lowercase to match driver
  *  V1.5.0.241 - Driver requirement updated
- *  V1.5.0.240 - Added Triggers: 'Sunrise', 'Sunset', 'Wind Direction' & 'Forcast Conditions' for use with driver 2.4.0
+ *  V1.5.0.240 - Added Triggers: 'Sunrise', 'Sunset', 'Wind Direction' & 'Forecast Conditions' for use with driver 2.4.0
  *  V1.4.0.211 - Added rain for tomorrow & the day after as triggers for use with driver v2.1.1
  *  V1.3.0.190 - Added 'Chance Of Rain' as a trigger for use with a new driver (v1.9.0)
  *  V1.3.0.180 - New versioning to incorporate required driver version
@@ -55,13 +69,13 @@ definition(
     name: "Weather Switch Child",
     namespace: "Cobra",
     author: "Andrew Parker",
-    description: "Turns On/Off a switch based upon WU reports",
+    description: "Turns On/Off a switch based upon weather events",
     category: "",
     parent: "Cobra:Weather Switch",
     
-    iconUrl: "https://s3.amazonaws.com/smartapp-icons/Convenience/Cat-Convenience.png",
-    iconX2Url: "https://s3.amazonaws.com/smartapp-icons/Convenience/Cat-Convenience@2x.png",
-    iconX3Url: "https://s3.amazonaws.com/smartapp-icons/Convenience/Cat-Convenience@2x.png")
+    iconUrl: "",
+    iconX2Url: "",
+    iconX3Url: "")
 
 
 preferences {
@@ -73,9 +87,13 @@ preferences {
 // main page *****************************************************************************************************************
   def mainPage() {
     dynamicPage(name: "mainPage") {  
-	section("Input/Output") {
+        
+       display()
+        
+        
+	section() {
     input(name: "enableswitch1", type: "capability.switch", title: "Enable/Disable app with this switch", required: false, multiple: false)
-	input(name: "sensor1", type: "capability.sensor", title: "WU Device", required: true, multiple: false)
+	input(name: "sensor1", type: "capability.sensor", title: "Weather Device", required: true, multiple: false)
     input(name: "sensorswitch1", type: "capability.switch", title: "Switch to control", required: false, multiple: false)
        
 	}
@@ -83,23 +101,24 @@ preferences {
   input "trigger", "enum", title: "Action to trigger switch", required: true, submitOnChange: true, 
       options: [
           
-          "Chance Of Rain",
+         
           "Dewpoint",
           "Forecast Conditions",
           "Forecast High",
           "Forecast Low",
           "Illuminance",
-          "Precipitation in Last Hour",
-          "Precipitation Today",
-          "Precipitation Tomorrow",
-          "Precipitation The Day After Tomorrow",
+          "Rain Rate",
+          "Rain in Last Hour",
+          "Rain Today",
+          "Rain Tomorrow",
+          "Rain The Day After Tomorrow",
           "Pressure",
           "Solar Radiation",
           "Sunrise",
           "Sunset",
           "Temperature Feels Like",
           "UV Radiation",
-          "Visibility",
+          "UV Harm Index",
           "Wind Direction",
           "Wind Gust",
           "Wind Speed"
@@ -111,17 +130,30 @@ preferences {
       state.selection = trigger    
               
         if(state.selection == "Wind Direction"){
-     input(name: "actionMatch", type: "test", title: "Wind direction to match", required: true, description: "MUST match case e.g WEST or west") 
+     input(name: "actionMatch", type: "test", title: "Wind direction to match", required: true, description: "MUST match case & direction e.g W or NW") 
      input(name: "action1", type: "bool", title: "Turn switch On or Off when direction matches", required: true, defaultValue: true)   
         }
         
         else if(state.selection == "Forecast Conditions"){
-     input(name: "actionMatch", type: "test", title: "Condition to match", required: true, description: "MUST match case e.g RAIN, rain") 
+     input(name: "actionMatch", type: "test", title: "Condition to match", required: true, description: "MUST match case & output e.g RAIN, CLOUDY") 
      input(name: "action1", type: "bool", title: "Turn switch On or Off when condition matches", required: true, defaultValue: true)   
         }
         
+         else if(state.selection == "UV Harm Index"){
+     input(name: "actionMatch", type: "enum", title: "Action when this condition matches", required: true, options: ["Low", "Moderate", "High", "VeryHigh", "Extreme"])   
+     input(name: "action1", type: "bool", title: "Turn switch On or Off when condition matches", required: true, defaultValue: true)        
+        }   
+         else if(state.selection == "Sunrise"){
+     input(name: "actionMatch", type: "time", title: "Action when this time matches", required: true)   
+     input(name: "action1", type: "bool", title: "Turn switch On or Off when condition matches", required: true, defaultValue: true)        
+        }  
+         else if(state.selection == "Sunset"){
+     input(name: "actionMatch", type: "time", title: "Action when this time matches", required: true)   
+     input(name: "action1", type: "bool", title: "Turn switch On or Off when condition matches", required: true, defaultValue: true)        
+        }   
+        
         else{
-     input(name: "threshold1", type: "number", title: "Threshold", required: true, description: "Trigger above or below this number", defaultValue: '0')
+     input(name: "threshold1", type: "decimal", title: "Threshold", required: true, description: "Trigger above or below this number", defaultValue: '0')
    	 input(name: "switchMode1", type: "bool", title: "On = Trigger Above Threshold - Off = Trigger Below Threshold", required: true, defaultValue: true )      
      input(name: "action1", type: "bool", title: "Turn switch On or Off when trigger active", required: true, defaultValue: true)         
         }
@@ -169,7 +201,7 @@ def restrictionsPage() {
            
        
        section() {
-                label title: "Enter a name for this automation child", required: false
+                label title: "Enter a name for this automation", required: false
             }
       section() {
             input "debugMode", "bool", title: "Enable logging", required: true, defaultValue: false
@@ -196,29 +228,29 @@ def updated() {
 	initialize()
 }
 
+def uninstalled(){
+   log.info "Child app uninstalled: ${app.label}" 
+}
+
 def initialize() {
 	log.info "Initialised with settings: ${settings}"
-	setAppVersion()
-	logCheck()
-    signOff()
-	state.enablecurrS1 = 'on'
-        
+    logCheck()
+	version()
+  	state.enablecurrS1 = 'on'
+    state.already = 'off'   
         
 	subscribe(enableswitch1, "switch", enableSwitch1Handler)
-    subscribe(sensorSwitch1, "switch", sensorSwitch1Handler)
-    subscribe(sensor1, "pollsSinceReset", checkPollHandler)
-    subscribe(sensor1, "driverNameSpace", checkNameHandler)
-    subscribe(sensor1, "driverVersion", checkDriverVerHandler)
-    subscribe(sensor1, "temperatureUnit", displayTempUnitHandler)
-    subscribe(sensor1,  "pressureUnit", displayPressureUnitHandler)
-    subscribe(sensor1, "distanceUnit", displayDistanceUnitHandler)
-    subscribe(sensor1, "observation_time", observation_timeHandler)
-    subscribe(sensor1, "weather", weatherHandler)
-    subscribe(sensor1, "alert", alertHandler)
+    subscribe(sensorswitch1, "switch", sensorSwitch1Handler)
+    subscribe(sensor1, "LastUpdate-Weewx", observation_timeHandler)
+    subscribe(sensor1, "LastUpdate-External", observation_timeHandler1) 
     subscribe(sensor1, "city", cityHandler)
     subscribe(sensor1, "state", stateHandler)
-    subscribe(sensor1, "stationID", stationHandler)
-    subscribe(sensor1, "wind_string", wind_stringHandler)
+    subscribe(sensor1, "country", countryHandler)
+    subscribe(sensor1, "WeewxServerLocation", stationHandler)
+    subscribe(sensor1, "WeewxServerUptime", stationHandler1)
+    
+    
+
    
     if (restrictPresenceSensor){subscribe(restrictPresenceSensor, "presence", restrictPresenceSensorHandler)}
 	if (restrictPresenceSensor1){subscribe(restrictPresenceSensor1, "presence", restrictPresence1SensorHandler)}
@@ -228,21 +260,23 @@ def initialize() {
     if(state.selection == "Illuminance"){ subscribe(sensor1, "illuminance", illuminanceHandler)}
     if(state.selection ==  "Solar Radiation"){subscribe(sensor1, "solarradiation", solarradiationHandler)}
     if(state.selection == "Temperature Feels Like"){subscribe(sensor1, "feelsLike", feelsLikeHandler)}
-    if(state.selection == "Precipitation in Last Hour"){subscribe(sensor1, "precip_1hr", precip_1hrHandler)}
-    if(state.selection == "Precipitation Today"){subscribe(sensor1, "precip_today", precip_todayHandler)}
+    if(state.selection == "Rain in Last Hour"){subscribe(sensor1, "precip_1hr", precip_1hrHandler)}
+    if(state.selection == "Rain Rate"){subscribe(sensor1, "rain_rate", precip_RateHandler)}    
+    if(state.selection == "Rain Today"){subscribe(sensor1, "precip_today", precip_todayHandler)}
     if(state.selection == "Wind Speed"){subscribe(sensor1, "wind", windHandler)}
     if(state.selection == "Wind Gust"){subscribe(sensor1, "wind_gust", wind_gustHandler)}
     if(state.selection == "Wind Direction"){subscribe(sensor1, "wind_dir", wind_dirHandler)}
     if(state.selection == "Pressure"){subscribe(sensor1, "pressure", pressureHandler)}
     if(state.selection ==  "Dewpoint"){subscribe(sensor1, "dewpoint", dewpointHandler)}
-    if(state.selection == "UV Radiation"){subscribe(sensor1, "UV", uvHandler)}
+    if(state.selection == "UV Radiation"){subscribe(sensor1, "uv", uvHandler)}
+    if(state.selection == "UV Harm Index"){subscribe(sensor1, "uvHarm", uvHarmHandler)}
     if(state.selection == "Visibility"){subscribe(sensor1, "visibility", visibilityHandler)}
     if(state.selection == "Forecast High"){subscribe(sensor1, "forecastHigh", forecastHighHandler)}
     if(state.selection == "Forecast Low"){subscribe(sensor1, "forecastLow", forecastLowHandler)}
-	if(state.selection == "Chance Of Rain"){subscribe(sensor1, "chanceOfRain", rainHandler)}
-    if(state.selection == "Precipitation Tomorrow"){subscribe(sensor1, "rainTomorrow", rainTomorrowHandler)}
-  	if(state.selection == "Precipitation The Day After Tomorrow"){subscribe(sensor1, "Expected_Rain_Day_After_Tomorrow", rainDayAfterTomorrowHandler)}
-    if(state.selection == "Forecast Conditions"){subscribe(sensor1, "forecastConditions", forecastConditionsHandler)}
+// 	if(state.selection == "Chance Of Rain"){subscribe(sensor1, "chanceOfRain", rainHandler)}
+    if(state.selection == "Rain Tomorrow"){subscribe(sensor1, "rainTomorrow", rainTomorrowHandler)}
+  	if(state.selection == "Rain The Day After Tomorrow"){subscribe(sensor1, "rainDayAfterTomorrow", rainDayAfterTomorrowHandler)}
+    if(state.selection == "Forecast Conditions"){subscribe(sensor1, "weatherForecast", forecastConditionsHandler)}
     if(state.selection == "Sunrise"){subscribe(sensor1, "localSunrise", sunriseHandler)}
     if(state.selection == "Sunset"){subscribe(sensor1, "localSunset", sunsetHandler)}
 }
@@ -259,21 +293,24 @@ LOGDEBUG("$enableswitch1 is $state.enablecurrS1")
 
 
 
-def checkNameHandler(evt){
-  def drivername = evt.value 
-    if(state.reqNameSpace == drivername){LOGDEBUG("You ARE using Cobra's version of the driver ")} 
-    else {log.warn "*** You are not using Cobra's version of the driver ***  "} 
-}
 
-def checkDriverVerHandler(evt){
-    def driverversion = evt.value
-    if(state.reqdriverversion == driverversion){LOGDEBUG("Driver version number:OK")}
-    else{log.warn "*** Driver version number does not match requirement for this app ***"}
-}
           
 def sensorSwitch1Handler(evt){
 state.currS1 = evt.value
-LOGDEBUG("$switch1 is $state.currS1")
+LOGDEBUG("$sensorswitch1 is $state.currS1")
+    
+    if(state.currS1 == "on"){
+        state.already = 'on'
+    }
+    
+     if(state.currS1 == "off"){
+        state.already = 'off'
+    }  
+    
+    
+    
+    
+    
 }
 
 def displayTempUnitHandler(evt){
@@ -316,7 +353,12 @@ def solarradiationHandler(evt){
 
 def observation_timeHandler(evt){
 state.observe1 = evt.value
-LOGDEBUG("Observation Time is $state.observe1")
+LOGDEBUG("Weewx Observation Time is $state.observe1")
+}
+
+def observation_timeHandler1(evt){
+state.observe2 = evt.value
+LOGDEBUG("External Observation Time is $state.observe2")
 }
 
 def weatherHandler(evt){
@@ -326,7 +368,7 @@ LOGDEBUG("Weather is $state.weather1")
 
 def  alertHandler(evt){
 state.alert1 = evt.value
-LOGDEBUG("Weather Alert is $state.alert1")    
+LOGDEBUG("Weather Alert: $state.alert1")    
 }
 
 def  cityHandler(evt){
@@ -339,9 +381,19 @@ state.state1 = evt.value
 LOGDEBUG("State is $state.state1")    
 }
 
+def  countryHandler(evt){
+state.country1 = evt.value
+LOGDEBUG("Country is $state.country1")    
+}
+
 def  stationHandler(evt){
 state.station1 = evt.value
-LOGDEBUG("Station is $state.station1")    
+LOGDEBUG("Weewx Server Location is $state.station1")    
+}
+
+def  stationHandler1(evt){
+state.station2 = evt.value
+LOGDEBUG("Weewx Server Uptime is $state.station2")    
 }
 
 def checkPollHandler(evt){
@@ -363,15 +415,15 @@ def feelsLikeHandler(evt){
 
 def precip_1hrHandler(evt){
     def event4 = evt.value
-    def evt4 = event4.toInteger() 
-    def call4 = 'Precipitation in last hour'
+    def evt4 = event4.toDouble()
+	def call4 = 'Precipitation in last hour'
 	LOGDEBUG("Precipitation in last hour is $evt4")
     actionNow(call4, evt4)
 }
 
 def precip_todayHandler(evt){
     def event5 = evt.value
-    def evt5 = event5.toInteger() 
+    def evt5 = event5.toDouble()
     def call5 = 'Precipitation Today'
 	LOGDEBUG("Precipitation Today is $evt5")
     actionNow(call5, evt5)
@@ -399,7 +451,7 @@ def pressureHandler(evt){
 
 def dewpointHandler(evt){
     def event8 = evt.value
-    def evt8 = event8.toInteger() 
+    def evt8 = event8.toDouble()
     def call8 = 'Dewpoint'
     LOGDEBUG("Dewpoint =  $evt8")
     actionNow(call8, evt8)
@@ -407,11 +459,21 @@ def dewpointHandler(evt){
 
 def uvHandler(evt){
     def event9 = evt.value
-    def evt9 = event9.toInteger() 
+    def evt9 = event9.toDouble()
     def call9 = 'UV'
     LOGDEBUG("UV =  $evt9")
     actionNow(call9, evt9)
 }
+
+def uvHarmHandler(evt){
+    def evt21 = evt.value
+    def call21 = 'UV Harm Index'
+    LOGDEBUG("UVHarm =  $evt21")
+    altSwitch(call21, evt21)
+}
+
+
+
 
 def visibilityHandler(evt){
     def event10 = evt.value
@@ -424,7 +486,7 @@ def visibilityHandler(evt){
 
 def forecastHighHandler(evt){
     def event11 = evt.value
-    def evt11 = event11.toInteger()  //.toDouble()
+    def evt11 = event11.toDouble()
     def call11 = 'Forecast High'
     LOGDEBUG("Forecast High =  $evt11")
     actionNow(call11, evt11)
@@ -433,7 +495,7 @@ def forecastHighHandler(evt){
 
 def forecastLowHandler(evt){
     def event12 = evt.value
-    def evt12 = event12.toInteger() 
+    def evt12 = event12.toDouble() 
     def call12 = 'Forecast Low'
     LOGDEBUG("Forecast Low =  $evt12")
    actionNow(call12, evt12)
@@ -510,20 +572,15 @@ LOGDEBUG("Sunset =  $evt.value")
     altSwitch(call20, evt20)
 }         
 
-
-
-
-
-
-
-
-
-
-def signOff(){
-LOGDEBUG("Observation Time: $state.observe1 - City: $state.city1 - Station: $state.station1")   
-    
-    
+def precip_RateHandler(evt){
+    def event21 = evt.value
+    def evt21 = event21.toDouble()
+    def call21 = 'Precipitation Rate'
+	LOGDEBUG("Precipitation Rate is $evt21")
+    actionNow(call21, evt21)
 }
+  
+
 
 // Switch Actions
 
@@ -633,20 +690,28 @@ checkPresence1()
 
 
 def on(){
+    if(state.already == 'off'){
     if(state.enablecurrS1 == 'on'){ 
     	LOGDEBUG("Turning on switch...")   
-    	sensorswitch1.on()      
+    	sensorswitch1.on()  
+        state.already = 'on'
     }
+   
     if(state.enablecurrS1 == 'off'){ 
     	LOGDEBUG("Cannot switch on - App disabled...") 
     }
+    }
+    else{ LOGDEBUG("Cannot switch on - Already On")}
 }
 
 
 def off(){
-      	LOGDEBUG("Turning off switch...")   
+    if(state.already == 'on'){
+    LOGDEBUG("Turning off switch...")   
     	sensorswitch1.off()      
-       
+       state.already = 'off'
+    }
+     else{ LOGDEBUG("Cannot switch off - Already Off")}
 }
   
 // Check time allowed to run...
@@ -811,9 +876,66 @@ def LOGDEBUG(txt){
 }
 
 
-// App & Driver Version   *********************************************************************************
-def setAppVersion(){
-    state.appversion = "1.6.0.250"
-    state.reqdriverversion = "2.5.0"  // required driver version for this app
-    state.reqNameSpace = "Cobra"   // check to confirm Cobra's driver is being used
+
+def version(){
+    updatecheck()
+    if (state.Type == "Application"){schedule("0 0 9 ? * FRI *", updatecheck)}
+    if (state.Type == "Driver"){schedule("0 0 8 ? * FRI *", updatecheck)}
 }
+
+def display(){
+    if(state.Status){
+    section{paragraph "Version: $state.version -  $state.Copyright"}
+	if(state.Status != "Current"){
+       section{ 
+       paragraph "$state.Status"
+       paragraph "$state.updateInfo"
+    }
+    }
+}
+}
+
+
+def updatecheck(){
+    setAppVersion()
+    def paramsUD = [uri: "http://update.hubitat.uk/cobra.json"]
+       try {
+        httpGet(paramsUD) { respUD ->
+//   log.info " Version Checking - Response Data: ${respUD.data}"   // Debug Code ***********************************************
+       def copyNow = (respUD.data.copyright)
+       state.Copyright = copyNow
+            def newver = (respUD.data.versions.(state.Type).(state.InternalName))
+            def cobraVer = (respUD.data.versions.(state.Type).(state.InternalName).replace(".", ""))
+       def cobraOld = state.version.replace(".", "")
+       state.updateInfo = (respUD.data.versions.UpdateInfo.(state.Type).(state.InternalName)) 
+            if(cobraVer == "NLS"){
+            state.Status = "<b>** This $state.Type is no longer supported **</b> - (However you can continue to use it if you wish)"       
+            log.warn "** This $state.Type is no longer supported ** -  (However you can continue to use it if you wish)"      
+      }           
+      		else if(cobraOld < cobraVer){
+        	state.Status = "<b>New Version Available (Version: $newver)</b>"
+        	log.warn "** There is a newer version of this $state.Type available  (Version: $newver) **"
+        	log.warn "** $state.updateInfo **"
+       } 
+            else{ 
+      		state.Status = "Current"
+      		log.info "$state.Type is the current version"
+       }
+       
+       }
+        } 
+        catch (e) {
+        log.error "Something went wrong: $e"
+    }
+}        
+
+
+
+def setAppVersion(){
+     state.version = "2.4.4"
+     state.InternalName = "WSchild"
+     state.Type = "Application"
+ 
+
+}
+
