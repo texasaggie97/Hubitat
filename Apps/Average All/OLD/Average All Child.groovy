@@ -35,13 +35,13 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 30/08/2018
+ *  Last Update: 28/08/2018
  *
  *  Changes:
  *
  *
  *
- *  V1.0.1 - Debug calculations (reset variable was incorrect)
+ *  
  *  V1.0.0 - POC
  *
  */
@@ -85,10 +85,10 @@ section("") {
     
     section(""){}
     section("Choose Physical Illuminance Sensors"){
-        input "illumSensors", "capability.illuminanceMeasurement", title: "Physical Sensors", multiple: true
+        input "illumSensors", "capability.sensor", title: "Physical Sensors", multiple: true
     }
      section("Set Virtual Illuminance Sensor "){
-        input "vDevice", "capability.illuminanceMeasurement", title: "Virtual Device"
+        input "vDevice", "capability.sensor", title: "Virtual Device"
         input "decimalUnit", "enum", title: "Max Decimal Places", required:true, defaultValue: "2", options: ["1", "2", "3", "4", "5"]
     }
      section(){
@@ -125,7 +125,7 @@ section("") {
 // Humidity Input *******************    
     if(state.selection == "Humidity"){    
       section("Choose Physical Humidity Sensors"){
-        input "humiditySensors", "capability.relativeHumidityMeasurement", title: "Physical Sensors", multiple: true
+        input "humiditySensors", "capability.sensor", title: "Physical Sensors", multiple: true
     }
      section("Set Virtual Humidity Device "){
         input "vDevice", "capability.sensor", title: "Virtual Device"
@@ -189,9 +189,7 @@ def illuminanceHandler(evt) {
     LOGDEBUG( "received $ave")
     def sum = 0
     def count = 0
-    state.mean = 0
-    state.mean1 = 0
-    state.mean2 = 0
+    def mean = 0
 
     for (sensor in settings.illumSensors) {
     count += 1 
@@ -222,10 +220,8 @@ LOGDEBUG( "Total Combined value =  $sum")
 def tempSensorsHandler(evt) {
     def sum = 0
     def count = 0
-    state.mean = 0
-	state.mean1 = 0
-    state.mean2 = 0
-    
+    def mean = 0
+
     for (sensor in settings.tempSensors) {
     count += 1 
     sum += sensor.currentTemperature }
@@ -255,10 +251,8 @@ def humidityHandler(evt) {
     LOGDEBUG( "received $ave")
     def sum = 0
     def count = 0
-    state.mean = 0
-	state.mean1 = 0
-    state.mean2 = 0
-    
+    def mean = 0
+
     for (sensor in settings.humiditySensors) {
     count += 1 
 LOGDEBUG( "Sensor data count = $count" )      
@@ -368,7 +362,7 @@ def updateCheck(){
 }
 
 def setVersion(){
-		state.version = "1.0.1"	 
+		state.version = "1.0.0"	 
 		state.InternalName = "AverageAllchild"
 }
 
