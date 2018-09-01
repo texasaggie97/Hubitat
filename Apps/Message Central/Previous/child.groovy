@@ -30,11 +30,11 @@
  *-------------------------------------------------------------------------------------------------------------------
  *
  *
- *  Last Update: 30/08/2018
+ *  Last Update: 31/08/2018
  *
  *  Changes:
  *
- *
+ *  V11.0.0 - Major recode to cover options for 'Speech Synthesis'
  *  V10.6.0 - Added weather variables (use with weather driver or individual sensors)
  *  V10.5.0 - Debug disable switch & power input (allow decimal input)
  *  V10.4.0 - Sorted out %date% %year% & %day% variables (to correct errors in different format for Hubitat)
@@ -239,7 +239,7 @@ subscribe(restrictPresenceSensor1, "presence", restrictPresence1SensorHandler)
 }    
 
     if(weather1){
-        state.wholeNumber = wholeNumbersOnly
+        
     	subscribe(weather1, "weatherSummary", weatherSummaryHandler)
 		subscribe(weather1, "weather", weatherNow) 
 		subscribe(weather1, "forecastHigh", weatherForecastHigh) 
@@ -264,7 +264,7 @@ def mainPage() {
         section {
         paragraph title: "Message Central Child",
                   required: false,
-                  "This child app allows you use different triggers to create different voice or text messages"
+                  "This child app allows you use different triggers to create different messages"
                   }
     display()
    
@@ -363,7 +363,7 @@ def pageHelpVariables(){
     AvailableVariables +=  " %hum%  		- 		Replaced with a 'Humidity' \n\n" 
     AvailableVariables +=  " %wnow% 		- 		Replaced with 'Weather Now' \n\n" 
     AvailableVariables +=  " %rain%   		- 		Replaced with 'Chance of Rain' \n\n" 
-    AvailableVariables +=  " %vis%    		- 		Replaced with 'Visibility' \n\n" 
+    AvailableVariables +=  " %vis%			- 		Replaced with 'Visibility' \n\n" 
     AvailableVariables +=  " %wgust% 		- 		Replaced with 'Wind Gust'  \n\n" 
     AvailableVariables +=  " %wspeed% 		- 		Replaced with 'Wind Speed'  \n\n"
     AvailableVariables +=  " %wdir%   		- 		Replaced with 'Wind Direction'  \n\n"
@@ -405,9 +405,7 @@ def restrictionsPage() {
        } 
         section("Weather Device") { 
        input "weather1", "capability.sensor", title: "If using any of the weather variables, choose weather device", required: false, multiple: false, submitOnChange: true
-            if(weather1){
-                input "wholeNumbersOnly", "bool", title: "If using the weather variables only say whole numbers (not decimals)", required: true, defaultValue: false, submitOnChange: true
-            }
+      
        } 
            
            
@@ -438,21 +436,26 @@ def namePage() {
 // defaults
 def speakerInputs(){	
 	input "enableSwitch", "capability.switch", title: "Select switch Enable/Disable this message (Optional)", required: false, multiple: false 
-    input "messageAction", "enum", title: "Select Message Type", required: false, submitOnChange: true,  options: [ "Voice Message", "SMS Message", "PushOver Message", "Join Message", "Play an Mp3 (No variables can be used)"]
+    input "messageAction", "enum", title: "Select Message Type", required: false, submitOnChange: true,  options: [ "Voice Message (MusicPlayer)", "Voice Message (SpeechSynth)", "SMS Message", "PushOver Message", "Join Message", "Play an Mp3 (No variables can be used)"]
     
 
     
 
  if (messageAction){
  state.msgType = messageAction
-    if(state.msgType == "Voice Message"){
-		input "speaker", "capability.musicPlayer", title: "Choose speaker(s)", required: false, multiple: true
+    if(state.msgType == "Voice Message (MusicPlayer)"){
+		input "speaker", "capability.musicPlayer", title: "Music Player Device(s)", required: false, multiple: true
 		input "volume1", "number", title: "Normal Speaker volume", description: "0-100%", defaultValue: "80",  required: true
     }
-	else if(state.msgType == "PushOver Message"){ 
+     
+    else if(state.msgType == "PushOver Message"){ 
 		input "speaker", "capability.speechSynthesis", title: "PushOver Device", required: false, multiple: true
   
 	}
+    else if(state.msgType == "Voice Message (SpeechSynth)"){ 
+		input "speaker", "capability.speechSynthesis", title: "Speech Synthesis Device(s)", required: false, multiple: true
+  
+	} 
      else if(state.msgType == "Join Message"){ 
 		input "speaker", "capability.speechSynthesis", title: "Join API Device", required: false, multiple: true
   
@@ -544,7 +547,7 @@ if(state.selection == 'Button'){
    input "button1", "capability.button", title: "Button", multiple: false, required: false
 
     
-    if(state.msgType == "Voice Message"){
+    if(state.msgType == "Voice Message (MusicPlayer)"){
 	input "message1", "text", title: "Message to play when button pressed",  required: false, submitOnChange: true
 	input "message2", "text", title: "Message to play when button held",  required: false, submitOnChange: true
     input "triggerDelay", "number", title: "Delay after trigger before speaking (Enter 0 for no delay)", defaultValue: '0', description: "Seconds", required: true
@@ -583,7 +586,14 @@ if(state.selection == 'Switch'){
     input "switch1", "capability.switch", title: "Select switch to trigger message/report", required: false, multiple: false 
 
     
-    if(state.msgType == "Voice Message"){
+    if(state.msgType == "Voice Message (MusicPlayer)"){
+	input "message1", "text", title: "Message to play when switched on",  required: false, submitOnChange: true
+	input "message2", "text", title: "Message to play when switched off",  required: false, submitOnChange: true
+    input "triggerDelay", "number", title: "Delay after trigger before speaking (Enter 0 for no delay)", defaultValue: '0', description: "Seconds", required: true
+    input "msgDelay", "number", title: "Delay between messages (Enter 0 for no delay)", defaultValue: '0', description: "Minutes", required: true
+    
+    }
+    if(state.msgType == "Voice Message (SpeechSynth)"){
 	input "message1", "text", title: "Message to play when switched on",  required: false, submitOnChange: true
 	input "message2", "text", title: "Message to play when switched off",  required: false, submitOnChange: true
     input "triggerDelay", "number", title: "Delay after trigger before speaking (Enter 0 for no delay)", defaultValue: '0', description: "Seconds", required: true
@@ -622,16 +632,20 @@ if(state.selection == 'Switch'){
 else if(state.selection == 'Water'){
 	 input "water1", "capability.waterSensor", title: "Select water sensor to trigger message", required: false, multiple: false 
      
-    if(state.msgType == "Voice Message"){
-   
-	input "message1", "text", title: "Message to play when WET",  required: false
+    if(state.msgType == "Voice Message (MusicPlayer)"){
+   	input "message1", "text", title: "Message to play when WET",  required: false
+	input "message2", "text", title: "Message to play when DRY",  required: false
+    input "triggerDelay", "number", title: "Delay after trigger before speaking (Enter 0 for no delay)", description: "Seconds", required: true
+   	input "msgDelay", "number", title: "Delay between messages (Enter 0 for no delay)", defaultValue: '0', description: "Minutes", required: true
+	}
+    if(state.msgType == "Voice Message (SpeechSynth)"){
+    input "message1", "text", title: "Message to play when WET",  required: false
 	input "message2", "text", title: "Message to play when DRY",  required: false
     input "triggerDelay", "number", title: "Delay after trigger before speaking (Enter 0 for no delay)", description: "Seconds", required: true
    	input "msgDelay", "number", title: "Delay between messages (Enter 0 for no delay)", defaultValue: '0', description: "Minutes", required: true
 	}
     
     if(state.msgType == "SMS Message"){
-    
      input "message1", "text", title: "Message to send when Wet",  required: false
 	 input "message2", "text", title: "Message to send when Dry",  required: false
      input "triggerDelay", "number", title: "Delay after trigger before sending (Enter 0 for no delay)", defaultValue: '0', description: "Seconds", required: true
@@ -663,13 +677,18 @@ else if(state.selection == 'Water'){
 else if(state.selection == 'Presence'){
 	input "presenceSensor1", "capability.presenceSensor", title: "Select presence sensor to trigger message", required: false, multiple: false 
    
-    if(state.msgType == "Voice Message"){
+    if(state.msgType == "Voice Message (MusicPlayer)"){
 	input "message1", "text", title: "Message to play when sensor arrives",  required: false
 	input "message2", "text", title: "Message to play when sensor leaves",  required: false
     input "triggerDelay", "number", title: "Delay after trigger before speaking (Enter 0 for no delay)", defaultValue: "0", description: "Seconds", required: true
     input "msgDelay", "number", title: "Delay between messages (Enter 0 for no delay)", defaultValue: '0', description: "Minutes", required: true
 	}
-    
+    if(state.msgType == "Voice Message (SpeechSynth)"){
+    input "message1", "text", title: "Message to play when sensor arrives",  required: false
+	input "message2", "text", title: "Message to play when sensor leaves",  required: false
+    input "triggerDelay", "number", title: "Delay after trigger before speaking (Enter 0 for no delay)", defaultValue: "0", description: "Seconds", required: true
+    input "msgDelay", "number", title: "Delay between messages (Enter 0 for no delay)", defaultValue: '0', description: "Minutes", required: true
+	}   
      if(state.msgType == "SMS Message"){
      input "message1", "text", title: "Message to send when sensor arrives",  required: false
 	 input "message2", "text", title: "Message to send when sensor leaves",  required: false
@@ -701,12 +720,18 @@ else if(state.selection == 'Contact'){
 	input "contactSensor", "capability.contactSensor", title: "Select contact sensor to trigger message", required: false, multiple: false 
    
      
-    if(state.msgType == "Voice Message"){
+    if(state.msgType == "Voice Message (MusicPlayer)"){
 	input "message1", "text", title: "Message to play when sensor opens",  required: false
 	input "message2", "text", title: "Message to play when sensor closes",  required: false
     input "triggerDelay", "number", title: "Delay after trigger before speaking (Enter 0 for no delay)", description: "Seconds", required: true
     input "msgDelay", "number", title: "Delay between messages (Enter 0 for no delay)", defaultValue: '0', description: "Minutes", required: true
 	    }
+    if(state.msgType == "Voice Message (SpeechSynth)"){
+    input "message1", "text", title: "Message to play when sensor opens",  required: false
+	input "message2", "text", title: "Message to play when sensor closes",  required: false
+    input "triggerDelay", "number", title: "Delay after trigger before speaking (Enter 0 for no delay)", description: "Seconds", required: true
+    input "msgDelay", "number", title: "Delay between messages (Enter 0 for no delay)", defaultValue: '0', description: "Minutes", required: true
+	    }    
      if(state.msgType == "SMS Message"){
      input "message1", "text", title: "Message to send when sensor opens",  required: false
 	 input "message2", "text", title: "Message to send when sensor closes",  required: false
@@ -741,11 +766,16 @@ else if(state.selection == 'Power'){
 	input(name: "delay1", type: "number", title: "Only if it stays that way for this number of minutes...", required: true, description: "this number of minutes", defaultValue: '0')
     
     
-  if(state.msgType == "Voice Message"){
+  if(state.msgType == "Voice Message (MusicPlayer)"){
     input "message1", "text", title: "Message to play ...",  required: false
     input "triggerDelay", "number", title: "Delay after trigger before speaking (Enter 0 for no delay - Seconds)", description: "Seconds", required: true, defaultValue: '0'
     input "msgDelay", "number", title: "Delay between messages (Enter 0 for no delay)", defaultValue: '0', description: "Minutes", required: true
     }
+  if(state.msgType == "Voice Message (SpeechSynth)"){
+     input "message1", "text", title: "Message to play ...",  required: false
+    input "triggerDelay", "number", title: "Delay after trigger before speaking (Enter 0 for no delay - Seconds)", description: "Seconds", required: true, defaultValue: '0'
+    input "msgDelay", "number", title: "Delay between messages (Enter 0 for no delay)", defaultValue: '0', description: "Minutes", required: true
+    }    
   if(state.msgType == "SMS Message"){
      input "message1", "text", title: "Message to send...",  required: false
      input "triggerDelay", "number", title: "Delay after trigger before sending (Enter 0 for no delay)", defaultValue: '0', description: "Seconds", required: true
@@ -775,7 +805,12 @@ else if(state.selection == 'Appliance Power Monitor'){
 	
     
     
-  if(state.msgType == "Voice Message"){
+  if(state.msgType == "Voice Message (MusicPlayer)"){
+    input "message1", "text", title: "Message to play ...",  required: false
+    input "triggerDelay", "number", title: "Delay after trigger before speaking (Enter 0 for no delay - Seconds)", description: "Seconds", required: true, defaultValue: '0'
+    input "msgDelay", "number", title: "Delay between messages (Enter 0 for no delay)", defaultValue: '0', description: "Minutes", required: true
+    }
+  if(state.msgType == "Voice Message (SpeechSynth)"){  
     input "message1", "text", title: "Message to play ...",  required: false
     input "triggerDelay", "number", title: "Delay after trigger before speaking (Enter 0 for no delay - Seconds)", description: "Seconds", required: true, defaultValue: '0'
     input "msgDelay", "number", title: "Delay between messages (Enter 0 for no delay)", defaultValue: '0', description: "Minutes", required: true
@@ -804,11 +839,16 @@ else if(state.selection == 'Motion'){
     input "motionActionType", "bool", title: "Select Motion Sensor action type: \r\n \r\n On = Alert when motion 'Active'  \r\n Off = Alert when motion 'Inactive'", required: true, defaultValue: false
 	
     
-  if(state.msgType == "Voice Message"){
+  if(state.msgType == "Voice Message (MusicPlayer)"){
     input "message1", "text", title: "Message to play ...",  required: false
     input "triggerDelay", "number", title: "Delay after trigger before speaking (Enter 0 for no delay - Seconds)", description: "Seconds", required: true, defaultValue: '0'
     input "msgDelay", "number", title: "Delay between messages (Enter 0 for no delay)", defaultValue: '0', description: "Minutes", required: true
     }
+  if(state.msgType == "Voice Message (SpeechSynth)"){  
+    input "message1", "text", title: "Message to play ...",  required: false
+    input "triggerDelay", "number", title: "Delay after trigger before speaking (Enter 0 for no delay - Seconds)", description: "Seconds", required: true, defaultValue: '0'
+    input "msgDelay", "number", title: "Delay between messages (Enter 0 for no delay)", defaultValue: '0', description: "Minutes", required: true
+    }  
   if(state.msgType == "SMS Message"){
      input "message1", "text", title: "Message to send...",  required: false
      input "triggerDelay", "number", title: "Delay after trigger before sending (Enter 0 for no delay)", defaultValue: '0', description: "Seconds", required: true
@@ -833,11 +873,16 @@ else if(state.selection == 'Temperature'){
     input "tempActionType", "bool", title: "Select Temperature Sensor action type: \r\n \r\n On = Alert when above set temperature  \r\n Off = Alert when below set temperature", required: true, defaultValue: false
 	
     
-  if(state.msgType == "Voice Message"){
+  if(state.msgType == "Voice Message (MusicPlayer)"){
     input "message1", "text", title: "Message to play ...",  required: false
     input "triggerDelay", "number", title: "Delay after trigger before speaking (Enter 0 for no delay - Seconds)", description: "Seconds", required: true, defaultValue: '0'
     input "msgDelay", "number", title: "Delay between messages (Enter 0 for no delay)", defaultValue: '0', description: "Minutes", required: true
     }
+  if(state.msgType == "Voice Message (SpeechSynth)"){ 
+   input "message1", "text", title: "Message to play ...",  required: false
+    input "triggerDelay", "number", title: "Delay after trigger before speaking (Enter 0 for no delay - Seconds)", description: "Seconds", required: true, defaultValue: '0'
+    input "msgDelay", "number", title: "Delay between messages (Enter 0 for no delay)", defaultValue: '0', description: "Minutes", required: true
+    }      
   if(state.msgType == "SMS Message"){
      input "message1", "text", title: "Message to send...",  required: false
      input "triggerDelay", "number", title: "Delay after trigger before sending (Enter 0 for no delay)", defaultValue: '0', description: "Seconds", required: true
@@ -861,17 +906,22 @@ else if(state.selection == 'Time'){
 	input (name: "runTime", title: "Time to run", type: "time",  required: true) 
    
     
-   if(state.msgType == "Voice Message"){
+   if(state.msgType == "Voice Message (MusicPlayer)"){
 	input "messageTime", "text", title: "Message to play",  required: true
 //    input "missedMessageAction", "bool", title: "Let me know if I miss this message while away ", required: true, defaultValue: false, submitOnChange: true 
-   
+  
+       
    if(missedMessageAction == true){
     input "missedPresenceSensor1", "capability.presenceSensor", title: "Select presence sensor", required: true, multiple: false
     input "missedMessage", "text", title: "Message reminder to play when presence sensor arrives if original message missed",  required: true
     input "missedMsgDelay", "number", title: "Delay after arriving before reminder message", defaultValue: '0', description: "Seconds", required: true
    }
-    
+     
+        
    		}
+  if(state.msgType == "Voice Message (SpeechSynth)"){  
+    input "messageTime", "text", title: "Message to play",  required: true
+  }
   if(state.msgType == "SMS Message"){
      input "messageTime", "text", title: "Message to send...",  required: false
 
@@ -895,10 +945,14 @@ else if(state.selection == 'Time if Contact Open'){
 	input (name: "runTime", title: "Time to run", type: "time",  required: true) 
     input "contact1", "capability.contactSensor", title: "Select contact sensor to check", required: false, multiple: false 
    
-  if(state.msgType == "Voice Message"){
+  if(state.msgType == "Voice Message (MusicPlayer)"){
 	input "messageTime", "text", title: "Message to play if contact open",  required: true
     input "msgDelay", "number", title: "Delay between messages (Enter 0 for no delay)", defaultValue: '0', description: "Minutes", required: true
    		}
+  if(state.msgType == "Voice Message (SpeechSynth)"){
+    input "messageTime", "text", title: "Message to play if contact open",  required: true
+    input "msgDelay", "number", title: "Delay between messages (Enter 0 for no delay)", defaultValue: '0', description: "Minutes", required: true
+   		}    
   if(state.msgType == "SMS Message"){
      input "messageTime", "text", title: "Message to send if contact open",  required: false
      input "msgDelay", "number", title: "Delay between messages (Enter 0 for no delay)", defaultValue: '0', description: "Minutes", required: true
@@ -922,12 +976,16 @@ else if(state.selection == 'Mode Change'){
 	input "newMode1", "mode", title: "Action when changing to this mode",  required: false
     
      
-  if(state.msgType == "Voice Message"){
+  if(state.msgType == "Voice Message (MusicPlayer)"){
 	input "message1", "text", title: "Message to play",  required: true
     input "triggerDelay", "number", title: "Delay after trigger before speaking (Enter 0 for no delay - Seconds)", description: "Seconds", required: true, defaultValue: '0'
     input "msgDelay", "number", title: "Delay between messages (Enter 0 for no delay)", defaultValue: '0', description: "Minutes", required: true
        }
-    
+   if(state.msgType == "Voice Message (SpeechSynth)"){
+    input "message1", "text", title: "Message to play",  required: true
+    input "triggerDelay", "number", title: "Delay after trigger before speaking (Enter 0 for no delay - Seconds)", description: "Seconds", required: true, defaultValue: '0'
+    input "msgDelay", "number", title: "Delay between messages (Enter 0 for no delay)", defaultValue: '0', description: "Minutes", required: true
+       }   
    if(state.msgType == "SMS Message"){
      input "message1", "text", title: "Message to send...",  required: false
      input "triggerDelay", "number", title: "Delay after trigger before sending (Enter 0 for no delay)", defaultValue: '0', description: "Seconds", required: true
@@ -953,11 +1011,16 @@ if(state.selection == 'Contact - Open Too Long'){
    	input(name: "opendelay1", type: "number", title: "Only if it stays open for this number of minutes...", required: true, description: "this number of minutes", defaultValue: '0')
    
     
-  if(state.msgType == "Voice Message"){
+  if(state.msgType == "Voice Message (MusicPlayer)"){
     input "message1", "text", title: "Message to play ...",  required: false
     input "msgDelay", "number", title: "Delay between messages (Enter 0 for no delay)", defaultValue: '0', description: "Minutes", required: true
   	
     }
+  if(state.msgType == "Voice Message (SpeechSynth)"){
+     input "message1", "text", title: "Message to play ...",  required: false
+    input "msgDelay", "number", title: "Delay between messages (Enter 0 for no delay)", defaultValue: '0', description: "Minutes", required: true
+  	
+    }  
   if(state.msgType == "SMS Message"){
      input "message1", "text", title: "Message to send...",  required: false
      input "msgDelay", "number", title: "Delay between messages (Enter 0 for no delay)", defaultValue: '0', description: "Minutes", required: true
@@ -1007,62 +1070,34 @@ def weatherNow(evt){
 
 
 def weatherForecastHigh(evt){
-    if(state.wholeNumber == true){
- state.weatherForecastHigh = evt.value.toInteger()
-      }
-        else{
-            state.weatherForecastHigh = evt.value
-            }
+   state.weatherForecastHigh = evt.value
  LOGDEBUG("Running weatherForecastHigh.. ")
   LOGDEBUG("state.weatherForecastHigh = $state.weatherForecastHigh")  
 }
 def weatherForecastLow(evt){
-     if(state.wholeNumber == true){
- state.weatherForecastLow = evt.value.toInteger()
-     }
-    else{
-        state.weatherForecastLow = evt.value
-    }
-        
+    state.weatherForecastLow = evt.value
+
  LOGDEBUG("Running weatherForecastLow.. ")
   LOGDEBUG("state.weatherForecastLow = $state.weatherForecastLow")  
 }
 def weatherHumidity(evt){
-    if(state.wholeNumber == true){
-    state.weatherHumidity1 = (evt.value.minus('%'))
-    state.weatherHumidity2 = state.weatherHumidity1.toInteger()
-    state.weatherHumidity = state.weatherHumidity2 
-    }
-    else{
         state.weatherHumidity = (evt.value.minus('%')) 
-    }
+  
  LOGDEBUG("Running weatherHumidity.. ")
   LOGDEBUG("state.weatherHumidity = $state.weatherHumidity")  
 }
 def weatherTemperature(evt){
-    if(state.wholeNumber == true){
-     state.weatherTemperature1 = evt.value
-      state.weatherTemperature2 = state.weatherTemperature1.toDouble()
-      state.weatherTemperature = state.weatherTemperature2.toInteger()  
-        
-    }
-        else{
+ 
         state.weatherTemperature = evt.value    
-        }
+      
     
  
  LOGDEBUG("Running weatherTemperature.. ")
   LOGDEBUG("state.weatherTemperature = $state.weatherTemperature")  
 }
 def weatherFeelsLike(evt){
-    if(state.wholeNumber == true){
- state.weatherFeelsLike1 = evt.value
-     state.weatherFeelsLike2 = state.weatherFeelsLike1.toDouble()   
-    state.weatherFeelsLike = state.weatherFeelsLike2.toInteger()   
-    }
-    else{
-     state.weatherFeelsLike = evt.value    
-    }
+        state.weatherFeelsLike = evt.value    
+   
  LOGDEBUG("Running weatherFeelsLike.. ")
   LOGDEBUG("state.weatherFeelsLike = $state.weatherFeelsLike")  
 }
@@ -1072,37 +1107,24 @@ def weatherWindDir(evt){
   LOGDEBUG("state.weatherWindDir = $state.weatherWindDir")  
 }
 def weatherWindSpeed(evt){
-     if(state.wholeNumber == true){
- state.weatherWindSpeed = evt.value.toInteger()
-     }
-    else{
-    state.weatherWindSpeed = evt.value    
-    }
+       state.weatherWindSpeed = evt.value    
+  
  LOGDEBUG("Running weatherWindSpeed.. ")
   LOGDEBUG("state.weatherWindSpeed = $state.weatherWindSpeed")  
 }
 def weatherWindGust(evt){
-    if(state.wholeNumber == true){
- state.weatherWindGust = evt.value.toInteger()
-    }
-    else{
-     state.weatherWindGust = evt.value   
-    }
+        state.weatherWindGust = evt.value   
+   
  LOGDEBUG("Running weatherWindGust.. ")
   LOGDEBUG("state.weatherWindGust = $state.weatherWindGust")  
 }
 def weatherVisibility(evt){
-    if(state.wholeNumber == true){
- state.weatherVisibility1 = evt.value.toDouble()
-   state.weatherVisibility = state.weatherVisibility1.toInteger()     
-        
-    }
-    else{
-     state.weatherVisibility = evt.value   
-    }
- LOGDEBUG("Running weatherVisibility.. ")
+    LOGDEBUG("Running weatherVisibility.. ")
+        state.weatherVisibility = evt.value   
+  
   LOGDEBUG("state.weatherVisibility = $state.weatherVisibility")  
 }
+
 def weatherChanceOfRain(evt){
  state.weatherChanceOfRain = (evt.value.minus('%')) 
  LOGDEBUG("Running weatherChanceOfRain.. ")
@@ -1294,7 +1316,7 @@ def mydelay = triggerDelay
 
 
 
-if(state.msgType == "Voice Message"){
+if(state.msgType == "Voice Message (MusicPlayer)"){
 LOGDEBUG("Button - Voice Message")
 
 	if(state.buttonStatus1 == 'pushed'){
@@ -1374,10 +1396,14 @@ LOGDEBUG("myTemp = $myTemp")
     
 if(tempActionType == true && state.tempStatus1 > myTemp){
 LOGDEBUG("Action = true - state.tempStatus1 > myTemp")
- if(state.msgType == "Voice Message"){
+ if(state.msgType == "Voice Message (MusicPlayer)"){
     talkSwitch()
    }          
-  
+ else if(state.msgType == "Voice Message (SpeechSynth)"){
+    def msg = message1    
+    LOGDEBUG("TempTalkNow - Speech Synth Message - Sending Message: $msg")   
+    speechSynthNow(msg)  
+        } 
       
   else if(state.msgType == "SMS Message"){
 	def msg = message1
@@ -1400,11 +1426,16 @@ LOGDEBUG("TempTalkNow - Join Message - Sending Message: $msg")
     
 if(tempActionType == false && state.tempStatus1 < myTemp){
     LOGDEBUG("Action = false - state.tempStatus1 < myTemp")
- if(state.msgType == "Voice Message"){
+ if(state.msgType == "Voice Message (MusicPlayer)"){
     talkSwitch()
    }          
   
-      
+   else if(state.msgType == "Voice Message (SpeechSynth)"){
+    def msg = message1    
+    LOGDEBUG("TempTalkNow - Speech Synth Message - Sending Message: $msg")   
+    speechSynthNow(msg)  
+        } 
+    
   else if(state.msgType == "SMS Message"){
 	def msg = message1
       
@@ -1451,10 +1482,14 @@ state.msgNow = 'oneNow'
 if(motionActionType == true && state.motionStatus1 == 'active'){
  LOGDEBUG( "MotionTalkNow... Sensor Active - Configured to alert on active motion sensor")
     
-    if(state.msgType == "Voice Message"){
+    if(state.msgType == "Voice Message (MusicPlayer)"){
     talkSwitch()
    }          
-  
+   else if(state.msgType == "Voice Message (SpeechSynth)"){
+    def msg = message1    
+    LOGDEBUG("MotionTalkNow - Speech Synth Message - Sending Message: $msg")   
+    speechSynthNow(msg)  
+        } 
       
   else if(state.msgType == "SMS Message"){
 	def msg = message1
@@ -1479,10 +1514,14 @@ LOGDEBUG("MotionTalkNow - Join Message - Sending Message: $msg")
 if(motionActionType == false && state.motionStatus1 == 'inactive'){
  LOGDEBUG( "MotionTalkNow... Sensor Inactive - Configured to alert on inactive motion sensor")
     
-    if(state.msgType == "Voice Message"){
+    if(state.msgType == "Voice Message (MusicPlayer)"){
     talkSwitch()
    }          
-        
+  else if(state.msgType == "Voice Message (SpeechSynth)"){
+    def msg = message1    
+    LOGDEBUG("MotionTalkNow - Speech Synth Message - Sending Message: $msg")   
+    speechSynthNow(msg)  
+        }      
   else if(state.msgType == "SMS Message"){
 	def msg = message1
 LOGDEBUG("MotionTalkNow - SMS Message - Sending Message: $msg")
@@ -1547,10 +1586,14 @@ state.msgNow = 'oneNow'
 if (state.openContact == 'open'){
      LOGDEBUG( "openContactSpeak -  Still open...")
     
-    if(state.msgType == "Voice Message"){
+    if(state.msgType == "Voice Message (MusicPlayer)"){
     talkSwitch()
    }          
-  
+     else if(state.msgType == "Voice Message (SpeechSynth)"){
+    def msg = message1    
+    LOGDEBUG("OpenContact Speak - Speech Synth Message - Sending Message: $msg")   
+    speechSynthNow(msg)  
+        }
       
   else if(state.msgType == "SMS Message"){
 	def msg = message1
@@ -1601,15 +1644,19 @@ def modeRequired = newMode1
     
    	LOGDEBUG("Mode is now $modeRequired")
     
- 	if(state.msgType == "Voice Message"){    
+ 	if(state.msgType == "Voice Message (MusicPlayer)"){    
 def mydelay = triggerDelay
 checkVolume()
 LOGDEBUG("Speaker(s) in use: $speaker set at: $state.volume% - waiting $mydelay seconds before continuing..."  )
 runIn(mydelay, talkSwitch)
 }
-	
+   else if(state.msgType == "Voice Message (SpeechSynth)"){
+    def msg = message1    
+    LOGDEBUG("Mode - Speech Synth Message - Sending Message: $msg")   
+    speechSynthNow(msg)  
+        }	
 
-if(state.msgType == "SMS Message"){
+else if(state.msgType == "SMS Message"){
 def msg = message1
 LOGDEBUG("Mode Change - SMS Message - Sending Message: $msg")
   sendMessage(msg)
@@ -1796,7 +1843,7 @@ LOGDEBUG("Calling.. CompileMsg")
 def msg = messageTime   
 compileMsg(msg)
     
-if(state.msgType == "Voice Message"){ 
+if(state.msgType == "Voice Message (MusicPlayer)"){ 
 
 checkVolume()
 LOGDEBUG( "Speaker(s) in use: $speaker set at: $state.volume% - Message to play: $msg"  )
@@ -1805,7 +1852,11 @@ LOGDEBUG("All OK! - Playing message: '$state.fullPhrase'")
     speaker.playTextAndRestore(state.fullPhrase)  
 
 }
-
+ if(state.msgType == "Voice Message (SpeechSynth)"){
+      
+    LOGDEBUG("Time - Speech Synth Message - Sending Message: $msg")   
+    speechSynthNow(state.fullPhrase)  
+        }
 if(state.msgType == "SMS Message"){
 
 LOGDEBUG("Time - SMS Message - Sending Message: $msg")
@@ -1860,7 +1911,7 @@ LOGDEBUG("Time trigger -  Activating now! ")
 LOGDEBUG("Calling.. CompileMsg")
   def msg = messageTime
   compileMsg(msg)
-if(state.msgType == "Voice Message"){ 
+if(state.msgType == "Voice Message (MusicPlayer)"){ 
 
 checkVolume()
 LOGDEBUG( "Speaker(s) in use: $speaker set at: $state.volume% - Message to play: $msg"  )
@@ -1871,7 +1922,10 @@ LOGDEBUG("All OK! - Playing message: '$state.fullPhrase'")
 
 
 }
-
+ if(state.msgType == "Voice Message (SpeechSynth)"){
+     LOGDEBUG("Time - Speech Synth Message - Sending Message: $msg")   
+    speechSynthNow(state.fullPhrase)  
+        }
 if(state.msgType == "SMS Message"){
 
 LOGDEBUG("Time - SMS Message - Sending Message: $msg")
@@ -1920,7 +1974,7 @@ state.msg1 = message1
 state.msg2 = message2
 def mydelay = triggerDelay
 
-if(state.msgType == "Voice Message"){
+if(state.msgType == "Voice Message (MusicPlayer)"){
 LOGDEBUG("Switch - Voice Message - $state.nameOfDevice")
 
 	if(state.talkswitch1 == 'on'){
@@ -1938,7 +1992,22 @@ LOGDEBUG("Speaker(s) in use: $speaker set at: $state.volume% - waiting $mydelay 
 
 runIn(mydelay, talkSwitch)
 }
-
+ if(state.msgType == "Voice Message (SpeechSynth)"){
+     if(state.talkswitch1 == 'on' && state.msg1 != null){
+   def msg = message1     
+   compileMsg(msg)    
+    LOGDEBUG("Switch - Speech Synth Message - Sending Message: $msg")   
+    speechSynthNow(state.fullPhrase)  
+        }
+     if(state.talkswitch1 == 'off' && state.msg2 != null){
+     def msg = message2     
+   compileMsg(msg)    
+    LOGDEBUG("Switch - Speech Synth Message - Sending Message: $msg")   
+    speechSynthNow(state.fullPhrase)  
+         
+         
+     }  
+ }   
 if(state.msgType == "SMS Message"){
 LOGDEBUG("Switch - SMS Message")
 	if(state.talkswitch1 == 'on' && state.msg1 != null){
@@ -1957,7 +2026,8 @@ LOGDEBUG("Switch - SMS Message - Sending Message: $state.fullPhrase")
     }
 
 }
-    
+
+         
     
 if(state.msgType == "PushOver Message"){
 LOGDEBUG("Switch - PushOver Message")
@@ -2008,7 +2078,7 @@ state.actionEvent = evt.value
 state.msg1 = message1
 state.msg2 = message2
 
-if(state.msgType == "Voice Message"){
+if(state.msgType == "Voice Message (MusicPlayer)"){
 	if(state.talkcontact == 'open'){
 state.msgNow = 'oneNow'
 }
@@ -2044,6 +2114,22 @@ LOGDEBUG("Contact - SMS Message - Sending Message: $state.fullPhrase")
 
 
 	}
+ if(state.msgType == "Voice Message (SpeechSynth)"){
+     if(state.talkcontact == 'open' && state.msg1 != null){
+   def msg = message1     
+   compileMsg(msg)    
+    LOGDEBUG("Contact - Speech Synth Message - Sending Message: $msg")   
+    speechSynthNow(state.fullPhrase)  
+        }    
+    else if (state.talkcontact == 'closed' && state.msg2 != null){
+     def msg = message2     
+   compileMsg(msg)    
+    LOGDEBUG("Contact - Speech Synth Message - Sending Message: $msg")   
+    speechSynthNow(state.fullPhrase)  
+        }     
+     
+ }     
+         
     
 if(state.msgType == "PushOver Message"){
 	if(state.talkcontact == 'open' && state.msg1 != null){
@@ -2098,7 +2184,7 @@ state.msg1 = message1
 state.msg2 = message2
 
 
-if(state.msgType == "Voice Message"){
+if(state.msgType == "Voice Message (MusicPlayer)"){
         
 	if(state.talkwater == 'wet'){
 state.msgNow = 'oneNow'
@@ -2113,6 +2199,24 @@ checkVolume()
 LOGDEBUG( "Speaker(s) in use: $speaker set at: $state.volume% - waiting $mydelay seconds before continuing..."  )
 runIn(mydelay, talkSwitch)
 	}
+  if(state.msgType == "Voice Message (SpeechSynth)"){
+     if(state.talkwater == 'wet' && state.msg1 != null){
+   def msg = message1     
+   compileMsg(msg)    
+   LOGDEBUG("Water - Speech Synth Message - Sending Message: $msg")     
+        }
+     if(state.talkwater == 'dry' && state.msg2 != null){
+     def msg = message2     
+   compileMsg(msg)    
+    LOGDEBUG("Water - Speech Synth Message - Sending Message: $msg")   
+    speechSynthNow(state.fullPhrase)  
+         
+         
+     }  
+ }      
+    
+    
+    
     
 if(state.msgType == "SMS Message"){
 	if(state.talkwater == 'wet' && state.msg1 != null){
@@ -2161,7 +2265,7 @@ state.actionEvent = evt.value
 state.msg1 = message1
 state.msg2 = message2
 
-if(state.msgType == "Voice Message"){
+if(state.msgType == "Voice Message (MusicPlayer)"){
 
 	if(state.talkpresence == 'present'){
 state.msgNow = 'oneNow'
@@ -2178,7 +2282,23 @@ LOGDEBUG("Speaker(s) in use: $speaker set at: $state.volume% - waiting $mydelay 
 runIn(mydelay, talkSwitch)
 }
 
-
+  if(state.msgType == "Voice Message (SpeechSynth)"){
+    if(state.talkpresence == 'present' && state.msg1 != null){
+   def msg = message1     
+   compileMsg(msg)    
+   LOGDEBUG("Presence - Speech Synth Message - Sending Message: $msg")     
+        }
+     (state.talkpresence == 'not present' && state.msg2 != null){
+     def msg = message2     
+   compileMsg(msg)    
+    LOGDEBUG("Presence - Speech Synth Message - Sending Message: $msg")   
+    speechSynthNow(state.fullPhrase)  
+         
+         
+     }  
+ }      
+    
+    
 if(state.msgType == "SMS Message"){
 	if(state.talkpresence == 'present' && state.msg1 != null){
 def msg = message1
@@ -2316,7 +2436,7 @@ compileMsg(state.msg1)
     
     
     if ( state.timer1 == true && state.presenceRestriction == true && state.presenceRestriction1 == true){
-    if(state.msgType == "Voice Message"){
+    if(state.msgType == "Voice Message (MusicPlayer)"){
     checkVolume()
 
 LOGDEBUG("All OK! - Playing message: '$state.fullPhrase'")
@@ -2326,6 +2446,11 @@ LOGDEBUG("All OK! - Playing message: '$state.fullPhrase'")
 
    	startTimerPower()  
     }
+     
+    if(state.msgType == "Voice Message (SpeechSynth)"){
+    LOGDEBUG("Power - Playing Message - Sending Message: $state.fullPhrase")   
+    speechSynthNow(state.fullPhrase)  
+        }         
         
    if(state.msgType == "SMS Message" && state.msg1 != null){
 LOGDEBUG("Power - SMS Message - Sending Message: $state.fullPhrase")
@@ -2439,6 +2564,50 @@ def pushOver(msgType, inMsg){
         LOGDEBUG("One or more conditions not met - Unable to continue")
     }
 }
+
+
+// Speech Synth *****************
+
+def speechSynthNow(inMsg){
+    LOGDEBUG("Calling.. speechSynthNow")
+       modeCheck()
+    if(state.modeCheck == true && state.appgo == true){ 
+        
+        LOGDEBUG("Calling.. CheckTime")
+checkTime()
+LOGDEBUG("Calling.. CheckDay")
+checkDay()
+LOGDEBUG("Calling.. CheckPresence")
+checkPresence()
+LOGDEBUG("Calling.. CheckPresence1")
+checkPresence1()
+if(state.timeOK == true && state.dayCheck == true && state.presenceRestriction == true && state.presenceRestriction1 == true){
+
+        
+        
+    if(state.timer1 == true){
+    def newMessage = inMsg
+  LOGDEBUG(" converted message = $newMessage ")  
+
+     state.msg1 = newMessage
+	speaker.speak(state.msg1)
+   state.timer1 = false
+            startTimer1()
+ }
+}
+        else{
+        LOGDEBUG("Speech Synth - One or more conditions not met - Unable to continue")
+    }
+    }
+    else{
+        LOGDEBUG("Speech Synth - One or more conditions not met - Unable to continue")
+    }
+}
+
+
+
+
+
 
 def joinMsg(inMsg){
        modeCheck()
@@ -2708,7 +2877,10 @@ state.timer2 = true
 LOGDEBUG("Timer 2 reset - Messages allowed")
 }
 
-
+def waitabit(){
+  LOGDEBUG("Waiting a short while for the weather device to catch up")  
+    
+}
 
 
 private compileMsg(msg) {
@@ -2717,6 +2889,7 @@ private compileMsg(msg) {
     
     if(weather1){
         weather1.poll()
+        runIn(10, waitabit)
     }
     
     def msgComp = ""
@@ -2746,9 +2919,9 @@ private compileMsg(msg) {
     if (msgComp.contains("%GREETING%")) {msgComp = msgComp.toUpperCase().replace('%GREETING%', getGreeting() )}      
     if (msgComp.contains("%GROUP1%")) {msgComp = msgComp.toUpperCase().replace('%GROUP1%', getPre() )}
     if (msgComp.contains("%GROUP2%")) {msgComp = msgComp.toUpperCase().replace('%GROUP2%', getPost() )}
-     if (msgComp.contains("%GROUP3%")) {msgComp = msgComp.toUpperCase().replace('%GROUP3%', getWakeUp() )}
-
-
+    if (msgComp.contains("%GROUP3%")) {msgComp = msgComp.toUpperCase().replace('%GROUP3%', getWakeUp() )}
+	if (msgComp.contains("N/A")) {msgComp = msgComp.toUpperCase().replace('N/A', ' ' )}
+	if (msgComp.contains("NO STATION DATA")) {msgComp = msgComp.toUpperCase().replace('NO STATION DATA', ' ' )}
     
     convertWeatherMessage(msgComp)
   
@@ -3161,7 +3334,7 @@ def updateCheck(){
 }
 
 def setVersion(){
-		state.version = "10.6.0"	 
+		state.version = "11.0.0"	 
 		state.InternalName = "MCchild"  
 }
 

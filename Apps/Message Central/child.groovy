@@ -30,10 +30,11 @@
  *-------------------------------------------------------------------------------------------------------------------
  *
  *
- *  Last Update: 31/08/2018
+ *  Last Update: 01/09/2018
  *
  *  Changes:
  *
+ *  V11.1.0 - Fixed 'Presence' - Fixed 'Time Restrictions' - Fixed 'Quiet Time' - Made all other variables work inside 'Group#' random variable
  *  V11.0.0 - Major recode to cover options for 'Speech Synthesis'
  *  V10.6.0 - Added weather variables (use with weather driver or individual sensors)
  *  V10.5.0 - Debug disable switch & power input (allow decimal input)
@@ -1048,13 +1049,6 @@ if(state.selection == 'Contact - Open Too Long'){
 
 
 // Handlers
-private timeOfDayIsBetween(fromTime, toTime, checkDate, timeZone)     {
-     return (!checkDate.before(fromTime) && !checkDate.after(toTime))
-}
-private timeOfDayIsBetween1(fromTime2, toTime2, checkDate, timeZone)     {
-     return (!checkDate.before(fromTime2) && !checkDate.after(toTime2))
-}
-
 
 def weatherSummaryHandler(evt){
  state.weatherSummary = evt.value
@@ -2288,7 +2282,7 @@ runIn(mydelay, talkSwitch)
    compileMsg(msg)    
    LOGDEBUG("Presence - Speech Synth Message - Sending Message: $msg")     
         }
-     (state.talkpresence == 'not present' && state.msg2 != null){
+     if(state.talkpresence == 'not present' && state.msg2 != null){
      def msg = message2     
    compileMsg(msg)    
     LOGDEBUG("Presence - Speech Synth Message - Sending Message: $msg")   
@@ -2326,7 +2320,7 @@ LOGDEBUG("Presence - PushOver Message - Sending Message: $state.fullPhrase")
 
 }
 
-	else if (state.talkpresence == 'not present' && state.msg2 != null){
+	else if(state.talkpresence == 'not present' && state.msg2 != null){
 def msg = message2
         compileMsg(msg)
 LOGDEBUG("Presence - PushOver Message - Sending Message: $state.fullPhrase")
@@ -2343,7 +2337,7 @@ LOGDEBUG("Presence - Join Message - Sending Message: $state.fullPhrase")
 
 }
 
-	else if (state.talkpresence == 'not present' && state.msg2 != null){
+	else if(state.talkpresence == 'not present' && state.msg2 != null){
 def msg = message2
         compileMsg(msg)
 LOGDEBUG("Presence - Join Message - Sending Message: $state.fullPhrase")
@@ -2701,7 +2695,7 @@ LOGDEBUG("$enableSwitch is off so cannot continue")
 def checkVolume(){
 def timecheck = fromTime2
 if (timecheck != null){
-def between2 = timeOfDayIsBetween1(fromTime2, toTime2, new Date(), location.timeZone)
+def between2 = timeOfDayIsBetween(toDateTime(fromTime2), toDateTime(toTime2), new Date(), location.timeZone)
     if (between2) {
     
     state.volume = volume2
@@ -2803,10 +2797,13 @@ def modeCheck() {
 
 // Check time allowed to run...
 
+
+
 def checkTime(){
 def timecheckNow = fromTime
 if (timecheckNow != null){
-def between = timeOfDayIsBetween(fromTime, toTime, new Date(), location.timeZone)
+    
+def between = timeOfDayIsBetween(toDateTime(fromTime), toDateTime(toTime), new Date(), location.timeZone)
     if (between) {
     state.timeOK = true
    LOGDEBUG("Time is ok so can continue...")
@@ -2878,7 +2875,7 @@ LOGDEBUG("Timer 2 reset - Messages allowed")
 }
 
 def waitabit(){
-  LOGDEBUG("Waiting a short while for the weather device to catch up")  
+  LOGDEBUG("WAIT...")  
     
 }
 
@@ -2890,11 +2887,15 @@ private compileMsg(msg) {
     if(weather1){
         weather1.poll()
         runIn(10, waitabit)
+         LOGDEBUG("Waiting a short while for the weather device to catch up")  
     }
     
     def msgComp = ""
     msgComp = msg.toUpperCase()
     LOGDEBUG("msgComp = $msgComp")
+    if (msgComp.contains("%GROUP1%")) {msgComp = msgComp.toUpperCase().replace('%GROUP1%', getPre() )}
+    if (msgComp.contains("%GROUP2%")) {msgComp = msgComp.toUpperCase().replace('%GROUP2%', getPost() )}
+    if (msgComp.contains("%GROUP3%")) {msgComp = msgComp.toUpperCase().replace('%GROUP3%', getWakeUp() )}
     if (msgComp.contains("%WNOW%")) {msgComp = msgComp.toUpperCase().replace('%WNOW%', state.weatherNow )}
     if (msgComp.contains("%RAIN%")) {msgComp = msgComp.toUpperCase().replace('%RAIN%', state.weatherChanceOfRain )}
     if (msgComp.contains("%VIS%")) {msgComp = msgComp.toUpperCase().replace('%VIS%', state.weatherVisibility )}
@@ -2917,10 +2918,7 @@ private compileMsg(msg) {
 	if (msgComp.contains("%DEVICE%")) {msgComp = msgComp.toUpperCase().replace('%DEVICE%', getNameofDevice() )}  
 	if (msgComp.contains("%EVENT%")) {msgComp = msgComp.toUpperCase().replace('%EVENT%', getWhatHappened() )}  
     if (msgComp.contains("%GREETING%")) {msgComp = msgComp.toUpperCase().replace('%GREETING%', getGreeting() )}      
-    if (msgComp.contains("%GROUP1%")) {msgComp = msgComp.toUpperCase().replace('%GROUP1%', getPre() )}
-    if (msgComp.contains("%GROUP2%")) {msgComp = msgComp.toUpperCase().replace('%GROUP2%', getPost() )}
-    if (msgComp.contains("%GROUP3%")) {msgComp = msgComp.toUpperCase().replace('%GROUP3%', getWakeUp() )}
-	if (msgComp.contains("N/A")) {msgComp = msgComp.toUpperCase().replace('N/A', ' ' )}
+    if (msgComp.contains("N/A")) {msgComp = msgComp.toUpperCase().replace('N/A', ' ' )}
 	if (msgComp.contains("NO STATION DATA")) {msgComp = msgComp.toUpperCase().replace('NO STATION DATA', ' ' )}
     
     convertWeatherMessage(msgComp)
@@ -3334,7 +3332,7 @@ def updateCheck(){
 }
 
 def setVersion(){
-		state.version = "11.0.0"	 
+		state.version = "11.1.0"	 
 		state.InternalName = "MCchild"  
 }
 
