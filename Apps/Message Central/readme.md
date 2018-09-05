@@ -29,3 +29,7 @@ You can now create new child apps directly from here.
 
 
 
+A big **'Thank You!'** to @matthew for his creative work on the code for  number of random phrases  Without him, you would not have this feature!
+
+
+
