@@ -35,12 +35,12 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 30/08/2018
+ *  Last Update: 06/09/2018
  *
  *  Changes:
  *
  *
- *
+ *  V1.0.2 - Debug 'RunIn' where  [overwrite: false] was not used and the runIn command was called on every change - Not allowing the timer to reset
  *  V1.0.1 - Debug calculations (reset variable was incorrect)
  *  V1.0.0 - POC
  *
@@ -164,7 +164,7 @@ logCheck()
     
     if(state.selection == "Illuminance"){
         subscribe(illumSensors, "illuminance", illuminanceHandler)
-        state.DecimalPlaces = decimalUnit.toInteger()
+       
     }
     
     if(state.selection == "Temperature"){
@@ -184,9 +184,9 @@ logCheck()
 
 
 def illuminanceHandler(evt) {
-    LOGDEBUG("running illuminance handler")
+LOGDEBUG("Running illuminance handler")
         ave = evt.value
-    LOGDEBUG( "received $ave")
+LOGDEBUG( "Received $ave")
     def sum = 0
     def count = 0
     state.mean = 0
@@ -202,17 +202,17 @@ LOGDEBUG( "Total Combined value =  $sum")
     state.mean1 = sum/count
     state.mean2 = state.mean1.toDouble()
     state.mean = state.mean2.round(state.DecimalPlaces)
-    LOGDEBUG("Average Illuminance = $state.mean")
+LOGDEBUG("Average Illuminance = $state.mean")
 
     if(state.sendOK == true){
         def timeCheck = 60 * sendInterval  
-        LOGDEBUG("Sending info to $vDevice then waiting $timeCheck seconds before I can send again")
+LOGDEBUG("Sending $state.mean to $vDevice then waiting $timeCheck seconds before I can send again")
      settings.vDevice.setLux("${state.mean}")
         state.sendOK = false
-       runIn(timeCheck, resetNow) 
+       runIn(timeCheck, resetNow, [overwrite: false])
      }
     else {
-     LOGDEBUG("Waiting for timer to expire")  
+LOGDEBUG("Waiting for timer to expire")  
     }
 }                           
 
@@ -220,6 +220,9 @@ LOGDEBUG( "Total Combined value =  $sum")
 
 
 def tempSensorsHandler(evt) {
+LOGDEBUG("Running temperature handler")
+        ave = evt.value
+LOGDEBUG( "Received $ave")
     def sum = 0
     def count = 0
     state.mean = 0
@@ -228,21 +231,23 @@ def tempSensorsHandler(evt) {
     
     for (sensor in settings.tempSensors) {
     count += 1 
+LOGDEBUG( "Sensor data count = $count" )
     sum += sensor.currentTemperature }
+LOGDEBUG( "Total Combined value =  $sum")
 	state.mean1 = sum/count
     state.mean2 = state.mean1.toDouble()
     state.mean = state.mean2.round(state.DecimalPlaces)
-    LOGDEBUG("Average Temp = $state.mean")
+LOGDEBUG("Average Temp = $state.mean")
 
  if(state.sendOK == true){
         def timeCheck = 60 * sendInterval  
-        LOGDEBUG("Sending info to $vDevice then waiting $timeCheck seconds before I can send again")
+        LOGDEBUG("Sending $state.mean to $vDevice then waiting $timeCheck seconds before I can send again")
     settings.vDevice.setTemperature("${state.mean}")
  		state.sendOK = false
-        runIn(timeCheck, resetNow) 
+        runIn(timeCheck, resetNow, [overwrite: false])
  }
     else {
-     LOGDEBUG("Waiting for timer to expire")  
+LOGDEBUG("Waiting for timer to expire")  
     }
 }
 
@@ -250,9 +255,9 @@ def tempSensorsHandler(evt) {
 
 
 def humidityHandler(evt) {
-    LOGDEBUG("running humidity handler")
+LOGDEBUG("Running humidity handler")
         ave = evt.value
-    LOGDEBUG( "received $ave")
+LOGDEBUG( "Received $ave")
     def sum = 0
     def count = 0
     state.mean = 0
@@ -268,17 +273,17 @@ LOGDEBUG( "Total Combined value =  $sum")
     state.mean1 = sum/count
     state.mean2 = state.mean1.toDouble()
     state.mean = state.mean2.round(state.DecimalPlaces)
-    LOGDEBUG("Average Humidity = $state.mean")
+LOGDEBUG("Average Humidity = $state.mean")
 
     if(state.sendOK == true){
         def timeCheck = 60 * sendInterval  
-        LOGDEBUG("Sending info to $vDevice then waiting $timeCheck seconds before I can send again")
+LOGDEBUG("Sending $state.mean to $vDevice then waiting $timeCheck seconds before I can send again")
      settings.vDevice.setHumidity("${state.mean}")
         state.sendOK = false
-       runIn(timeCheck, resetNow) 
+       runIn(timeCheck, resetNow, [overwrite: false])
      }
     else {
-     LOGDEBUG("Waiting for timer to expire")  
+LOGDEBUG("Waiting for timer to expire")  
     }
 }                           
 
@@ -368,7 +373,7 @@ def updateCheck(){
 }
 
 def setVersion(){
-		state.version = "1.0.1"	 
+		state.version = "1.0.2"	 
 		state.InternalName = "AverageAllchild"
 }
 
