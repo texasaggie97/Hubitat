@@ -1,10 +1,10 @@
 /**
- *  Average Virtual Illuminance Device
+ *  Average Virtual Illuminance/Temperature/Humidity/Pressure Device
  *
  *  Copyright 2018 Andrew Parker
  *
- *  This driver was originally born from an idea by @bobgodbold and I thank him for that!
- *  @bobgodbold ported some of the original code from SmartThings before I adapted it (after stripping out the old ST code) to it's present form
+ *  
+ *  
  *  
  *
  *  
@@ -36,91 +36,96 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update 30/08/2018
+ *  Last Update 11/09/2018
  *
  *
- *  V1.4.0 - Forced state change on input
- *  V1.3.2 - Debug
- *  V1.3.1 - debug default trend value
- *  V1.3.0 - Added 'Trend'
- *  V1.2.0 - Added 'Units' to events & Cleaned out old ST code
- *  V1.1.0 - Urgent Update - Stripped out variable logging as it was causing the hub problems
  *  V1.0.0 - POC
  */
 
 
 
 metadata {
-	definition (name: "Average Illuminance Device Driver", namespace: "Cobra", author: "Cobra") {
+	definition (name: "AverageAll Device Driver", namespace: "Cobra", author: "Cobra") {
 		capability "Illuminance Measurement"
+		capability "Relative Humidity Measurement"
+        capability "Temperature Measurement"
 		capability "Sensor"
-        command "setLux", ["decimal"]
-        command "calculateTrendNow"
         
-        attribute "trend", "string"
+        command "setTemperature", ["decimal"]
+        command "setHumidity", ["decimal"]
+        command "setLux", ["decimal"]
+        command "setPressure", ["decimal"]
+        command "lastDevice"
+        
+        attribute  "LastReportingDevice", "string"
         attribute "DriverAuthor", "string"
         attribute "DriverVersion", "string"
         attribute "DriverStatus", "string"
         attribute "DriverUpdate", "string" 
+        attribute "pressure", "string"
 	}
- preferences() {
-     
-      section(){
-        input "frequency", "number", required: true, title: "How often to check for trend (Minutes after illuminance change)", defaultValue: 30  
-       
-  } 
- }
+    
+    
+  preferences() {
+    
+     section("") {
+   input "unitSelect", "enum", required: true, title: "Temperature Units (If using temperature)", submitOnChange: true,  options: ["C", "F"] 
+   input "pressureUnit", "enum", title: "Pressure Unit (If using pressure)", required:true, options: ["inhg", "mbar"]
+ 		}  
+ }   
+}
 
+def installed(){
+    initialise()
+}
 
+def updated(){
+    initialise()
 }
 
 
-def setLux(val) {
-    log.debug "Setting illuminance for ${device.displayName} from external input, illuminance = ${val}."
-	sendEvent(name: "illuminance", value: val, unit: "lux", isStateChange: true)
- //   log.warn "set lux unit = $unit" 
-    def averageLux = val.toFloat()
-  state.current = averageLux
-   def checkFrequency1 = frequency
-    def checkFrequency = 60 * checkFrequency1
-    log.info "checkFrequency = $checkFrequency"
-   runIn(checkFrequency, calculateTrendNow) 
-    
-    
+
+def initialise() {
+   version()
+    if(state.TemperatureUnit == null){ state.TemperatureUnit = "F"}
+    else{state.TemperatureUnit = unitSelect}
+    if(pressureUnit == null){state.PressureUnit = "inhg"}
+    else{state.PressureUnit = pressureUnit}
 }
 
-def calculateTrendNow(){
-    
-    state.previous = state.calc1
-    log.info "state.previous = $state.previous"
-    log.info "state.calc1 = $state.calc1"
-   state.calc1 = state.current
-     log.info "state.current = $state.current"
-     log.info "state.calc1 = $state.calc1"
-    log.info "state.previous = $state.previous"
-    
-    if(state.previous > state.calc1){ 
-        state.trend = "Falling"
-   		log.info "Illuminance Falling"
-    }
-   else if(state.previous < state.calc1){ 
-       state.trend = "Rising"
-   log.info "Illuminance Rising"
-   } 
-    else {
-        state.trend = "Static"
-        log.info "Illuminance Static"
-         }
-     sendEvent(name:"trend", value: state.trend, isStateChange: true)
+def lastDevice(dev1){    
+    sendEvent(name: "LastReportingDevice", value: dev1 , isStateChange: true)
+}
 
-    
+def setHumidity(hum1) {
+	state.ReceivedHumidity = hum1
+    log.debug "Setting humidity for ${device.displayName} from external input, Humidity = ${ReceivedHumidity}."
+	sendEvent(name: "humidity", value: state.ReceivedHumidity, unit: "%", isStateChange: true)
 }
 
 
-def updated() {
-    version()
-state.calc = " "
+def setLux(ilum1) {
+    state.ReceivedIlluminance = ilum1
+    log.debug "Setting illuminance for ${device.displayName} from external input, Illuminance = ${state.ReceivedIlluminance}."
+	sendEvent(name: "illuminance", value: state.ReceivedIlluminance, unit: "lux", isStateChange: true)
 }
+
+
+def setTemperature(temp1){ 
+ state.ReceivedTemp = temp1
+	log.debug "Setting temperature for ${device.displayName} from external input, Temperature = ${state.ReceivedTemp}."
+    sendEvent(name:"temperature", value: state.ReceivedTemp , unit: state.TemperatureUnit, isStateChange: true)
+   
+}
+
+def setPressure(pres1){ 
+ state.ReceivedPressure = pres1
+	log.debug "Setting pressure for ${device.displayName} from external input, Pressure = ${state.ReceivedPressure}."
+    sendEvent(name:"pressure", value: state.ReceivedPressure , unit: state.PressureUnit, isStateChange: true)
+    
+}
+
+
 
 def version(){
     unschedule()
@@ -177,8 +182,8 @@ def updateCheck(){
 }
 
 def setVersion(){
-		state.Version = "1.4.0"	
-		state.InternalName = "AverageIllum"   
+		state.Version = "1.0.0"	
+		state.InternalName = "AverageAll"   
 }
 
 

@@ -15,8 +15,11 @@
  *  License  for the specific language governing permissions and limitations
  *  under the License.
  *
- *  Changes: 28/08/2018
+ *  Changes: 30/08/2018
  *
+ *
+ *  V1.6.0 - Forced state change on input
+ *  V1.5.2 - Debug
  *  V1.5.1 - debug default trend value
  *  V1.5.0 - Added 'Trend'
  *  V1.4.0 - Code cleanup and revised remote version checking for use with 'Average All' app also added 'unit' selection for dashboards
@@ -36,14 +39,14 @@ metadata {
         attribute "DriverVersion", "string"
         attribute "DriverAuthor", "string"
         attribute "DriverStatus", "string"
-        command "calculateTrendNow"
+        command "trendNow"
         command "setTemperature", ["number"]
     }
 
  preferences() {
      
       section(){
-        input "frequency", "number", required: true, title: "How often to check for trend (Minutes after temp change)", defaultValue: 30  
+        input "frequency", "number", required: true, title: "How often to check for trend (Minutes after temp change)", defaultValue: '30'  
        
   }   
      section("") {
@@ -54,6 +57,7 @@ metadata {
 
 def updated() {
     log.debug "Updated called"
+    state.calc = " "
     version()
    
 }
@@ -61,43 +65,49 @@ def updated() {
 def setTemperature(message){
     log.info "setTemperature(${message})"
     
-def averageTemp = message
+def averageTemp = message.toFloat()
   state.current = averageTemp
-  def checkFrequency = 60 * frequency
-   runIn(checkFrequency, calculateTrendNow) 
+    
+  def checkFrequency1 = frequency
+    def checkFrequency = 60 * checkFrequency1
+    log.info "checkFrequency = $checkFrequency"
+   runIn(checkFrequency, trendNow) 
 
     log.info "event: (${averageTemp})"
     
     if(unitSelect == "C"){ 
-    sendEvent(name:"temperature", value: "$averageTemp" , unit: "C")
+    sendEvent(name:"temperature", value: "$averageTemp" , unit: "C", isStateChange: true)
     }
    if(unitSelect == "F"){ 
-    sendEvent(name:"temperature", value: "$averageTemp" , unit: "F")
+    sendEvent(name:"temperature", value: "$averageTemp" , unit: "F", isStateChange: true)
     } 
     
 }
 
 
-def calculateTrendNow(){
+def trendNow(){
     
-   state.previous = state.calc
+   state.previous = state.calc1
     log.info "state.previous = $state.previous"
-   state.calc = state.current
+    log.info "state.calc1 = $state.calc1"
+   state.calc1 = state.current
      log.info "state.current = $state.current"
+     log.info "state.calc1 = $state.calc1"
+    log.info "state.previous = $state.previous"
     
-    if(state.previous > state.current){ 
+    if(state.previous > state.calc1){ 
         state.trend = "Falling"
    		log.info "Temp Falling"
     }
-   else if(state.previous < state.current){ 
+   else if(state.previous < state.calc1){ 
        state.trend = "Rising"
    log.info "Temp Rising"
    } 
-    else {
+    else if(state.previous == state.calc1){ 
         state.trend = "Static"
         log.info "Temp Static"
          }
-     sendEvent(name:"trend", value: state.trend)
+     sendEvent(name:"trend", value: state.trend, isStateChange: true)
 
     
 }
@@ -157,7 +167,7 @@ def updateCheck(){
 }
 
 def setVersion(){
-		state.Version = "1.5.1"	
+		state.Version = "1.6.0"	
 		state.InternalName = "AverageTemp"  
 }
 

@@ -1,5 +1,5 @@
 /**
- *  ****************  Average All (Illumination, Temperature, Humidity)  ****************
+ *  ****************  Average All (Illumination, Temperature, Humidity, Pressure)  ****************
  *
  *  Design Usage:
  *  This was designed to display/set an 'average' or mean illumination from a group of illumination devices
@@ -35,12 +35,15 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 06/09/2018
+ *  Last Update: 11/09/2018
  *
  *  Changes:
  *
  *
- *  V1.0.2 - Debug 'RunIn' where  [overwrite: false] was not used and the runIn command was called on every change - Not allowing the timer to reset
+ *
+ *  V1.2.0 - Added 'Ambient Pressure' average (for use with weather devices)
+ *  V1.1.0 - Debug and code cleanup/consolidation
+ *  V1.0.2 - Debug fixed issue with delay timer
  *  V1.0.1 - Debug calculations (reset variable was incorrect)
  *  V1.0.0 - POC
  *
@@ -52,7 +55,7 @@ definition(
     name: "Average All Child",
     namespace: "Cobra",
     author: "AJ Parker",
-    description: "This was designed to display/set an 'average' or mean illumination from a group of devices",
+    description: "This was designed to display/set an 'average' or mean illumination/Humidity/temparature or ambient pressure from a group of devices",
     category: "My Apps",
     
 parent: "Cobra:Average All",
@@ -76,75 +79,29 @@ section("") {
        display()
         
  section("") {
-   input "childTypeSelect", "enum", required: true, title: "What do You Want To Average", submitOnChange: true,  options: ["Illuminance", "Temperature", "Humidity"] 
+   input "childTypeSelect", "enum", required: true, title: "What do You Want To Average", submitOnChange: true,  options: ["Illuminance", "Temperature", "Humidity", "Ambient Pressure"] 
+                                                                                                                          
  }  
-        if(childTypeSelect){state.selection = childTypeSelect}
-        
-// Illuminance  Input  **************
-    if(state.selection == "Illuminance"){
-    
-    section(""){}
-    section("Choose Physical Illuminance Sensors"){
-        input "illumSensors", "capability.illuminanceMeasurement", title: "Physical Sensors", multiple: true
-    }
-     section("Set Virtual Illuminance Sensor "){
-        input "vDevice", "capability.illuminanceMeasurement", title: "Virtual Device"
+        if(childTypeSelect){
+        state.selection = childTypeSelect
+ section("") {
+        input "vDevice", "capability.sensor", title: "Virtual Device"
+     	if(state.selection == "Temperature"){ input "tempSensors", "capability.temperatureMeasurement", title: "Physical Temperature Sensors", multiple: true}
+     	if(state.selection == "Illuminance"){ input "illumSensors", "capability.illuminanceMeasurement", title: "Physical Illuminance Sensors", multiple: true}
+    	if(state.selection == "Humidity"){input "humiditySensors", "capability.relativeHumidityMeasurement", title: "Physical Humidity Sensors", multiple: true} 
+     	if(state.selection == "Ambient Pressure"){ input "pressureSensors", "capability.sensor", title: "Weather Pressure Sensors", multiple: true}
+        input "sendInterval", "number", title: "How Often To Update Virtual Device (Minutes - Set to '0' for instant)", required: true, defaultValue: "0"
         input "decimalUnit", "enum", title: "Max Decimal Places", required:true, defaultValue: "2", options: ["1", "2", "3", "4", "5"]
-    }
-     section(){
-     input "sendInterval", "number", title: "How Often To Update Virtual Device (Minutes)", required: true, defaultValue: "0"
-     }
-        
-      section("App name") {
-        label title: "Enter a name for child app (optional)", required: false
-            }       
-    section("Logging") {
-            input "debugMode", "bool", title: "Enable logging", required: true, defaultValue: false
-  	        }
-	} 
-// Temperature Input *******************    
-    if(state.selection == "Temperature"){    
-      section("Choose Physical Temperature Sensors"){
-        input "tempSensors", "capability.temperatureMeasurement", title: "Physical Sensors", multiple: true
-    }
-     section("Set Virtual Temp Device "){
-        input "vDevice", "capability.temperatureMeasurement", title: "Virtual Device"
-        input "decimalUnit", "enum", title: "Max Decimal Places", required:true, defaultValue: "2", options: ["1", "2", "3", "4", "5"]
-    }
-     section(){
-     input "sendInterval", "number", title: "How Often To Update Virtual Device (Minutes)", required: true, defaultValue: "0"
-     }
-    section("App name") {
-        label title: "Enter a name for child app (optional)", required: false
-            }   
-    section("Logging") {
-            input "debugMode", "bool", title: "Enable logging", required: true, defaultValue: false
-  	        }
+        label title: "Enter a name for child app (optional)", required: false 
+        input "debugMode", "bool", title: "Enable logging", required: true, defaultValue: false    
+    }                  
+        }                     
+    }                   
+
 }    
         
-// Humidity Input *******************    
-    if(state.selection == "Humidity"){    
-      section("Choose Physical Humidity Sensors"){
-        input "humiditySensors", "capability.relativeHumidityMeasurement", title: "Physical Sensors", multiple: true
-    }
-     section("Set Virtual Humidity Device "){
-        input "vDevice", "capability.sensor", title: "Virtual Device"
-        input "decimalUnit", "enum", title: "Max Decimal Places", required:true, defaultValue: "2", options: ["1", "2", "3", "4", "5"]
-    }
-     section(){
-     input "sendInterval", "number", title: "How Often To Update Virtual Device (Minutes)", required: true, defaultValue: "0"
-     }
-    section("App name") {
-        label title: "Enter a name for child app (optional)", required: false
-            }   
-    section("Logging") {
-            input "debugMode", "bool", title: "Enable logging", required: true, defaultValue: false
-  	        }
-}        
-    } 
 
-    }
-
+ 
 
 
 def installed() {
@@ -157,6 +114,7 @@ def updated() {
 }
 
 def initialize() {
+ 
   state.sendOK = true     
 version()
 logCheck()
@@ -173,10 +131,11 @@ logCheck()
     }
      if(state.selection == "Humidity"){
        subscribe(humiditySensors, "humidity", humidityHandler)
-       
+     }
     
-}
-
+    if(state.selection == "Ambient Pressure"){
+        subscribe(pressureSensors, "pressure", pressureSensorsHandler)
+    }
 
 }
 
@@ -185,8 +144,10 @@ logCheck()
 
 def illuminanceHandler(evt) {
 LOGDEBUG("Running illuminance handler")
+     if(state.sendOK == true){
         ave = evt.value
-LOGDEBUG( "Received $ave")
+      aveDev = evt.device
+LOGDEBUG( "Received from: $aveDev - $ave")
     def sum = 0
     def count = 0
     state.mean = 0
@@ -200,16 +161,19 @@ LOGDEBUG( "Sensor data count = $count" )
 LOGDEBUG( "Total Combined value =  $sum")
 
     state.mean1 = sum/count
-    state.mean2 = state.mean1.toDouble()
+   state.mean2 = state.mean1.toFloat()
     state.mean = state.mean2.round(state.DecimalPlaces)
+   
 LOGDEBUG("Average Illuminance = $state.mean")
 
-    if(state.sendOK == true){
+   
         def timeCheck = 60 * sendInterval  
 LOGDEBUG("Sending $state.mean to $vDevice then waiting $timeCheck seconds before I can send again")
      settings.vDevice.setLux("${state.mean}")
+     settings.vDevice.lastDevice("${aveDev}")  
+        
         state.sendOK = false
-       runIn(timeCheck, resetNow, [overwrite: false])
+       runIn(timeCheck, resetNow)  // , [overwrite: false])
      }
     else {
 LOGDEBUG("Waiting for timer to expire")  
@@ -221,8 +185,10 @@ LOGDEBUG("Waiting for timer to expire")
 
 def tempSensorsHandler(evt) {
 LOGDEBUG("Running temperature handler")
+    if(state.sendOK == true){
         ave = evt.value
-LOGDEBUG( "Received $ave")
+    aveDev = evt.device
+LOGDEBUG( "Received from: $aveDev - $ave")
     def sum = 0
     def count = 0
     state.mean = 0
@@ -235,16 +201,17 @@ LOGDEBUG( "Sensor data count = $count" )
     sum += sensor.currentTemperature }
 LOGDEBUG( "Total Combined value =  $sum")
 	state.mean1 = sum/count
-    state.mean2 = state.mean1.toDouble()
+   state.mean2 = state.mean1.toFloat()
     state.mean = state.mean2.round(state.DecimalPlaces)
-LOGDEBUG("Average Temp = $state.mean")
+    LOGDEBUG("Average Temperature = $state.mean")
 
- if(state.sendOK == true){
+ 
         def timeCheck = 60 * sendInterval  
         LOGDEBUG("Sending $state.mean to $vDevice then waiting $timeCheck seconds before I can send again")
     settings.vDevice.setTemperature("${state.mean}")
+    settings.vDevice.lastDevice("${aveDev}") 
  		state.sendOK = false
-        runIn(timeCheck, resetNow, [overwrite: false])
+        runIn(timeCheck, resetNow)  // , [overwrite: false])
  }
     else {
 LOGDEBUG("Waiting for timer to expire")  
@@ -256,8 +223,10 @@ LOGDEBUG("Waiting for timer to expire")
 
 def humidityHandler(evt) {
 LOGDEBUG("Running humidity handler")
+     if(state.sendOK == true){
         ave = evt.value
-LOGDEBUG( "Received $ave")
+    aveDev = evt.device
+LOGDEBUG( "Received from: $aveDev - $ave")
     def sum = 0
     def count = 0
     state.mean = 0
@@ -271,16 +240,17 @@ LOGDEBUG( "Sensor data count = $count" )
 LOGDEBUG( "Total Combined value =  $sum")
 
     state.mean1 = sum/count
-    state.mean2 = state.mean1.toDouble()
+    state.mean2 = state.mean1.toFloat()
     state.mean = state.mean2.round(state.DecimalPlaces)
 LOGDEBUG("Average Humidity = $state.mean")
 
-    if(state.sendOK == true){
+   
         def timeCheck = 60 * sendInterval  
 LOGDEBUG("Sending $state.mean to $vDevice then waiting $timeCheck seconds before I can send again")
      settings.vDevice.setHumidity("${state.mean}")
+     settings.vDevice.lastDevice("${aveDev}") 
         state.sendOK = false
-       runIn(timeCheck, resetNow, [overwrite: false])
+       runIn(timeCheck, resetNow) // , [overwrite: false])
      }
     else {
 LOGDEBUG("Waiting for timer to expire")  
@@ -288,6 +258,44 @@ LOGDEBUG("Waiting for timer to expire")
 }                           
 
 
+def pressureSensorsHandler(evt) {
+LOGDEBUG("Running pressure handler")
+    if(state.sendOK == true){
+        ave = evt.value.toFloat()
+    aveDev = evt.device
+LOGDEBUG( "Received from: $aveDev - $ave")
+    def sum = 0
+    def count = 0
+    state.mean = 0
+	state.mean1 = 0
+    state.mean2 = 0
+    
+    for (sensor in settings.pressureSensors) {
+    count += 1 
+LOGDEBUG( "Sensor data count = $count" )
+    sum1 += sensor.currentValue("pressure") }
+LOGDEBUG( "Sum1 =  $sum1")   
+    sum2 = sum1.minus('null')
+LOGDEBUG( "Sum2 =  $sum2")        
+    sum = sum2.toDouble()
+LOGDEBUG( "Total Combined value =  $sum")        
+	state.mean1 = sum/count
+   state.mean2 = state.mean1.toDouble()
+    state.mean = state.mean2.round(state.DecimalPlaces)
+    LOGDEBUG("Average Pressure = $state.mean")
+
+ 
+        def timeCheck = 60 * sendInterval  
+        LOGDEBUG("Sending $state.mean to $vDevice then waiting $timeCheck seconds before I can send again")
+    settings.vDevice.setPressure("${state.mean}")
+    settings.vDevice.lastDevice("${aveDev}") 
+ 		state.sendOK = false
+        runIn(timeCheck, resetNow)  // , [overwrite: false])
+ }
+    else {
+LOGDEBUG("Waiting for timer to expire")  
+    }
+}
 
 def resetNow(){
  LOGDEBUG("Timer reset")    
@@ -326,7 +334,7 @@ def version(){
 
 def display(){
 	if(state.status){
-	section{paragraph "Version: $state.version -  $state.Copyright"}
+	section{paragraph "<img src='http://update.hubitat.uk/icons/cobra3.png''</img> Version: $state.version <br><font face='Lucida Handwriting'>$state.Copyright </font>"}
 	if(state.status != "Current"){
 	section{ 
 	paragraph "$state.status"
@@ -373,7 +381,7 @@ def updateCheck(){
 }
 
 def setVersion(){
-		state.version = "1.0.2"	 
+		state.version = "1.2.0"	 
 		state.InternalName = "AverageAllchild"
 }
 

@@ -36,9 +36,11 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update 28/08/2018
+ *  Last Update 30/08/2018
  *
  *
+ *  V1.4.0 - Forced state change on input
+ *  V1.3.2 - Debug
  *  V1.3.1 - debug default trend value
  *  V1.3.0 - Added 'Trend'
  *  V1.2.0 - Added 'Units' to events & Cleaned out old ST code
@@ -75,11 +77,13 @@ metadata {
 
 def setLux(val) {
     log.debug "Setting illuminance for ${device.displayName} from external input, illuminance = ${val}."
-	sendEvent(name: "illuminance", value: val, unit: "lux")
+	sendEvent(name: "illuminance", value: val, unit: "lux", isStateChange: true)
  //   log.warn "set lux unit = $unit" 
-    def averageLux = val
+    def averageLux = val.toFloat()
   state.current = averageLux
-  def checkFrequency = 60 * frequency
+   def checkFrequency1 = frequency
+    def checkFrequency = 60 * checkFrequency1
+    log.info "checkFrequency = $checkFrequency"
    runIn(checkFrequency, calculateTrendNow) 
     
     
@@ -87,16 +91,19 @@ def setLux(val) {
 
 def calculateTrendNow(){
     
-   state.previous = state.calc
+    state.previous = state.calc1
     log.info "state.previous = $state.previous"
-   state.calc = state.current
+    log.info "state.calc1 = $state.calc1"
+   state.calc1 = state.current
      log.info "state.current = $state.current"
+     log.info "state.calc1 = $state.calc1"
+    log.info "state.previous = $state.previous"
     
-    if(state.previous > state.current){ 
+    if(state.previous > state.calc1){ 
         state.trend = "Falling"
    		log.info "Illuminance Falling"
     }
-   else if(state.previous < state.current){ 
+   else if(state.previous < state.calc1){ 
        state.trend = "Rising"
    log.info "Illuminance Rising"
    } 
@@ -104,7 +111,7 @@ def calculateTrendNow(){
         state.trend = "Static"
         log.info "Illuminance Static"
          }
-     sendEvent(name:"trend", value: state.trend)
+     sendEvent(name:"trend", value: state.trend, isStateChange: true)
 
     
 }
@@ -112,7 +119,7 @@ def calculateTrendNow(){
 
 def updated() {
     version()
-
+state.calc = " "
 }
 
 def version(){
@@ -170,7 +177,7 @@ def updateCheck(){
 }
 
 def setVersion(){
-		state.Version = "1.3.1"	
+		state.Version = "1.4.0"	
 		state.InternalName = "AverageIllum"   
 }
 

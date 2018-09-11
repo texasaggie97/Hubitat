@@ -33,10 +33,10 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update 28/08/2018
+ *  Last Update 30/08/2018
  *
- *
- *  
+ *  V1.1.0 - forced state change on new input
+ *  V1.0.2 - Debug
  *  V1.0.1 - debug default trend value
  *  V1.0.0 - POC
  */
@@ -71,25 +71,30 @@ metadata {
 def setHumidity(val) {
 // version()
     log.debug "Setting humidity for ${device.displayName} from external input, humidity = ${val}."
-	sendEvent(name: "humidity", value: val, unit: "%")
-    def averageHumid = val
+	sendEvent(name: "humidity", value: val, unit: "%", isStateChange: true)
+    def averageHumid = val.toFloat()
   state.current = averageHumid
-  def checkFrequency = 60 * frequency
+  def checkFrequency1 = frequency
+    def checkFrequency = 60 * checkFrequency1
+    log.info "checkFrequency = $checkFrequency"
    runIn(checkFrequency, calculateTrendNow) 
 }
 
 def calculateTrendNow(){
     
-   state.previous = state.calc
+   state.previous = state.calc1
     log.info "state.previous = $state.previous"
-   state.calc = state.current
+    log.info "state.calc1 = $state.calc1"
+   state.calc1 = state.current
      log.info "state.current = $state.current"
+     log.info "state.calc1 = $state.calc1"
+    log.info "state.previous = $state.previous"
     
-    if(state.previous > state.current){ 
+    if(state.previous > state.calc1){ 
         state.trend = "Falling"
    		log.info "Humidity Falling"
     }
-   else if(state.previous < state.current){ 
+   else if(state.previous < state.calc1){ 
        state.trend = "Rising"
    log.info "Humidity Rising"
    } 
@@ -97,13 +102,16 @@ def calculateTrendNow(){
         state.trend = "Static"
         log.info "Humidity Static"
          }
-     sendEvent(name:"trend", value: state.trend)
+     sendEvent(name:"trend", value: state.trend, isStateChange: true)
 
     
 }
 
 
-def updated() {version()}
+def updated() {
+    version()
+state.calc = " "
+}
 
 
 
@@ -163,7 +171,7 @@ def updateCheck(){
 }
 
 def setVersion(){
-		state.Version = "1.0.1"	
+		state.Version = "1.1.0"	
 		state.InternalName = "AverageHumidity"   
 }
 

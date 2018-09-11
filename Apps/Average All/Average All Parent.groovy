@@ -1,6 +1,6 @@
 /**
  *  Design Usage:
- *  This is the 'Parent' app for Average All switch
+ *  This is the 'Parent' app for weather switch
  *
  *
  *  Copyright 2018 Andrew Parker
@@ -33,7 +33,7 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 20/08/2018
+ *  Last Update: 11/09/2018
  *
  *  Changes:
  *
@@ -41,7 +41,7 @@
  *
  *  
  *  
- *  
+ *  V1.0.1 - added revised first page
  *  V1.0.0 - POC
  *
  */
@@ -130,9 +130,10 @@ def version(){
 	updateCheck()  
 }
 
+
 def display(){
 	if(state.status){
-	section{paragraph "Version: $state.version -  $state.Copyright"}
+	section{paragraph "<img src='http://update.hubitat.uk/icons/cobra3.png''</img> Version: $state.version <br><font face='Lucida Handwriting'>$state.Copyright </font>"}
 	if(state.status != "Current"){
 	section{ 
 	paragraph "$state.status"
@@ -179,7 +180,7 @@ def updateCheck(){
 }
 
 def setVersion(){
-		state.version = "1.0.0"	 
+		state.version = "1.0.1"	 
 		state.InternalName = "AverageAllparent"  
 }
 
