@@ -35,12 +35,12 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 11/09/2018
+ *  Last Update: 17/09/2018
  *
  *  Changes:
  *
  *
- *
+ *  V1.3.0 - Addes separate 'last device' recording
  *  V1.2.0 - Added 'Ambient Pressure' average (for use with weather devices)
  *  V1.1.0 - Debug and code cleanup/consolidation
  *  V1.0.2 - Debug fixed issue with delay timer
@@ -144,9 +144,10 @@ logCheck()
 
 def illuminanceHandler(evt) {
 LOGDEBUG("Running illuminance handler")
+    
      if(state.sendOK == true){
-        ave = evt.value
-      aveDev = evt.device
+  def ave = evt.value
+   def  aveDev = evt.device
 LOGDEBUG( "Received from: $aveDev - $ave")
     def sum = 0
     def count = 0
@@ -170,7 +171,7 @@ LOGDEBUG("Average Illuminance = $state.mean")
         def timeCheck = 60 * sendInterval  
 LOGDEBUG("Sending $state.mean to $vDevice then waiting $timeCheck seconds before I can send again")
      settings.vDevice.setLux("${state.mean}")
-     settings.vDevice.lastDevice("${aveDev}")  
+     settings.vDevice.lastDeviceLux("${aveDev}")  
         
         state.sendOK = false
        runIn(timeCheck, resetNow)  // , [overwrite: false])
@@ -186,9 +187,9 @@ LOGDEBUG("Waiting for timer to expire")
 def tempSensorsHandler(evt) {
 LOGDEBUG("Running temperature handler")
     if(state.sendOK == true){
-        ave = evt.value
-    aveDev = evt.device
-LOGDEBUG( "Received from: $aveDev - $ave")
+      def ave1 = evt.value
+    def aveDev1 = evt.device
+LOGDEBUG( "Received from: $aveDev1 - $ave1")
     def sum = 0
     def count = 0
     state.mean = 0
@@ -209,7 +210,7 @@ LOGDEBUG( "Total Combined value =  $sum")
         def timeCheck = 60 * sendInterval  
         LOGDEBUG("Sending $state.mean to $vDevice then waiting $timeCheck seconds before I can send again")
     settings.vDevice.setTemperature("${state.mean}")
-    settings.vDevice.lastDevice("${aveDev}") 
+    settings.vDevice.lastDeviceTemperature("${aveDev1}") 
  		state.sendOK = false
         runIn(timeCheck, resetNow)  // , [overwrite: false])
  }
@@ -224,8 +225,8 @@ LOGDEBUG("Waiting for timer to expire")
 def humidityHandler(evt) {
 LOGDEBUG("Running humidity handler")
      if(state.sendOK == true){
-        ave = evt.value
-    aveDev = evt.device
+      def ave3 = evt.value
+      def aveDev3 = evt.device
 LOGDEBUG( "Received from: $aveDev - $ave")
     def sum = 0
     def count = 0
@@ -248,7 +249,7 @@ LOGDEBUG("Average Humidity = $state.mean")
         def timeCheck = 60 * sendInterval  
 LOGDEBUG("Sending $state.mean to $vDevice then waiting $timeCheck seconds before I can send again")
      settings.vDevice.setHumidity("${state.mean}")
-     settings.vDevice.lastDevice("${aveDev}") 
+     settings.vDevice.lastDeviceHumidity("${aveDev3}") 
         state.sendOK = false
        runIn(timeCheck, resetNow) // , [overwrite: false])
      }
@@ -261,8 +262,8 @@ LOGDEBUG("Waiting for timer to expire")
 def pressureSensorsHandler(evt) {
 LOGDEBUG("Running pressure handler")
     if(state.sendOK == true){
-        ave = evt.value.toFloat()
-    aveDev = evt.device
+       def ave4 = evt.value.toFloat()
+   	   def aveDev4 = evt.device
 LOGDEBUG( "Received from: $aveDev - $ave")
     def sum = 0
     def count = 0
@@ -288,7 +289,7 @@ LOGDEBUG( "Total Combined value =  $sum")
         def timeCheck = 60 * sendInterval  
         LOGDEBUG("Sending $state.mean to $vDevice then waiting $timeCheck seconds before I can send again")
     settings.vDevice.setPressure("${state.mean}")
-    settings.vDevice.lastDevice("${aveDev}") 
+    settings.vDevice.lastDevicePressure("${aveDev4}") 
  		state.sendOK = false
         runIn(timeCheck, resetNow)  // , [overwrite: false])
  }
@@ -381,7 +382,7 @@ def updateCheck(){
 }
 
 def setVersion(){
-		state.version = "1.2.0"	 
+		state.version = "1.3.0"	 
 		state.InternalName = "AverageAllchild"
 }
 
