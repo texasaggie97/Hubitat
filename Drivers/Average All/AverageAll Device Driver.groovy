@@ -199,7 +199,7 @@ def updateCheck(){
       		state.UpdateInfo = (respUD.data.versions.UpdateInfo.Driver.(state.InternalName))
             state.author = (respUD.data.author)
             def icon = (respUD.data.icon)
-            def pad = (respUD.data.pad)
+            sendEvent(name: " ", value: respUD.data.icon + '<br>' +state.Copyright +'<br>'+'<br>', isStateChange: true)
             
 		if(newVer == "NLS"){
             state.Status = "<b>** This driver is no longer supported by $state.author  **</b>"       
@@ -229,7 +229,7 @@ def updateCheck(){
 	     	sendEvent(name: "DriverStatus", value: state.Status, isStateChange: true)
 	    }   
    
- 			sendEvent(name: " ", value: icon + pad, isStateChange: true)
+ 			
     		sendEvent(name: "DriverVersion", value: state.Version, isStateChange: true)
     
     
