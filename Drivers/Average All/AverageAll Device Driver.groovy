@@ -198,8 +198,8 @@ def updateCheck(){
        		def currentVer = state.Version.replace(".", "")
       		state.UpdateInfo = (respUD.data.versions.UpdateInfo.Driver.(state.InternalName))
             state.author = (respUD.data.author)
-            icon = (respUD.data.icon)
-            pad = (respUD.data.pad)
+            def icon = (respUD.data.icon)
+            def pad = (respUD.data.pad)
             
 		if(newVer == "NLS"){
             state.Status = "<b>** This driver is no longer supported by $state.author  **</b>"       
