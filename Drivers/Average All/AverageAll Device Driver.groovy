@@ -1,5 +1,5 @@
 /**
- *  Average Virtual Illuminance/Temperature/Humidity/Pressure Device
+ *  Average Virtual Illuminance/Temperature/Humidity/Pressure/Motion Device
  *
  *  Copyright 2018 Andrew Parker
  *
@@ -36,8 +36,11 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update 17/09/2018
+ *  Last Update 18/09/2018
  *
+ *
+ *
+ *  V1.2.0 - Added 'Motion' average
  *  V1.1.0 - Debug and added 'last device' separation - one for each attribute
  *  V1.0.0 - POC
  */
@@ -45,26 +48,35 @@
 
 
 metadata {
-	definition (name: "AverageAll Device Driver", namespace: "Cobra", author: "Cobra") {
+	definition (name: "Average All Device", namespace: "Cobra", author: "Cobra") {
 		capability "Illuminance Measurement"
 		capability "Relative Humidity Measurement"
         capability "Temperature Measurement"
+        capability "Motion Sensor"
 		capability "Sensor"
         
         command "setTemperature", ["decimal"]
         command "setHumidity", ["decimal"]
         command "setLux", ["decimal"]
         command "setPressure", ["decimal"]
+        
         command "lastDeviceLux"
         command "lastDeviceTemperature"
         command "lastDeviceHumidity"
         command "lastDevicePressure"
+        command "lastDeviceMotion"
+        command "setMotion", ["string"]
+//        command "active"
+//		command "inactive"
         
+        attribute  " ", "string"
         attribute  "LastDeviceLux", "string"
-         attribute  "LastDeviceTemperature", "string"
-         attribute  "LastDevicePressure", "string"
-         attribute  "LastDeviceHumidity", "string"
-        attribute "DriverAuthor", "string"
+        attribute  "LastDeviceTemperature", "string"
+        attribute  "LastDevicePressure", "string"
+        attribute  "LastDeviceHumidity", "string"
+        attribute  "LastDeviceMotion", "string"
+        
+//        attribute "DriverAuthor", "string"
         attribute "DriverVersion", "string"
         attribute "DriverStatus", "string"
         attribute "DriverUpdate", "string" 
@@ -75,7 +87,7 @@ metadata {
   preferences() {
     
      section("") {
-   input "unitSelect", "enum", required: true, title: "Temperature Units (If using temperature)", submitOnChange: true,  options: ["C", "F"] 
+   input "unitSelect", "enum", required: true, multiple: true, title: "Temperature Units (If using temperature)", submitOnChange: true,  options: ["C", "F"] 
    input "pressureUnit", "enum", title: "Pressure Unit (If using pressure)", required:true, options: ["inhg", "mbar"]
  		}  
  }   
@@ -97,25 +109,49 @@ def initialise() {
     else{state.TemperatureUnit = unitSelect}
     if(pressureUnit == null){state.PressureUnit = "inhg"}
     else{state.PressureUnit = pressureUnit}
+    
+    
 }
 
-def lastDeviceLux(dev1){    
+def lastDeviceLux(dev1){  
     sendEvent(name: "LastDeviceLux", value: dev1 , isStateChange: true)
     
 }
-def lastDeviceHumid(dev1){    
-    sendEvent(name: "LastDeviceHumidity", value: dev1 , isStateChange: true)
+def lastDeviceHumid(dev2){    
+    sendEvent(name: "LastDeviceHumidity", value: dev2 , isStateChange: true)
 }
-def lastDevicePressure(dev1){    
-    sendEvent(name: "LastDevicePressure", value: dev1 , isStateChange: true)
+def lastDevicePressure(dev3){    
+    sendEvent(name: "LastDevicePressure", value: dev3 , isStateChange: true)
 }
-def lastDeviceTemperature(dev1){    
-    sendEvent(name: "LastDeviceTemperature", value: dev1 , isStateChange: true)
+def lastDeviceTemperature(dev4){    
+    sendEvent(name: "LastDeviceTemperature", value: dev4 , isStateChange: true)
+}
+
+def lastDeviceMotion(dev5){    
+    sendEvent(name: "LastDeviceMotion", value: dev5 , isStateChange: true)
+}
+
+def active(motion1) {
+//	state.ReceivedMotion = motion1
+    log.debug "Setting motion for ${device.displayName} from external input, Motion = ${motion1}."
+	sendEvent(name: "motion", value: 'active', isStateChange: true)
+}
+
+def inactive(motion1) {
+//	state.ReceivedMotion = motion1
+    log.debug "Setting motion for ${device.displayName} from external input, Motion = ${motion1}."
+	sendEvent(name: "motion", value: 'inactive', isStateChange: true)
+}
+
+def setMotion(motion1){
+ state.ReceivedMotion = motion1
+    log.debug "Setting motion for ${device.displayName} from external input, Motion = ${state.ReceivedMotion}."
+   sendEvent(name: "motion", value: state.ReceivedMotion, isStateChange: true) 
 }
 
 def setHumidity(hum1) {
 	state.ReceivedHumidity = hum1
-    log.debug "Setting humidity for ${device.displayName} from external input, Humidity = ${ReceivedHumidity}."
+    log.debug "Setting humidity for ${device.displayName} from external input, Humidity = ${state.ReceivedHumidity}."
 	sendEvent(name: "humidity", value: state.ReceivedHumidity, unit: "%", isStateChange: true)
 }
 
@@ -162,7 +198,9 @@ def updateCheck(){
        		def currentVer = state.Version.replace(".", "")
       		state.UpdateInfo = (respUD.data.versions.UpdateInfo.Driver.(state.InternalName))
             state.author = (respUD.data.author)
-           
+            icon = (respUD.data.icon)
+            pad = (respUD.data.pad)
+            
 		if(newVer == "NLS"){
             state.Status = "<b>** This driver is no longer supported by $state.author  **</b>"       
             log.warn "** This driver is no longer supported by $state.author **"      
@@ -190,15 +228,16 @@ def updateCheck(){
 	    	sendEvent(name: "DriverUpdate", value: state.UpdateInfo, isStateChange: true)
 	     	sendEvent(name: "DriverStatus", value: state.Status, isStateChange: true)
 	    }   
- 			sendEvent(name: "DriverAuthor", value: state.author, isStateChange: true)
+   
+ 			sendEvent(name: " ", value: icon + pad, isStateChange: true)
     		sendEvent(name: "DriverVersion", value: state.Version, isStateChange: true)
     
     
-    	//	
+	
 }
 
 def setVersion(){
-		state.Version = "1.1.0"	
+		state.Version = "1.2.0"	
 		state.InternalName = "AverageAll"   
 }
 

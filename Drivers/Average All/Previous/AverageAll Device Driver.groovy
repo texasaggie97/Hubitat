@@ -36,9 +36,9 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update 11/09/2018
+ *  Last Update 17/09/2018
  *
- *
+ *  V1.1.0 - Debug and added 'last device' separation - one for each attribute
  *  V1.0.0 - POC
  */
 
@@ -55,9 +55,15 @@ metadata {
         command "setHumidity", ["decimal"]
         command "setLux", ["decimal"]
         command "setPressure", ["decimal"]
-        command "lastDevice"
+        command "lastDeviceLux"
+        command "lastDeviceTemperature"
+        command "lastDeviceHumidity"
+        command "lastDevicePressure"
         
-        attribute  "LastReportingDevice", "string"
+        attribute  "LastDeviceLux", "string"
+         attribute  "LastDeviceTemperature", "string"
+         attribute  "LastDevicePressure", "string"
+         attribute  "LastDeviceHumidity", "string"
         attribute "DriverAuthor", "string"
         attribute "DriverVersion", "string"
         attribute "DriverStatus", "string"
@@ -93,8 +99,18 @@ def initialise() {
     else{state.PressureUnit = pressureUnit}
 }
 
-def lastDevice(dev1){    
-    sendEvent(name: "LastReportingDevice", value: dev1 , isStateChange: true)
+def lastDeviceLux(dev1){    
+    sendEvent(name: "LastDeviceLux", value: dev1 , isStateChange: true)
+    
+}
+def lastDeviceHumid(dev1){    
+    sendEvent(name: "LastDeviceHumidity", value: dev1 , isStateChange: true)
+}
+def lastDevicePressure(dev1){    
+    sendEvent(name: "LastDevicePressure", value: dev1 , isStateChange: true)
+}
+def lastDeviceTemperature(dev1){    
+    sendEvent(name: "LastDeviceTemperature", value: dev1 , isStateChange: true)
 }
 
 def setHumidity(hum1) {
@@ -182,7 +198,7 @@ def updateCheck(){
 }
 
 def setVersion(){
-		state.Version = "1.0.0"	
+		state.Version = "1.1.0"	
 		state.InternalName = "AverageAll"   
 }
 

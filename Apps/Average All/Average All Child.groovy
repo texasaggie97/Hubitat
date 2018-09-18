@@ -1,5 +1,5 @@
 /**
- *  ****************  Average All (Illumination, Temperature, Humidity, Pressure)  ****************
+ *  ****************  Average All (Illumination, Temperature, Humidity, Pressure & Motion)  ****************
  *
  *  Design Usage:
  *  This was designed to display/set an 'average' or mean illumination from a group of illumination devices
@@ -35,12 +35,12 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 17/09/2018
+ *  Last Update: 18/09/2018
  *
  *  Changes:
  *
- *
- *  V1.3.0 - Addes separate 'last device' recording
+ *  V1.4.0 - Added 'Motion'as a selectable 'average'
+ *  V1.3.0 - Debug & Added separate 'last device' recording
  *  V1.2.0 - Added 'Ambient Pressure' average (for use with weather devices)
  *  V1.1.0 - Debug and code cleanup/consolidation
  *  V1.0.2 - Debug fixed issue with delay timer
@@ -55,7 +55,7 @@ definition(
     name: "Average All Child",
     namespace: "Cobra",
     author: "AJ Parker",
-    description: "This was designed to display/set an 'average' or mean illumination/Humidity/temparature or ambient pressure from a group of devices",
+    description: "This was designed to display/set an 'average' or mean Illumination/Humidity/Temperature/Motion or ambient pressure from a group of devices",
     category: "My Apps",
     
 parent: "Cobra:Average All",
@@ -79,19 +79,28 @@ section("") {
        display()
         
  section("") {
-   input "childTypeSelect", "enum", required: true, title: "What do You Want To Average", submitOnChange: true,  options: ["Illuminance", "Temperature", "Humidity", "Ambient Pressure"] 
+   input "childTypeSelect", "enum", required: true, title: "What do You Want To Average", submitOnChange: true,  options: ["Illuminance", "Temperature", "Humidity", "Ambient Pressure", "Motion"] 
                                                                                                                           
  }  
         if(childTypeSelect){
         state.selection = childTypeSelect
  section("") {
-        input "vDevice", "capability.sensor", title: "Virtual Device"
+        input "vDevice", "device.AverageAllDevice", title: "Virtual Device"
      	if(state.selection == "Temperature"){ input "tempSensors", "capability.temperatureMeasurement", title: "Physical Temperature Sensors", multiple: true}
      	if(state.selection == "Illuminance"){ input "illumSensors", "capability.illuminanceMeasurement", title: "Physical Illuminance Sensors", multiple: true}
     	if(state.selection == "Humidity"){input "humiditySensors", "capability.relativeHumidityMeasurement", title: "Physical Humidity Sensors", multiple: true} 
      	if(state.selection == "Ambient Pressure"){ input "pressureSensors", "capability.sensor", title: "Weather Pressure Sensors", multiple: true}
+        if(state.selection == "Motion"){ 
+            input "motionSensors", "capability.motionSensor", title: "Motion Sensors", multiple: true
+        	input "delay1", "number", title: "Delay after motion stops to stop virtual motion", description: "Minutes", required: true
+        }
+     if(state.selection != "Motion"){
+     
         input "sendInterval", "number", title: "How Often To Update Virtual Device (Minutes - Set to '0' for instant)", required: true, defaultValue: "0"
         input "decimalUnit", "enum", title: "Max Decimal Places", required:true, defaultValue: "2", options: ["1", "2", "3", "4", "5"]
+     }
+     
+     
         label title: "Enter a name for child app (optional)", required: false 
         input "debugMode", "bool", title: "Enable logging", required: true, defaultValue: false    
     }                  
@@ -137,7 +146,13 @@ logCheck()
         subscribe(pressureSensors, "pressure", pressureSensorsHandler)
     }
 
+    if(state.selection == "Motion"){
+        subscribe(motionSensors, "motion", motionSensorsHandler)
+    }
+    
 }
+
+
 
 
 
@@ -147,7 +162,7 @@ LOGDEBUG("Running illuminance handler")
     
      if(state.sendOK == true){
   def ave = evt.value
-   def  aveDev = evt.device
+   def aveDev = evt.device
 LOGDEBUG( "Received from: $aveDev - $ave")
     def sum = 0
     def count = 0
@@ -303,7 +318,41 @@ def resetNow(){
     state.sendOK = true
  }
 
+def motionSensorsHandler(evt){
+def ave5 = evt.value    
+def aveDev5 = evt.device 
+LOGDEBUG("Received from: $aveDev5 - $ave5")
+	def activeNow = motionSensors.findAll { it?.latestValue("motion") == 'active' }
+//   def activeNow = motionSensors.findAll { it?.currentValue("motion") == 'active' } 
+		if (activeNow) { 
 
+LOGDEBUG("Active Sensors: ${activeNow.join(', ')}")
+LOGDEBUG( "Sending Active Now!")         
+			settings.vDevice.setMotion("active")
+            settings.vDevice.lastDeviceMotion("${aveDev5}")  
+}
+    def inActiveNow = motionSensors.findAll { it?.latestValue("motion") == "inactive"}
+//    def inActiveNow = motionSensors.findAll { it?.currentValue("motion") == 'inactive' }
+    
+		if (!activeNow) { 
+LOGDEBUG( "Inactive Sensors: ${inActiveNow}")
+
+def myDelay = 60 * delay1
+            if(myDelay == 0){
+                myDelay = 5}
+            
+       LOGDEBUG(" Waiting $myDelay seconds before going inactive (If no further motion)")
+runIn(myDelay, off)
+	}
+
+}
+
+def off(){
+if (state.go == 'stop'){
+    LOGDEBUG( "Sending Inactive Now!")
+	settings.vDevice.setMotion("inactive")
+}
+}
 
 
 // ******************************************************************************
@@ -382,7 +431,7 @@ def updateCheck(){
 }
 
 def setVersion(){
-		state.version = "1.3.0"	 
+		state.version = "1.4.0"	 
 		state.InternalName = "AverageAllchild"
 }
 
