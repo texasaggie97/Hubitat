@@ -1,5 +1,5 @@
 /**
- *  ****************  Average All (Illumination, Temperature, Humidity, Pressure & Motion)  ****************
+ *  ****************  Average All (Illumination, Temperature, Humidity, Pressure)  ****************
  *
  *  Design Usage:
  *  This was designed to display/set an 'average' or mean illumination from a group of illumination devices
@@ -35,10 +35,11 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 18/09/2018
+ *  Last Update: 19/09/2018
  *
  *  Changes:
  *
+ *  V1.4.1 - Debug Motion
  *  V1.4.0 - Added 'Motion'as a selectable 'average'
  *  V1.3.0 - Debug & Added separate 'last device' recording
  *  V1.2.0 - Added 'Ambient Pressure' average (for use with weather devices)
@@ -55,7 +56,7 @@ definition(
     name: "Average All Child",
     namespace: "Cobra",
     author: "AJ Parker",
-    description: "This was designed to display/set an 'average' or mean Illumination/Humidity/Temperature/Motion or ambient pressure from a group of devices",
+    description: "This was designed to display/set an 'average' or mean illumination/Humidity/temparature or ambient pressure from a group of devices",
     category: "My Apps",
     
 parent: "Cobra:Average All",
@@ -325,33 +326,33 @@ LOGDEBUG("Received from: $aveDev5 - $ave5")
 	def activeNow = motionSensors.findAll { it?.latestValue("motion") == 'active' }
 //   def activeNow = motionSensors.findAll { it?.currentValue("motion") == 'active' } 
 		if (activeNow) { 
-
+			state.go = "go"
 LOGDEBUG("Active Sensors: ${activeNow.join(', ')}")
-LOGDEBUG( "Sending Active Now!")         
+LOGDEBUG( "Active Now!")         
 			settings.vDevice.setMotion("active")
             settings.vDevice.lastDeviceMotion("${aveDev5}")  
 }
-    def inActiveNow = motionSensors.findAll { it?.latestValue("motion") == "inactive"}
+   def inActiveNow = motionSensors.findAll { it?.latestValue("motion") == "inactive"}
 //    def inActiveNow = motionSensors.findAll { it?.currentValue("motion") == 'inactive' }
     
 		if (!activeNow) { 
 LOGDEBUG( "Inactive Sensors: ${inActiveNow}")
-
+state.go = 'stop'
 def myDelay = 60 * delay1
             if(myDelay == 0){
                 myDelay = 5}
             
        LOGDEBUG(" Waiting $myDelay seconds before going inactive (If no further motion)")
-runIn(myDelay, off)
+runIn(myDelay, offNOW)
 	}
 
 }
 
-def off(){
-if (state.go == 'stop'){
-    LOGDEBUG( "Sending Inactive Now!")
+def offNOW(){
+ if (state.go == 'stop'){
+    LOGDEBUG( "Inactive Now!")
 	settings.vDevice.setMotion("inactive")
-}
+ }
 }
 
 
@@ -431,7 +432,7 @@ def updateCheck(){
 }
 
 def setVersion(){
-		state.version = "1.4.0"	 
+		state.version = "1.4.1"	 
 		state.InternalName = "AverageAllchild"
 }
 
