@@ -33,10 +33,13 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 20/08/2018
+ *  Last Update: 30/08/2018
  *
  *  Changes:
  *
+ *
+ *
+ *  V2.5.0 - Added additional triggers: 'Temperature', 'Max Temperature Today', 'Min Temperature Today', 'Max Inside Temp Today', 'Min Inside Temp Today', 'Chance of Rain'
  *  V2.4.4 - Debug & added uninstall logging
  *  V2.4.3 - Changed input of threshold to allow decimal inputs
  *  V2.4.2 - Fixed typo in precip_1hrHandler
@@ -101,11 +104,13 @@ preferences {
   input "trigger", "enum", title: "Action to trigger switch", required: true, submitOnChange: true, 
       options: [
           
-         
+  
+          "Chance of Rain",
           "Dewpoint",
           "Forecast Conditions",
           "Forecast High",
           "Forecast Low",
+          "Humidity ",
           "Illuminance",
           "Rain Rate",
           "Rain in Last Hour",
@@ -116,7 +121,12 @@ preferences {
           "Solar Radiation",
           "Sunrise",
           "Sunset",
+          "Temperature",
+          "Max Temperature Today",
+          "Min Temperature Today",
           "Temperature Feels Like",
+          "Max Inside Temperature Today",
+          "Min Inside Temperature Today",
           "UV Radiation",
           "UV Harm Index",
           "Wind Direction",
@@ -258,7 +268,13 @@ def initialize() {
     state.selection = trigger
     
     if(state.selection == "Illuminance"){ subscribe(sensor1, "illuminance", illuminanceHandler)}
-    if(state.selection ==  "Solar Radiation"){subscribe(sensor1, "solarradiation", solarradiationHandler)}
+    if(state.selection == "Humidity"){ subscribe(sensor1, "humidity", humidityHandler)}
+    if(state.selection == "Solar Radiation"){subscribe(sensor1, "solarradiation", solarradiationHandler)}
+    if(state.selection == "Temperature"){subscribe(sensor1, "temperature", temperatureHandler)}
+    if(state.selection == "Max Temperature Today"){subscribe(sensor1, "tempMaxToday", maxTempTodayHandler)}
+    if(state.selection == "Min Temperature Today"){subscribe(sensor1, "tempMinToday", minTempTodayHandler)}
+    if(state.selection == "Max Inside Temperature Today"){subscribe(sensor1, "tempMaxInsideToday", maxTempInsideTodayHandler)}
+    if(state.selection == "Min Inside Temperature Today"){subscribe(sensor1, "tempMinInsideToday", minTempInsideTodayHandler)}
     if(state.selection == "Temperature Feels Like"){subscribe(sensor1, "feelsLike", feelsLikeHandler)}
     if(state.selection == "Rain in Last Hour"){subscribe(sensor1, "precip_1hr", precip_1hrHandler)}
     if(state.selection == "Rain Rate"){subscribe(sensor1, "rain_rate", precip_RateHandler)}    
@@ -273,7 +289,7 @@ def initialize() {
     if(state.selection == "Visibility"){subscribe(sensor1, "visibility", visibilityHandler)}
     if(state.selection == "Forecast High"){subscribe(sensor1, "forecastHigh", forecastHighHandler)}
     if(state.selection == "Forecast Low"){subscribe(sensor1, "forecastLow", forecastLowHandler)}
-// 	if(state.selection == "Chance Of Rain"){subscribe(sensor1, "chanceOfRain", rainHandler)}
+    if(state.selection == "Chance Of Rain"){subscribe(sensor1, "chanceOfRain", rainHandler)}
     if(state.selection == "Rain Tomorrow"){subscribe(sensor1, "rainTomorrow", rainTomorrowHandler)}
   	if(state.selection == "Rain The Day After Tomorrow"){subscribe(sensor1, "rainDayAfterTomorrow", rainDayAfterTomorrowHandler)}
     if(state.selection == "Forecast Conditions"){subscribe(sensor1, "weatherForecast", forecastConditionsHandler)}
@@ -579,7 +595,62 @@ def precip_RateHandler(evt){
 	LOGDEBUG("Precipitation Rate is $evt21")
     actionNow(call21, evt21)
 }
-  
+
+def temperatureHandler(evt){
+ def event22 = evt.value
+    def evt22 = event22.toDouble()
+    def call22 = 'Temperature'
+	LOGDEBUG("Temperature is $evt22")
+    actionNow(call22, evt22)
+} 
+
+def maxTempTodayHandler(evt){
+ def event23 = evt.value
+    def evt23 = event23.toDouble()
+    def call23 = 'Max Temperature Today'
+	LOGDEBUG("Max Temperature Today is $evt23")
+    actionNow(call23, evt23)
+}    
+
+def minTempTodayHandler(evt){
+ def event24 = evt.value
+    def evt24 = event24.toDouble()
+    def call24 = 'Min Temperature Today'
+	LOGDEBUG("Min Temperature Today is $evt24")
+    actionNow(call24, evt24)
+}    
+
+def maxTempInsideTodayHandler(evt){
+ def event25 = evt.value
+    def evt25 = event25.toDouble()
+    def call25 = 'Max Temperature Inside Today'
+	LOGDEBUG("Max Temperature InsideToday is $evt25")
+    actionNow(call25, evt25)
+}       
+
+def minTempInsideTodayHandler(evt){
+ def event26 = evt.value
+    def evt26 = event26.toDouble()
+    def call26 = 'Min Temperature Inside Today'
+	LOGDEBUG("Min Temperature InsideToday is $evt26")
+    actionNow(call26, evt26)
+}       
+
+def humidityHandler(evt){
+ def event27 = evt.value
+    def evt27 = event27.toDouble()
+    def call27 = 'Humidity'
+	LOGDEBUG("Humidity is $evt27")
+    actionNow(call27, evt27)
+}          
+
+
+
+
+
+
+
+
 
 
 // Switch Actions
@@ -878,63 +949,65 @@ def LOGDEBUG(txt){
 
 
 def version(){
-    updatecheck()
-    if (state.Type == "Application"){schedule("0 0 9 ? * FRI *", updatecheck)}
-    if (state.Type == "Driver"){schedule("0 0 8 ? * FRI *", updatecheck)}
+	unschedule()
+	schedule("0 0 9 ? * FRI *", updateCheck) //  Check for updates at 9am every Friday
+	updateCheck()  
 }
 
 def display(){
-    if(state.Status){
-    section{paragraph "Version: $state.version -  $state.Copyright"}
-	if(state.Status != "Current"){
-       section{ 
-       paragraph "$state.Status"
-       paragraph "$state.updateInfo"
+	if(state.status){
+	section{paragraph "Version: $state.version -  $state.Copyright"}
+	if(state.status != "Current"){
+	section{ 
+	paragraph "$state.status"
+	paragraph "$state.UpdateInfo"
     }
     }
 }
 }
 
 
-def updatecheck(){
-    setAppVersion()
-    def paramsUD = [uri: "http://update.hubitat.uk/cobra.json"]
-       try {
+def updateCheck(){
+    setVersion()
+	def paramsUD = [uri: "http://update.hubitat.uk/cobra.json"]
+       	try {
         httpGet(paramsUD) { respUD ->
-//   log.info " Version Checking - Response Data: ${respUD.data}"   // Debug Code ***********************************************
-       def copyNow = (respUD.data.copyright)
-       state.Copyright = copyNow
-            def newver = (respUD.data.versions.(state.Type).(state.InternalName))
-            def cobraVer = (respUD.data.versions.(state.Type).(state.InternalName).replace(".", ""))
-       def cobraOld = state.version.replace(".", "")
-       state.updateInfo = (respUD.data.versions.UpdateInfo.(state.Type).(state.InternalName)) 
-            if(cobraVer == "NLS"){
-            state.Status = "<b>** This $state.Type is no longer supported **</b> - (However you can continue to use it if you wish)"       
-            log.warn "** This $state.Type is no longer supported ** -  (However you can continue to use it if you wish)"      
-      }           
-      		else if(cobraOld < cobraVer){
-        	state.Status = "<b>New Version Available (Version: $newver)</b>"
-        	log.warn "** There is a newer version of this $state.Type available  (Version: $newver) **"
-        	log.warn "** $state.updateInfo **"
-       } 
-            else{ 
-      		state.Status = "Current"
-      		log.info "$state.Type is the current version"
-       }
-       
-       }
-        } 
+ //  log.warn " Version Checking - Response Data: ${respUD.data}"   // Troubleshooting Debug Code 
+       		def copyrightRead = (respUD.data.copyright)
+       		state.Copyright = copyrightRead
+            def newVerRaw = (respUD.data.versions.Application.(state.InternalName))
+            def newVer = (respUD.data.versions.Application.(state.InternalName).replace(".", ""))
+       		def currentVer = state.version.replace(".", "")
+      		state.UpdateInfo = (respUD.data.versions.UpdateInfo.Application.(state.InternalName))
+                state.author = (respUD.data.author)
+           
+		if(newVer == "NLS"){
+            state.status = "<b>** This app is no longer supported by $state.author  **</b>"       
+            log.warn "** This app is no longer supported by $state.author **"      
+      		}           
+		else if(currentVer < newVer){
+        	state.status = "<b>New Version Available (Version: $newVerRaw)</b>"
+        	log.warn "** There is a newer version of this app available  (Version: $newVerRaw) **"
+        	log.warn "** $state.UpdateInfo **"
+       		} 
+		else{ 
+      		state.status = "Current"
+      		log.info "You are using the current version of this app"
+       		}
+      					}
+        	} 
         catch (e) {
-        log.error "Something went wrong: $e"
-    }
-}        
+        	log.error "Something went wrong: CHECK THE JSON FILE AND IT'S URI -  $e"
+    		}
+ 	
+}
 
 
 
-def setAppVersion(){
-     state.version = "2.4.4"
+def setVersion(){
+     state.version = "2.5.0"
      state.InternalName = "WSchild"
-     state.Type = "Application"
+     
  
 
 }

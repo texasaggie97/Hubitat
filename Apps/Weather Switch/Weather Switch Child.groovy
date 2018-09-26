@@ -33,12 +33,12 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 30/08/2018
+ *  Last Update: 26/09/2018
  *
  *  Changes:
  *
  *
- *
+ *  V2.6.0 - Added trigger: Alert 
  *  V2.5.0 - Added additional triggers: 'Temperature', 'Max Temperature Today', 'Min Temperature Today', 'Max Inside Temp Today', 'Min Inside Temp Today', 'Chance of Rain'
  *  V2.4.4 - Debug & added uninstall logging
  *  V2.4.3 - Changed input of threshold to allow decimal inputs
@@ -104,7 +104,7 @@ preferences {
   input "trigger", "enum", title: "Action to trigger switch", required: true, submitOnChange: true, 
       options: [
           
-  
+  		  "Alert",
           "Chance of Rain",
           "Dewpoint",
           "Forecast Conditions",
@@ -148,6 +148,11 @@ preferences {
      input(name: "actionMatch", type: "test", title: "Condition to match", required: true, description: "MUST match case & output e.g RAIN, CLOUDY") 
      input(name: "action1", type: "bool", title: "Turn switch On or Off when condition matches", required: true, defaultValue: true)   
         }
+        else if(state.selection == "Alert"){
+     input(name: "actionMatch", type: "test", title: "EXACT phrase or word to match (case insensitive)", required: true, description: "e.g. severe wind, No current alerts") 
+     input(name: "action1", type: "bool", title: "Turn switch On or Off when condition matches", required: true, defaultValue: true)   
+        }
+        
         
          else if(state.selection == "UV Harm Index"){
      input(name: "actionMatch", type: "enum", title: "Action when this condition matches", required: true, options: ["Low", "Moderate", "High", "VeryHigh", "Extreme"])   
@@ -266,7 +271,7 @@ def initialize() {
 	if (restrictPresenceSensor1){subscribe(restrictPresenceSensor1, "presence", restrictPresence1SensorHandler)}
         
     state.selection = trigger
-    
+    if(state.selection == "Alert"){ subscribe(sensor1, "alert", alertHandler)}
     if(state.selection == "Illuminance"){ subscribe(sensor1, "illuminance", illuminanceHandler)}
     if(state.selection == "Humidity"){ subscribe(sensor1, "humidity", humidityHandler)}
     if(state.selection == "Solar Radiation"){subscribe(sensor1, "solarradiation", solarradiationHandler)}
@@ -382,10 +387,7 @@ state.weather1 = evt.value
 LOGDEBUG("Weather is $state.weather1")
 }
 
-def  alertHandler(evt){
-state.alert1 = evt.value
-LOGDEBUG("Weather Alert: $state.alert1")    
-}
+
 
 def  cityHandler(evt){
 state.city1 = evt.value
@@ -644,7 +646,73 @@ def humidityHandler(evt){
     actionNow(call27, evt27)
 }          
 
+def  alertHandler(evt){ 
+   
+  LOGDEBUG("Calling alertHandler")   
+state.evtNow = evt.value.toString()
+   LOGDEBUG(" state.evtNow = $state.evtNow")
+state.match = actionMatch.toString()
+    LOGDEBUG(" state.match = $state.match")
+state.action = action1
 
+ LOGDEBUG("Calling.. CheckTime")
+checkTime()
+LOGDEBUG("Calling.. CheckDay")
+checkDay()
+LOGDEBUG("Calling.. CheckPresence")
+checkPresence()
+LOGDEBUG("Calling.. CheckPresence1")
+checkPresence1()   
+    
+    
+    LOGDEBUG("state.evtNow = $state.evtNow -- state.match = $state.match -- state.action = $state.action -- state.presenceRestriction = $state.presenceRestriction -- state.presenceRestriction1 = $state.presenceRestriction1")
+ if(state.timeOK == true && state.dayCheck == true && state.presenceRestriction == true && state.presenceRestriction1 == true){
+   
+    
+ def msgComp = ""
+    msgComp = state.evtNow.toUpperCase()
+    msgMatch = state.match.toUpperCase()
+    LOGDEBUG("msgComp = $msgComp -  msgMatch = $msgMatch")
+     if (msgComp.toUpperCase().contains(msgMatch)) {
+      state.yesMatch = true  
+        LOGDEBUG("state.yesMatch = $state.yesMatch") 
+     }   
+     else{
+     state.yesMatch = false  
+       LOGDEBUG("state.yesMatch = $state.yesMatch") 
+     }
+    
+    
+     if(state.action == true){   
+        LOGDEBUG("state.action = $state.action")
+         
+    if(state.yesMatch == true){ 
+       LOGDEBUG("Content Match - Sent on command..")  
+        on()}
+          if(state.yesMatch == false){
+        LOGDEBUG("Content Not Matched - Sent off command..")       
+        off()}
+                                                       
+	
+    }
+      if(state.action == false){   
+        LOGDEBUG("state.action = $state.action")
+         
+    if(state.yesMatch == false){ 
+       LOGDEBUG("Content Match - Sent on command..")  
+        on()}
+          if(state.yesMatch == true){
+        LOGDEBUG("Content Not Matched - Sent off command..")       
+        off()}
+                                                       
+	
+    }
+     
+    
+    
+ }   
+    
+}
 
 
 
@@ -654,6 +722,12 @@ def humidityHandler(evt){
 
 
 // Switch Actions
+
+
+
+
+
+
 
 def altSwitch(call, evt){
  LOGDEBUG("Calling altSwitch")   
@@ -940,7 +1014,7 @@ log.info "Further Logging Disabled"
 }
 def LOGDEBUG(txt){
     try {
-    	if (settings.debugMode) { log.debug("${app.label.replace(" ","_").toUpperCase()}  (Version: ${state.appversion}) - ${txt}") }
+    	if (settings.debugMode) { log.debug("${app.label.replace(" ","_").toUpperCase()}  (Version: ${state.version}) - ${txt}") }
     } catch(ex) {
     	log.error("LOGDEBUG unable to output requested data!")
     }
@@ -1005,7 +1079,7 @@ def updateCheck(){
 
 
 def setVersion(){
-     state.version = "2.5.0"
+     state.version = "2.6.0"
      state.InternalName = "WSchild"
      
  
