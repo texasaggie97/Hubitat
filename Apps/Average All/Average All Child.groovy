@@ -201,7 +201,7 @@ LOGDEBUG("Average Illuminance = $state.mean")
 
    
         def timeCheck1 = 60 * sendLuxInterval  
-LOGDEBUG("Sending $state.mean to $vDevice then waiting $timeCheck seconds before I can send again")
+LOGDEBUG("Sending $state.mean to $vDevice then waiting $timeCheck1 seconds before I can send again")
      settings.vDevice.setLux("${state.mean}")
      settings.vDevice.lastDeviceLux("${aveDev}")  
         
@@ -240,7 +240,7 @@ LOGDEBUG( "Total Combined value =  $sum")
 
  
         def timeCheck2 = 60 * sendTempInterval  
-        LOGDEBUG("Sending $state.mean to $vDevice then waiting $timeCheck seconds before I can send again")
+        LOGDEBUG("Sending $state.mean to $vDevice then waiting $timeCheck2 seconds before I can send again")
     settings.vDevice.setTemperature("${state.mean}")
     settings.vDevice.lastDeviceTemperature("${aveDev1}") 
  		state.tempSendOK = false
@@ -279,7 +279,7 @@ LOGDEBUG("Average Humidity = $state.mean")
 
    
         def timeCheck3 = 60 * sendHumInterval  
-LOGDEBUG("Sending $state.mean to $vDevice then waiting $timeCheck seconds before I can send again")
+LOGDEBUG("Sending $state.mean to $vDevice then waiting $timeCheck3 seconds before I can send again")
      settings.vDevice.setHumidity("${state.mean}")
      settings.vDevice.lastDeviceHumidity("${aveDev3}") 
         state.humSendOK = false
@@ -319,7 +319,7 @@ LOGDEBUG( "Total Combined value =  $sum")
 
  
         def timeCheck4 = 60 * sendPressInterval  
-        LOGDEBUG("Sending $state.mean to $vDevice then waiting $timeCheck seconds before I can send again")
+        LOGDEBUG("Sending $state.mean to $vDevice then waiting $timeCheck4 seconds before I can send again")
     settings.vDevice.setPressure("${state.mean}")
     settings.vDevice.lastDevicePressure("${aveDev4}") 
  		state.pressSendOK = false
