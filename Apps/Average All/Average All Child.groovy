@@ -35,10 +35,12 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 19/09/2018
+ *  Last Update: 26/09/2018
  *
  *  Changes:
  *
+ *
+ *  V1.5.0 - Recoded timers (how often To update virtual device)
  *  V1.4.1 - Debug Motion
  *  V1.4.0 - Added 'Motion'as a selectable 'average'
  *  V1.3.0 - Debug & Added separate 'last device' recording
@@ -86,19 +88,31 @@ section("") {
         if(childTypeSelect){
         state.selection = childTypeSelect
  section("") {
-        input "vDevice", "device.AverageAllDevice", title: "Virtual Device"
-     	if(state.selection == "Temperature"){ input "tempSensors", "capability.temperatureMeasurement", title: "Physical Temperature Sensors", multiple: true}
-     	if(state.selection == "Illuminance"){ input "illumSensors", "capability.illuminanceMeasurement", title: "Physical Illuminance Sensors", multiple: true}
-    	if(state.selection == "Humidity"){input "humiditySensors", "capability.relativeHumidityMeasurement", title: "Physical Humidity Sensors", multiple: true} 
-     	if(state.selection == "Ambient Pressure"){ input "pressureSensors", "capability.sensor", title: "Weather Pressure Sensors", multiple: true}
+    //    input "vDevice", "device.AverageAllDevice", title: "Virtual Device"
+   		 input "vDevice", "capability.sensor", title: "Virtual Device"
+     
+     	if(state.selection == "Temperature"){ 
+            input "tempSensors", "capability.temperatureMeasurement", title: "Physical Temperature Sensors", multiple: true
+        	input "sendTempInterval", "number", title: "How Often To Update Virtual Temperature Device (Minutes - Set to '0' for instant)", required: true, defaultValue: "0"
+        }
+     	if(state.selection == "Illuminance"){
+            input "illumSensors", "capability.illuminanceMeasurement", title: "Physical Illuminance Sensors", multiple: true
+        	input "sendLuxInterval", "number", title: "How Often To Update Virtual Illuminance Device (Minutes - Set to '0' for instant)", required: true, defaultValue: "0"
+        }
+    	if(state.selection == "Humidity"){
+            input "humiditySensors", "capability.relativeHumidityMeasurement", title: "Physical Humidity Sensors", multiple: true
+        	input "sendHumInterval", "number", title: "How Often To Update Virtual Humidity Device (Minutes - Set to '0' for instant)", required: true, defaultValue: "0"
+        } 
+     	if(state.selection == "Ambient Pressure"){ 
+            input "pressureSensors", "capability.sensor", title: "Weather Pressure Sensors", multiple: true
+        	input "sendPressInterval", "number", title: "How Often To Update Virtual Pressure Device (Minutes - Set to '0' for instant)", required: true, defaultValue: "0"
+        }
         if(state.selection == "Motion"){ 
             input "motionSensors", "capability.motionSensor", title: "Motion Sensors", multiple: true
         	input "delay1", "number", title: "Delay after motion stops to stop virtual motion", description: "Minutes", required: true
         }
      if(state.selection != "Motion"){
-     
-        input "sendInterval", "number", title: "How Often To Update Virtual Device (Minutes - Set to '0' for instant)", required: true, defaultValue: "0"
-        input "decimalUnit", "enum", title: "Max Decimal Places", required:true, defaultValue: "2", options: ["1", "2", "3", "4", "5"]
+     		input "decimalUnit", "enum", title: "Max Decimal Places", required:true, defaultValue: "2", options: ["1", "2", "3", "4", "5"]
      }
      
      
@@ -125,26 +139,28 @@ def updated() {
 
 def initialize() {
  
-  state.sendOK = true     
+      
 version()
 logCheck()
     state.DecimalPlaces = decimalUnit.toInteger() 
     
     if(state.selection == "Illuminance"){
         subscribe(illumSensors, "illuminance", illuminanceHandler)
-       
+        state.luxSendOK = true
     }
     
     if(state.selection == "Temperature"){
        subscribe(tempSensors, "temperature", tempSensorsHandler)
-      
+       state.tempSendOK = true
     }
      if(state.selection == "Humidity"){
        subscribe(humiditySensors, "humidity", humidityHandler)
+       state.humSendOK = true
      }
     
     if(state.selection == "Ambient Pressure"){
         subscribe(pressureSensors, "pressure", pressureSensorsHandler)
+        state.pressSendOK = true
     }
 
     if(state.selection == "Motion"){
@@ -161,7 +177,7 @@ logCheck()
 def illuminanceHandler(evt) {
 LOGDEBUG("Running illuminance handler")
     
-     if(state.sendOK == true){
+     if(state.luxSendOK == true){
   def ave = evt.value
    def aveDev = evt.device
 LOGDEBUG( "Received from: $aveDev - $ave")
@@ -184,13 +200,13 @@ LOGDEBUG( "Total Combined value =  $sum")
 LOGDEBUG("Average Illuminance = $state.mean")
 
    
-        def timeCheck = 60 * sendInterval  
+        def timeCheck1 = 60 * sendLuxInterval  
 LOGDEBUG("Sending $state.mean to $vDevice then waiting $timeCheck seconds before I can send again")
      settings.vDevice.setLux("${state.mean}")
      settings.vDevice.lastDeviceLux("${aveDev}")  
         
-        state.sendOK = false
-       runIn(timeCheck, resetNow)  // , [overwrite: false])
+        state.luxSendOK = false
+       runIn(timeCheck1, resetLuxNow)  // , [overwrite: false])
      }
     else {
 LOGDEBUG("Waiting for timer to expire")  
@@ -202,7 +218,7 @@ LOGDEBUG("Waiting for timer to expire")
 
 def tempSensorsHandler(evt) {
 LOGDEBUG("Running temperature handler")
-    if(state.sendOK == true){
+    if(state.tempSendOK == true){
       def ave1 = evt.value
     def aveDev1 = evt.device
 LOGDEBUG( "Received from: $aveDev1 - $ave1")
@@ -223,12 +239,12 @@ LOGDEBUG( "Total Combined value =  $sum")
     LOGDEBUG("Average Temperature = $state.mean")
 
  
-        def timeCheck = 60 * sendInterval  
+        def timeCheck2 = 60 * sendTempInterval  
         LOGDEBUG("Sending $state.mean to $vDevice then waiting $timeCheck seconds before I can send again")
     settings.vDevice.setTemperature("${state.mean}")
     settings.vDevice.lastDeviceTemperature("${aveDev1}") 
- 		state.sendOK = false
-        runIn(timeCheck, resetNow)  // , [overwrite: false])
+ 		state.tempSendOK = false
+        runIn(timeCheck2, resetTempNow)  // , [overwrite: false])
  }
     else {
 LOGDEBUG("Waiting for timer to expire")  
@@ -240,7 +256,7 @@ LOGDEBUG("Waiting for timer to expire")
 
 def humidityHandler(evt) {
 LOGDEBUG("Running humidity handler")
-     if(state.sendOK == true){
+     if(state.humSendOK == true){
       def ave3 = evt.value
       def aveDev3 = evt.device
 LOGDEBUG( "Received from: $aveDev - $ave")
@@ -262,12 +278,12 @@ LOGDEBUG( "Total Combined value =  $sum")
 LOGDEBUG("Average Humidity = $state.mean")
 
    
-        def timeCheck = 60 * sendInterval  
+        def timeCheck3 = 60 * sendHumInterval  
 LOGDEBUG("Sending $state.mean to $vDevice then waiting $timeCheck seconds before I can send again")
      settings.vDevice.setHumidity("${state.mean}")
      settings.vDevice.lastDeviceHumidity("${aveDev3}") 
-        state.sendOK = false
-       runIn(timeCheck, resetNow) // , [overwrite: false])
+        state.humSendOK = false
+       runIn(timeCheck3, resetHumNow) // , [overwrite: false])
      }
     else {
 LOGDEBUG("Waiting for timer to expire")  
@@ -277,7 +293,7 @@ LOGDEBUG("Waiting for timer to expire")
 
 def pressureSensorsHandler(evt) {
 LOGDEBUG("Running pressure handler")
-    if(state.sendOK == true){
+    if(state.pressSendOK == true){
        def ave4 = evt.value.toFloat()
    	   def aveDev4 = evt.device
 LOGDEBUG( "Received from: $aveDev - $ave")
@@ -302,22 +318,37 @@ LOGDEBUG( "Total Combined value =  $sum")
     LOGDEBUG("Average Pressure = $state.mean")
 
  
-        def timeCheck = 60 * sendInterval  
+        def timeCheck4 = 60 * sendPressInterval  
         LOGDEBUG("Sending $state.mean to $vDevice then waiting $timeCheck seconds before I can send again")
     settings.vDevice.setPressure("${state.mean}")
     settings.vDevice.lastDevicePressure("${aveDev4}") 
- 		state.sendOK = false
-        runIn(timeCheck, resetNow)  // , [overwrite: false])
+ 		state.pressSendOK = false
+        runIn(timeCheck4, resetPressNow)  // , [overwrite: false])
  }
     else {
 LOGDEBUG("Waiting for timer to expire")  
     }
 }
 
-def resetNow(){
- LOGDEBUG("Timer reset")    
-    state.sendOK = true
+def resetLuxNow(){
+ LOGDEBUG("Lux Timer reset")    
+    state.luxSendOK = true
  }
+def resetTempNow(){
+ LOGDEBUG("Temperature Timer reset")    
+    state.tempSendOK = true
+ }
+def resetHumNow(){
+ LOGDEBUG("Humidity Timer reset")    
+    state.humSendOK = true
+ }
+def resetPressNow(){
+ LOGDEBUG("Pressure Timer reset")    
+    state.pressSendOK = true
+ }
+
+
+
 
 def motionSensorsHandler(evt){
 def ave5 = evt.value    
@@ -432,7 +463,7 @@ def updateCheck(){
 }
 
 def setVersion(){
-		state.version = "1.4.1"	 
+		state.version = "1.5.0"	 
 		state.InternalName = "AverageAllchild"
 }
 

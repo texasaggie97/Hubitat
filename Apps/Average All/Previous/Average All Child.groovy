@@ -35,12 +35,13 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 11/09/2018
+ *  Last Update: 19/09/2018
  *
  *  Changes:
  *
- *
- *
+ *  V1.4.1 - Debug Motion
+ *  V1.4.0 - Added 'Motion'as a selectable 'average'
+ *  V1.3.0 - Debug & Added separate 'last device' recording
  *  V1.2.0 - Added 'Ambient Pressure' average (for use with weather devices)
  *  V1.1.0 - Debug and code cleanup/consolidation
  *  V1.0.2 - Debug fixed issue with delay timer
@@ -79,19 +80,28 @@ section("") {
        display()
         
  section("") {
-   input "childTypeSelect", "enum", required: true, title: "What do You Want To Average", submitOnChange: true,  options: ["Illuminance", "Temperature", "Humidity", "Ambient Pressure"] 
+   input "childTypeSelect", "enum", required: true, title: "What do You Want To Average", submitOnChange: true,  options: ["Illuminance", "Temperature", "Humidity", "Ambient Pressure", "Motion"] 
                                                                                                                           
  }  
         if(childTypeSelect){
         state.selection = childTypeSelect
  section("") {
-        input "vDevice", "capability.sensor", title: "Virtual Device"
+        input "vDevice", "device.AverageAllDevice", title: "Virtual Device"
      	if(state.selection == "Temperature"){ input "tempSensors", "capability.temperatureMeasurement", title: "Physical Temperature Sensors", multiple: true}
      	if(state.selection == "Illuminance"){ input "illumSensors", "capability.illuminanceMeasurement", title: "Physical Illuminance Sensors", multiple: true}
     	if(state.selection == "Humidity"){input "humiditySensors", "capability.relativeHumidityMeasurement", title: "Physical Humidity Sensors", multiple: true} 
      	if(state.selection == "Ambient Pressure"){ input "pressureSensors", "capability.sensor", title: "Weather Pressure Sensors", multiple: true}
+        if(state.selection == "Motion"){ 
+            input "motionSensors", "capability.motionSensor", title: "Motion Sensors", multiple: true
+        	input "delay1", "number", title: "Delay after motion stops to stop virtual motion", description: "Minutes", required: true
+        }
+     if(state.selection != "Motion"){
+     
         input "sendInterval", "number", title: "How Often To Update Virtual Device (Minutes - Set to '0' for instant)", required: true, defaultValue: "0"
         input "decimalUnit", "enum", title: "Max Decimal Places", required:true, defaultValue: "2", options: ["1", "2", "3", "4", "5"]
+     }
+     
+     
         label title: "Enter a name for child app (optional)", required: false 
         input "debugMode", "bool", title: "Enable logging", required: true, defaultValue: false    
     }                  
@@ -137,16 +147,23 @@ logCheck()
         subscribe(pressureSensors, "pressure", pressureSensorsHandler)
     }
 
+    if(state.selection == "Motion"){
+        subscribe(motionSensors, "motion", motionSensorsHandler)
+    }
+    
 }
+
+
 
 
 
 
 def illuminanceHandler(evt) {
 LOGDEBUG("Running illuminance handler")
+    
      if(state.sendOK == true){
-        ave = evt.value
-      aveDev = evt.device
+  def ave = evt.value
+   def aveDev = evt.device
 LOGDEBUG( "Received from: $aveDev - $ave")
     def sum = 0
     def count = 0
@@ -170,7 +187,7 @@ LOGDEBUG("Average Illuminance = $state.mean")
         def timeCheck = 60 * sendInterval  
 LOGDEBUG("Sending $state.mean to $vDevice then waiting $timeCheck seconds before I can send again")
      settings.vDevice.setLux("${state.mean}")
-     settings.vDevice.lastDevice("${aveDev}")  
+     settings.vDevice.lastDeviceLux("${aveDev}")  
         
         state.sendOK = false
        runIn(timeCheck, resetNow)  // , [overwrite: false])
@@ -186,9 +203,9 @@ LOGDEBUG("Waiting for timer to expire")
 def tempSensorsHandler(evt) {
 LOGDEBUG("Running temperature handler")
     if(state.sendOK == true){
-        ave = evt.value
-    aveDev = evt.device
-LOGDEBUG( "Received from: $aveDev - $ave")
+      def ave1 = evt.value
+    def aveDev1 = evt.device
+LOGDEBUG( "Received from: $aveDev1 - $ave1")
     def sum = 0
     def count = 0
     state.mean = 0
@@ -209,7 +226,7 @@ LOGDEBUG( "Total Combined value =  $sum")
         def timeCheck = 60 * sendInterval  
         LOGDEBUG("Sending $state.mean to $vDevice then waiting $timeCheck seconds before I can send again")
     settings.vDevice.setTemperature("${state.mean}")
-    settings.vDevice.lastDevice("${aveDev}") 
+    settings.vDevice.lastDeviceTemperature("${aveDev1}") 
  		state.sendOK = false
         runIn(timeCheck, resetNow)  // , [overwrite: false])
  }
@@ -224,8 +241,8 @@ LOGDEBUG("Waiting for timer to expire")
 def humidityHandler(evt) {
 LOGDEBUG("Running humidity handler")
      if(state.sendOK == true){
-        ave = evt.value
-    aveDev = evt.device
+      def ave3 = evt.value
+      def aveDev3 = evt.device
 LOGDEBUG( "Received from: $aveDev - $ave")
     def sum = 0
     def count = 0
@@ -248,7 +265,7 @@ LOGDEBUG("Average Humidity = $state.mean")
         def timeCheck = 60 * sendInterval  
 LOGDEBUG("Sending $state.mean to $vDevice then waiting $timeCheck seconds before I can send again")
      settings.vDevice.setHumidity("${state.mean}")
-     settings.vDevice.lastDevice("${aveDev}") 
+     settings.vDevice.lastDeviceHumidity("${aveDev3}") 
         state.sendOK = false
        runIn(timeCheck, resetNow) // , [overwrite: false])
      }
@@ -261,8 +278,8 @@ LOGDEBUG("Waiting for timer to expire")
 def pressureSensorsHandler(evt) {
 LOGDEBUG("Running pressure handler")
     if(state.sendOK == true){
-        ave = evt.value.toFloat()
-    aveDev = evt.device
+       def ave4 = evt.value.toFloat()
+   	   def aveDev4 = evt.device
 LOGDEBUG( "Received from: $aveDev - $ave")
     def sum = 0
     def count = 0
@@ -288,7 +305,7 @@ LOGDEBUG( "Total Combined value =  $sum")
         def timeCheck = 60 * sendInterval  
         LOGDEBUG("Sending $state.mean to $vDevice then waiting $timeCheck seconds before I can send again")
     settings.vDevice.setPressure("${state.mean}")
-    settings.vDevice.lastDevice("${aveDev}") 
+    settings.vDevice.lastDevicePressure("${aveDev4}") 
  		state.sendOK = false
         runIn(timeCheck, resetNow)  // , [overwrite: false])
  }
@@ -302,7 +319,41 @@ def resetNow(){
     state.sendOK = true
  }
 
+def motionSensorsHandler(evt){
+def ave5 = evt.value    
+def aveDev5 = evt.device 
+LOGDEBUG("Received from: $aveDev5 - $ave5")
+	def activeNow = motionSensors.findAll { it?.latestValue("motion") == 'active' }
+//   def activeNow = motionSensors.findAll { it?.currentValue("motion") == 'active' } 
+		if (activeNow) { 
+			state.go = "go"
+LOGDEBUG("Active Sensors: ${activeNow.join(', ')}")
+LOGDEBUG( "Active Now!")         
+			settings.vDevice.setMotion("active")
+            settings.vDevice.lastDeviceMotion("${aveDev5}")  
+}
+   def inActiveNow = motionSensors.findAll { it?.latestValue("motion") == "inactive"}
+//    def inActiveNow = motionSensors.findAll { it?.currentValue("motion") == 'inactive' }
+    
+		if (!activeNow) { 
+LOGDEBUG( "Inactive Sensors: ${inActiveNow}")
+state.go = 'stop'
+def myDelay = 60 * delay1
+            if(myDelay == 0){
+                myDelay = 5}
+            
+       LOGDEBUG(" Waiting $myDelay seconds before going inactive (If no further motion)")
+runIn(myDelay, offNOW)
+	}
 
+}
+
+def offNOW(){
+ if (state.go == 'stop'){
+    LOGDEBUG( "Inactive Now!")
+	settings.vDevice.setMotion("inactive")
+ }
+}
 
 
 // ******************************************************************************
@@ -381,7 +432,7 @@ def updateCheck(){
 }
 
 def setVersion(){
-		state.version = "1.2.0"	 
+		state.version = "1.4.1"	 
 		state.InternalName = "AverageAllchild"
 }
 
