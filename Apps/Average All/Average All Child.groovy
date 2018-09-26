@@ -200,7 +200,7 @@ LOGDEBUG( "Total Combined value =  $sum")
 LOGDEBUG("Average Illuminance = $state.mean")
 
    
-        def timeCheck1 = 60 * sendLuxInterval  
+        def timeCheck1 = (60 * sendLuxInterval)  
 LOGDEBUG("Sending $state.mean to $vDevice then waiting $timeCheck1 seconds before I can send again")
      settings.vDevice.setLux("${state.mean}")
      settings.vDevice.lastDeviceLux("${aveDev}")  
@@ -222,26 +222,26 @@ LOGDEBUG("Running temperature handler")
       def ave1 = evt.value
     def aveDev1 = evt.device
 LOGDEBUG( "Received from: $aveDev1 - $ave1")
-    def sum = 0
-    def count = 0
-    state.mean = 0
-	state.mean1 = 0
-    state.mean2 = 0
+    def sumTemp = 0
+    def countTemp = 0
+    state.meanTemp = 0
+	state.mean1Temp = 0
+    state.mean2Temp = 0
     
     for (sensor in settings.tempSensors) {
-    count += 1 
-LOGDEBUG( "Sensor data count = $count" )
-    sum += sensor.currentTemperature }
-LOGDEBUG( "Total Combined value =  $sum")
-	state.mean1 = sum/count
-   state.mean2 = state.mean1.toFloat()
-    state.mean = state.mean2.round(state.DecimalPlaces)
-    LOGDEBUG("Average Temperature = $state.mean")
+    countTemp += 1 
+LOGDEBUG( "Sensor data count = $countTemp" )
+    sumTemp += sensor.currentTemperature }
+LOGDEBUG( "Total Combined value =  $sumTemp")
+	state.mean1Temp = sumTemp/countTemp
+   state.mean2Temp = state.mean1Temp.toFloat()
+    state.meanTemp = state.mean2Temp.round(state.DecimalPlaces)
+    LOGDEBUG("Average Temperature = $state.meanTemp")
 
  
-        def timeCheck2 = 60 * sendTempInterval  
-        LOGDEBUG("Sending $state.mean to $vDevice then waiting $timeCheck2 seconds before I can send again")
-    settings.vDevice.setTemperature("${state.mean}")
+        def timeCheck2 = (60 * sendTempInterval)  
+        LOGDEBUG("Sending $state.meanTemp to $vDevice then waiting $timeCheck2 seconds before I can send again")
+    settings.vDevice.setTemperature("${state.meanTemp}")
     settings.vDevice.lastDeviceTemperature("${aveDev1}") 
  		state.tempSendOK = false
         runIn(timeCheck2, resetTempNow)  // , [overwrite: false])
@@ -259,28 +259,28 @@ LOGDEBUG("Running humidity handler")
      if(state.humSendOK == true){
       def ave3 = evt.value
       def aveDev3 = evt.device
-LOGDEBUG( "Received from: $aveDev - $ave")
-    def sum = 0
-    def count = 0
-    state.mean = 0
-	state.mean1 = 0
-    state.mean2 = 0
+LOGDEBUG( "Received from: $aveDev3 - $ave3")
+    def sumHum = 0
+    def countHum = 0
+    state.meanHum = 0
+	state.mean1Hum = 0
+    state.mean2Hum = 0
     
     for (sensor in settings.humiditySensors) {
-    count += 1 
-LOGDEBUG( "Sensor data count = $count" )      
-    sum += sensor.currentHumidity }
-LOGDEBUG( "Total Combined value =  $sum")
+    countHum += 1 
+LOGDEBUG( "Sensor data count = $countHum" )      
+    sumHum += sensor.currentHumidity }
+LOGDEBUG( "Total Combined value =  $sumHum")
 
-    state.mean1 = sum/count
-    state.mean2 = state.mean1.toFloat()
-    state.mean = state.mean2.round(state.DecimalPlaces)
-LOGDEBUG("Average Humidity = $state.mean")
+    state.mean1Hum = sumHum/countHum
+    state.mean2Hum = state.mean1Hum.toFloat()
+    state.meanHum = state.mean2Hum.round(state.DecimalPlaces)
+LOGDEBUG("Average Humidity = $state.meanHum")
 
    
         def timeCheck3 = 60 * sendHumInterval  
 LOGDEBUG("Sending $state.mean to $vDevice then waiting $timeCheck3 seconds before I can send again")
-     settings.vDevice.setHumidity("${state.mean}")
+     settings.vDevice.setHumidity("${state.meanHum}")
      settings.vDevice.lastDeviceHumidity("${aveDev3}") 
         state.humSendOK = false
        runIn(timeCheck3, resetHumNow) // , [overwrite: false])
@@ -296,31 +296,31 @@ LOGDEBUG("Running pressure handler")
     if(state.pressSendOK == true){
        def ave4 = evt.value.toFloat()
    	   def aveDev4 = evt.device
-LOGDEBUG( "Received from: $aveDev - $ave")
-    def sum = 0
-    def count = 0
-    state.mean = 0
-	state.mean1 = 0
-    state.mean2 = 0
+LOGDEBUG( "Received from: $aveDev4 - $ave4")
+    def sumPress = 0
+    def countPress = 0
+    state.meanPress = 0
+	state.mean1Press = 0
+    state.mean2Press = 0
     
     for (sensor in settings.pressureSensors) {
-    count += 1 
-LOGDEBUG( "Sensor data count = $count" )
-    sum1 += sensor.currentValue("pressure") }
-LOGDEBUG( "Sum1 =  $sum1")   
-    sum2 = sum1.minus('null')
-LOGDEBUG( "Sum2 =  $sum2")        
-    sum = sum2.toDouble()
-LOGDEBUG( "Total Combined value =  $sum")        
-	state.mean1 = sum/count
-   state.mean2 = state.mean1.toDouble()
-    state.mean = state.mean2.round(state.DecimalPlaces)
-    LOGDEBUG("Average Pressure = $state.mean")
+    countPress += 1 
+LOGDEBUG( "Sensor data count = $countPress" )
+    sum1Press += sensor.currentValue("pressure") }
+LOGDEBUG( "Sum1 =  $sum1Press")   
+    sum2Press = sum1Press.minus('null')
+LOGDEBUG( "Sum2 =  $sum2Press")        
+    sumPress = sum2Press.toDouble()
+LOGDEBUG( "Total Combined value =  $sumPress")        
+	state.mean1Press = sumPress/countPress
+   state.mean2Press = state.mean1Press.toDouble()
+    state.meanPress = state.mean2Press.round(state.DecimalPlaces)
+    LOGDEBUG("Average Pressure = $state.meanPress")
 
  
-        def timeCheck4 = 60 * sendPressInterval  
+        def timeCheck4 = (60 * sendPressInterval)  
         LOGDEBUG("Sending $state.mean to $vDevice then waiting $timeCheck4 seconds before I can send again")
-    settings.vDevice.setPressure("${state.mean}")
+    settings.vDevice.setPressure("${state.meanPress}")
     settings.vDevice.lastDevicePressure("${aveDev4}") 
  		state.pressSendOK = false
         runIn(timeCheck4, resetPressNow)  // , [overwrite: false])
