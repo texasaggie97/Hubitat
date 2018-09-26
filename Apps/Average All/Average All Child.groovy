@@ -35,11 +35,11 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 26/09/2018
+ *  Last Update: 27/09/2018
  *
  *  Changes:
  *
- *
+ *  V1.5.1 - Debug timers (added 5 second delay before reset to prevent 'bounce')
  *  V1.5.0 - Recoded timers (how often To update virtual device)
  *  V1.4.1 - Debug Motion
  *  V1.4.0 - Added 'Motion'as a selectable 'average'
@@ -138,7 +138,16 @@ def updated() {
 }
 
 def initialize() {
- 
+    if(vDevice){
+   state.devCapability = vDevice.capabilities.inspect()
+    if(state.devCapability == "[IlluminanceMeasurement, TemperatureMeasurement, RelativeHumidityMeasurement, MotionSensor, Sensor]") {  
+       LOGDEBUG( "You are using the correct Average All Virtual Device")
+                state.correctDevice = true
+    }
+                else{ log.warn "You are not using the correct Average All Virtual Device - This may cause error messages, but will probably still work"
+                 state.correctDevice = false     
+    }
+                }
       
 version()
 logCheck()
@@ -180,6 +189,7 @@ LOGDEBUG("Running illuminance handler")
      if(state.luxSendOK == true){
   def ave = evt.value
    def aveDev = evt.device
+       
 LOGDEBUG( "Received from: $aveDev - $ave")
     def sum = 0
     def count = 0
@@ -201,11 +211,13 @@ LOGDEBUG("Average Illuminance = $state.mean")
 
    
         def timeCheck1 = (60 * sendLuxInterval)  
+         if(timeCheck1 == 0){ timeCheck1 = 5}
 LOGDEBUG("Sending $state.mean to $vDevice then waiting $timeCheck1 seconds before I can send again")
      settings.vDevice.setLux("${state.mean}")
      settings.vDevice.lastDeviceLux("${aveDev}")  
         
         state.luxSendOK = false
+//         log.warn "timecheck1 = $timeCheck1"
        runIn(timeCheck1, resetLuxNow)  // , [overwrite: false])
      }
     else {
@@ -221,6 +233,7 @@ LOGDEBUG("Running temperature handler")
     if(state.tempSendOK == true){
       def ave1 = evt.value
     def aveDev1 = evt.device
+   
 LOGDEBUG( "Received from: $aveDev1 - $ave1")
     def sumTemp = 0
     def countTemp = 0
@@ -240,6 +253,7 @@ LOGDEBUG( "Total Combined value =  $sumTemp")
 
  
         def timeCheck2 = (60 * sendTempInterval)  
+        if(timeCheck2 == 0){timeCheck2 = 5}
         LOGDEBUG("Sending $state.meanTemp to $vDevice then waiting $timeCheck2 seconds before I can send again")
     settings.vDevice.setTemperature("${state.meanTemp}")
     settings.vDevice.lastDeviceTemperature("${aveDev1}") 
@@ -259,6 +273,7 @@ LOGDEBUG("Running humidity handler")
      if(state.humSendOK == true){
       def ave3 = evt.value
       def aveDev3 = evt.device
+    
 LOGDEBUG( "Received from: $aveDev3 - $ave3")
     def sumHum = 0
     def countHum = 0
@@ -279,6 +294,7 @@ LOGDEBUG("Average Humidity = $state.meanHum")
 
    
         def timeCheck3 = 60 * sendHumInterval  
+         if(timeCheck3 == 0){timeCheck3 = 5}
 LOGDEBUG("Sending $state.mean to $vDevice then waiting $timeCheck3 seconds before I can send again")
      settings.vDevice.setHumidity("${state.meanHum}")
      settings.vDevice.lastDeviceHumidity("${aveDev3}") 
@@ -296,6 +312,7 @@ LOGDEBUG("Running pressure handler")
     if(state.pressSendOK == true){
        def ave4 = evt.value.toFloat()
    	   def aveDev4 = evt.device
+   
 LOGDEBUG( "Received from: $aveDev4 - $ave4")
     def sumPress = 0
     def countPress = 0
@@ -319,6 +336,7 @@ LOGDEBUG( "Total Combined value =  $sumPress")
 
  
         def timeCheck4 = (60 * sendPressInterval)  
+        if(timeCheck4 == 0){timeCheck4 = 5}
         LOGDEBUG("Sending $state.mean to $vDevice then waiting $timeCheck4 seconds before I can send again")
     settings.vDevice.setPressure("${state.meanPress}")
     settings.vDevice.lastDevicePressure("${aveDev4}") 
@@ -370,8 +388,7 @@ LOGDEBUG( "Active Now!")
 LOGDEBUG( "Inactive Sensors: ${inActiveNow}")
 state.go = 'stop'
 def myDelay = 60 * delay1
-            if(myDelay == 0){
-                myDelay = 5}
+            if(myDelay == 0){myDelay = 5}
             
        LOGDEBUG(" Waiting $myDelay seconds before going inactive (If no further motion)")
 runIn(myDelay, offNOW)
@@ -463,7 +480,7 @@ def updateCheck(){
 }
 
 def setVersion(){
-		state.version = "1.5.0"	 
+		state.version = "1.5.1"	 
 		state.InternalName = "AverageAllchild"
 }
 
