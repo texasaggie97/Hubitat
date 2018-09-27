@@ -33,12 +33,10 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 27/09/2018
+ *  Last Update: 26/09/2018
  *
  *  Changes:
  *
- *
- *  V1.1.0 - Debug & Modified routine for 'between' hours
  *  V1.0.0 - Basic port from ST
  *
  */
@@ -53,7 +51,7 @@ definition(
     description: "Announce any open windows & doors (Contact Sensors)",
     category: "",
     
-
+ //   parent: "Cobra:Group Central",
     
     iconUrl: "",
     iconX2Url: "",
@@ -87,11 +85,11 @@ display()
          input "msgDelay", "number", title: "Number of minutes between messages - enter 0 for no delay", description: "Minutes", required: true
           }
  	section("Allow messages between what times?") {
-        input "fromTime", "time", title: "From", required: false
-        input "toTime", "time", title: "To", required: false
+        input "fromTime", "time", title: "From", required: true
+        input "toTime", "time", title: "To", required: true
 } 
 	section("Set different volume on messages between these times?") {
-	input "volume2", "number", title: "Quiet Time Speaker volume", description: "0-100%",  required: false // defaultValue: "0",
+	input "volume2", "number", title: "Quiet Time Speaker volume", description: "0-100%", defaultValue: "0",  required: true
     input "fromTime2", "time", title: "Quiet Time Start", required: false
     input "toTime2", "time", title: "Quiet Time End", required: false
     }
@@ -122,9 +120,7 @@ def initialize() {
       logCheck()
 state.timer = 'yes'
 state.currS1 = "on"	
-    
-    if(volume2 == null){volume2 = 0}
-    
+
     subscribe(switch1, "switch", switchHandler)
      subscribe(switch2, "switch.on", switch2Handler)
     subscribe(sensors, "contact", contactHandler)
@@ -138,25 +134,28 @@ def switchHandler(evt) {
 
 
 def switch2Handler (evt){
-    checkTime()
-    if(state.timeOK == true){
-    
 LOGDEBUG(" Switch activated! - Waiting $delay1 seconds before checking to see if I can play message")
 
 def myDelay1 = delay1
 LOGDEBUG("myDelay1 = $myDelay1") 
  if (state.currS1 != 'nul' && state.currS1 == "on") {
 LOGDEBUG("Running switch2Handler...") 
-
+def between = timeOfDayIsBetween(toDateTime(fromTime), toDateTime(toTime), new Date(), location.timeZone)
+    if (between) {
 LOGDEBUG("Running soon...") 
 		runIn(myDelay1,talkNow1)
+			}
+    
 
+        
+else{
 
+LOGDEBUG(" Switch activated but it's not within the correct time window to say anything")
+}
 	}
 else  if (state.currS1 != 'nul' && state.currS1 == "off") {  
 LOGDEBUG( " Switch activated but '$switch1' is set to 'Off' so I'm doing as I'm told and keeping quiet!")
 }		
-}
 }
 
 def contactHandler(evt){
@@ -268,29 +267,6 @@ speaker1.setLevel(state.volume)
 }
 
 
-def checkTime(){
-def timecheckNow = fromTime
-if (timecheckNow != null){
-    
-def between = timeOfDayIsBetween(toDateTime(fromTime), toDateTime(toTime), new Date(), location.timeZone)
-    if (between) {
-    state.timeOK = true
-   LOGDEBUG("Time is ok so can continue...")
-    
-}
-else if (!between) {
-state.timeOK = false
-LOGDEBUG("Time is NOT ok so cannot continue...")
-	}
-  }
-else if (timecheckNow == null){  
-state.timeOK = true
-  LOGDEBUG("Time restrictions have not been configured -  Continue...")
-  }
-}
-
-
-
 // define debug action
 def logCheck(){
 state.checkLog = debugMode
@@ -369,6 +345,6 @@ def updateCheck(){
 }
 
 def setVersion(){
-		state.version = "1.1.0"	 
+		state.version = "1.0.0"	 
 		state.InternalName = "CheckContacts"
 }
