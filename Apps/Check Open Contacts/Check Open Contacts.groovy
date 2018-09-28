@@ -16,7 +16,7 @@
  *  I'm very happy for you to use this app without a donation, but if you find it useful then it would be nice to get a 'shout out' on the forum! -  @Cobra
  *  Have an idea to make this app better?  - Please let me know :)
  *
- *  Website: http://hibitat.uk
+ *  Website: http://hubitat.uk
  *
  *-------------------------------------------------------------------------------------------------------------------
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
