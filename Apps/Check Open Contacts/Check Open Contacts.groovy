@@ -308,13 +308,13 @@ def between2 = timeOfDayIsBetween(toDateTime(fromTime2), toDateTime(toTime2), ne
    speaker1.setLevel(state.volume)
     
    LOGDEBUG("Quiet Time = Yes - Setting Quiet time volume")
-    
+   LOGDEBUG("between2 = $between2 - state.volume = $state.volume - Speaker = $speaker1") 
 }
-else if (!between2) {
-state.volume = volume1
-LOGDEBUG("Quiet Time = No - Setting Normal time volume")
-
-speaker1.setLevel(state.volume)
+	if (!between2) {
+	state.volume = volume1
+	LOGDEBUG("Quiet Time = No - Setting Normal time volume")
+	LOGDEBUG("between2 = $between2 - state.volume = $state.volume - Speaker = $speaker1")
+	speaker1.setLevel(state.volume)
  
 	}
 }
