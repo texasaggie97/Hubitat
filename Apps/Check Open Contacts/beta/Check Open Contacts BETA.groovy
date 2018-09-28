@@ -183,13 +183,12 @@ LOGDEBUG("myDelay1 = $myDelay1")
 LOGDEBUG("Running soon...") 
 		runIn(myDelay1,talkNow1)
 
-     if(switchMode1 == true){
-    	 if(switchMode2 == true){switchOn()}
-     	  if(switchMode2 == false){switchOff()}
+    
      
      
      
-     }
+     
+     
 	}
 else  if (state.currS1 != 'nul' && state.currS1 == "off") {  
 LOGDEBUG( " Trigger activated but '$switch1' is set to 'Off' so I'm doing as I'm told and keeping quiet!")
@@ -221,7 +220,10 @@ def open = sensors.findAll { it?.latestValue("contact") == 'open' }
 		if (open) { 
 LOGDEBUG("Open windows or doors: ${open.join(',,, ')}")
                 state.fullMsg1 = "$newmsg ,,,  ${open.join(',,, ')}"
-                
+         if(switchMode1 == true){
+    	 if(switchMode2 == true){switchOn()}
+     	 if(switchMode2 == false){switchOff()}
+      }        
  
   if (speechMode == "Music Player"){ 
       LOGDEBUG("Music Player...")
@@ -247,7 +249,10 @@ if (!open) {
 //  LOGDEBUG(" Timer = $state.timer")
 if (state.timer != 'no'){
 state.fullMsg1 = message2
-    
+     if(switchMode1 == true){
+    	if(switchMode2 == false){switchOn()}
+     	if(switchMode2 == true){switchOff()}
+      }
 LOGDEBUG("Speaking now...")
   if (speechMode == "Music Player"){ 
       setVolume()
