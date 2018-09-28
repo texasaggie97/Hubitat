@@ -429,5 +429,5 @@ def updateCheck(){
 
 def setVersion(){
 		state.version = "1.5.0"	 
-		state.InternalName = "CheckContacts"
+		state.InternalName = "CheckContactChild"
 }
