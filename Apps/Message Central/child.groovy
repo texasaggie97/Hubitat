@@ -33,10 +33,12 @@
  *-------------------------------------------------------------------------------------------------------------------
  *
  *
- *  Last Update: 27/09/2018
+ *  Last Update: 28/09/2018
  *
  *  Changes:
  *
+ *
+ *  V12.2.0 - Added 'Lock' as a trigger
  *  V12.1.1 - Code consolidation & Debug mp3 playing
  *  V12.1.0 - Added three new variables for use within messages: %opencount%, %closedcount% & %mode%
  *  V12.0.0 - Added additional %group% random phrases and made the number of random phrases selectable for each group - Thanks to @matthew for his creative work on this
@@ -238,7 +240,11 @@ subscribe(openSensor, "contact", tooLongOpen)
 state.timeDelay = 0
 	}
     
-    
+else if(trigger == 'Lock'){
+    LOGDEBUG("trigger is $trigger")
+subscribe(lock1, "lock" , LockTalkNow) 
+     
+	}        
 
     
 if (restrictPresenceSensor){
@@ -546,7 +552,7 @@ def speakerInputs(){
 
 // inputs ***********************************************************************************
 def triggerInput() {
-   input "trigger", "enum", title: "How to trigger message?",required: false, submitOnChange: true, options: ["Appliance Power Monitor", "Contact", "Contact - Open Too Long", "Switch", "Mode Change", "Motion", "Power", "Presence", "Time", "Time if Contact Open", "Water"]
+   input "trigger", "enum", title: "How to trigger message?",required: false, submitOnChange: true, options: ["Appliance Power Monitor", "Contact", "Contact - Open Too Long", "Lock/Unlock", "Mode Change", "Motion", "Power", "Presence", "Switch", "Time", "Time if Contact Open", "Water"]
   /// "Temperature",  "Button",
 }
 
@@ -1045,7 +1051,43 @@ if(state.selection == 'Contact - Open Too Long'){
  	
      }
 }
+
+        
+     else if(state.selection == 'Lock/Unlock'){
+	 input "lock1", "capability.lock", title: "Select lock to trigger message", required: false, multiple: false 
+     
+    if(state.msgType == "Voice Message (MusicPlayer)" || state.msgType == "Voice Message (SpeechSynth)"){
+   	input "message1", "text", title: "Message to play when LOCKED",  required: false
+	input "message2", "text", title: "Message to play when UNLOCKED",  required: false
+    input "triggerDelay", "number", title: "Delay after trigger before speaking (Enter 0 for no delay)", description: "Seconds", required: true
+   
+	}
+
+    if(state.msgType == "SMS Message"){
+     input "message1", "text", title: "Message to send when LOCKED",  required: false
+	 input "message2", "text", title: "Message to send when UNLOCKED",  required: false
+     input "triggerDelay", "number", title: "Delay after trigger before sending (Enter 0 for no delay)", defaultValue: '0', description: "Seconds", required: true
+	
+   
+    	}
+    if(state.msgType == "PushOver Message"){
+    input "message1", "text", title: "Message to send when LOCKED",  required: false
+    input "priority1", "enum", title: "Message Priority for LOCKED", required: true, submitOnChange: true, options: ["None", "Low", "Normal", "High"], defaultValue: "None"
+	input "message2", "text", title: "Message to send when UnLOCKED",  required: false
+    input "priority2", "enum", title: "Message Priority for UULOCKED",required: true, submitOnChange: true, options: ["None", "Low", "Normal", "High"], defaultValue: "None"
+   
+     }
     
+    if(state.msgType == "Join Message"){
+    input "message1", "text", title: "Message to send when LOCKED",  required: false
+ 	input "message2", "text", title: "Message to send when UNLOCKED",  required: false
+   
+     }
+
+	if(state.msgType == "Play an Mp3 (No variables can be used)"){
+	 input "mp3Action", "bool", title: "Play mp3 when LOCKED (ON) or UNLOCKED (OFF)? ", required: true, defaultValue: true  
+	}
+}   
 
 }
 }
@@ -2240,6 +2282,91 @@ LOGDEBUG("Contact - Join Message - Sending Message: $state.fullPhrase")
 
 
 
+// Lock/Unlock
+def lockTalkNow(evt){
+state.talklock = evt.value
+state.nameOfDevice = evt.displayName
+state.actionEvent = evt.value
+state.msg1 = message1
+state.msg2 = message2
+
+
+if(state.msgType == "Voice Message (MusicPlayer)"){
+        
+	if(state.talkwater == 'locked'){
+state.msgNow = 'oneNow'
+	}
+	else if (state.talkwater == 'unlocked'){
+state.msgNow = 'twoNow'
+	}
+
+LOGDEBUG( "$lock1 is $state.talklock")
+def mydelay = triggerDelay
+checkVolume()
+LOGDEBUG( "Speaker(s) in use: $speaker set at: $state.volume% - waiting $mydelay seconds before continuing..."  )
+runIn(mydelay, talkSwitch)
+	}
+  if(state.msgType == "Voice Message (SpeechSynth)"){
+     if(state.talkwater == 'locked' && state.msg1 != null){
+   def msg = message1     
+   compileMsg(msg)    
+   LOGDEBUG("Lock - Speech Synth Message - Sending Message: $msg") 
+   speechSynthNow(state.fullPhrase) 
+        }
+     if(state.talkwater == 'unlocked' && state.msg2 != null){
+     def msg = message2     
+   compileMsg(msg)    
+    LOGDEBUG("Lock - Speech Synth Message - Sending Message: $msg")   
+    speechSynthNow(state.fullPhrase)  
+         
+         
+     }  
+ }      
+    
+    
+    
+    
+if(state.msgType == "SMS Message"){
+	if(state.talkwater == 'locked' && state.msg1 != null){
+def msg = message1
+        compileMsg(msg)
+LOGDEBUG("Lock - SMS Message - Sending Message: $state.fullPhrase")
+  sendMessage(state.fullPhrase)
+
+}
+
+	else if(state.talkwater == 'unlocked' && state.msg2 != null){
+def msg = message2
+        compileMsg(msg)
+LOGDEBUG("Lock - SMS Message - Sending Message: $state.fullPhrase")
+  sendMessage(state.fullPhrase)
+
+}    
+}    
+if(state.msgType == "PushOver Message"){
+	if(state.talkwater == 'locked' && state.msg1 != null){
+def msg = message1
+        compileMsg(msg)
+LOGDEBUG("Lock - PushOver Message - Sending Message: $state.fullPhrase")
+  pushOver(1, state.fullPhrase)
+
+}
+
+	else if(state.talkwater == 'unlocked' && state.msg2 != null){
+def msg = message2
+        compileMsg(msg)
+LOGDEBUG("Lock - PushOver Message - Sending Message: $state.fullPhrase")
+ pushOver(2, state.fullPhrase)
+
+}    
+}    
+     if(state.msgType == "Play an Mp3 (No variables can be used)"){
+	mp3EventHandler()
+    if(state.soundToPlay == null){ LOGDEBUG(" Mp3 ERROR - cannot find mp3")} 
+       else{ LOGDEBUG("Lock - Mp3 - Playing: $state.soundToPlay")  }
+	}  
+}
+
 
 
 
@@ -2321,9 +2448,7 @@ LOGDEBUG("Water - SMS Message - Sending Message: $state.fullPhrase")
 
 }    
 }    
-    
-    
-    
+ 
 }
 
 // Presence
