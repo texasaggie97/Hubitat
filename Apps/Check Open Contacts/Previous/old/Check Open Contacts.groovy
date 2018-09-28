@@ -2,7 +2,7 @@
  *  ****************  Check Open Contacts  ****************
  *
  *  Design Usage:
- *  This was designed to announce if any contacts are open when a switch turns on or a water sensor reports wet - It can also turn on other switches if any open or all closed
+ *  This was designed to announce if any windows/doors are open when clicking a switch
  *
  *
  *  Copyright 2018 Andrew Parker
@@ -16,7 +16,7 @@
  *  I'm very happy for you to use this app without a donation, but if you find it useful then it would be nice to get a 'shout out' on the forum! -  @Cobra
  *  Have an idea to make this app better?  - Please let me know :)
  *
- *  Website: http://hibitat.uk
+ *  Website: http://securendpoint.com/smartthings
  *
  *-------------------------------------------------------------------------------------------------------------------
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
@@ -33,16 +33,13 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 28/09/2018
+ *  Last Update: 27/09/2018
  *
  *  Changes:
  *
  *
- *  V1.4.0 - Added capability to turn on a switch after message.
- *  V1.3.0 - Added a second trigger option - Water Sensor.
- *  V1.2.0 - Added the option to use speech synthesis as well as music player
- *  V1.1.0 - Debug & Modified routine for between hours
- *  V1.0.0 - Basic port from my ST app
+ *  V1.1.0 - Debug & Modified routine for 'between' hours
+ *  V1.0.0 - Basic port from ST
  *
  */
  
@@ -53,7 +50,7 @@ definition(
     name: "Check Open Contacts",
     namespace: "Cobra",
     author: "Andrew Parker",
-    description: "This was designed to announce if any contacts are open when a switch turns on or a water sensor reports wet - It can also turn on other switches if any open or all closed",
+    description: "Announce any open windows & doors (Contact Sensors)",
     category: "",
     
 
@@ -70,7 +67,7 @@ display()
 
 	section() {
     
-        paragraph "This was designed to announce if any contacts are open when a switch turns on or a water sensor reports wet"
+        paragraph "This was designed to announce if any windows are open when clicking a switch"
     }
 
 	
@@ -79,58 +76,32 @@ display()
     }  
     
 		section() {
-            input "triggerMode", "enum", required: true, title: "Select Trigger Type", submitOnChange: true,  options: ["Switch", "Water Sensor"] 
-            if(triggerMode == "Switch"){input "switch2", "capability.switch", title: "Select Trigger Device", required: true, multiple: false}
-            if(triggerMode == "Water Sensor"){input "water1", "capability.waterSensor", title: "Select Trigger Device", required: true, multiple: false}
-            
-            
+    		input "switch2", "capability.switch", title: "Select Trigger Switch", required: false, multiple: false 
     }  
-    
-        section(){
-		input "sensors", "capability.contactSensor", title: "Contact Sensors to check", multiple: true
-}
-    
-      section() { 
-    
-           input "speechMode", "enum", required: true, title: "Select Speaker Type", submitOnChange: true,  options: ["Music Player", "Speech Synth"] 
-    
-          if (speechMode == "Music Player"){ 
-              input "speaker1", "capability.musicPlayer", title: "Choose speaker(s)", required: false, multiple: true, submitOnChange:true
-              input "volume1", "number", title: "Speaker volume", description: "0-100%", required: false
-              input "volume2", "number", title: "Quiet Time Speaker volume", description: "0-100%",  required: false // defaultValue: "0",
-    		  input "fromTime2", "time", title: "Quiet Time Start", required: false
-    		  input "toTime2", "time", title: "Quiet Time End", required: false
-    
-          }  
-               
-        if (speechMode == "Speech Synth"){ 
-         input "speaker1", "capability.speechSynthesis", title: "Choose speaker(s)", required: false, multiple: true
-          }
-      }    
-    if(speechMode){ 
-        section("Allow messages between what times? (Optional)") {
-        input "fromTime", "time", title: "From", required: false
-        input "toTime", "time", title: "To", required: false
-         input "delay1", "number", title: "Delay before message (Seconds - enter 0 for no delay)", description: "Seconds", required: true
+      section("Speaker Settings") { 
+        input "speaker1", "capability.musicPlayer", title: "Choose a speaker", required: false, multiple: true, submitOnChange:true
+         input "volume1", "number", title: "Speaker volume", description: "0-100%", required: false
+         input "delay1", "number", title: "Delay before speaking (Seconds - enter 0 for no delay)", description: "Seconds", required: true
          input "message1", "text", title: "Message to speak before list of open devices",  defaultValue: "The following windows or doors are open:", required: true
          input "message2", "text", title: "Message to speak if there are NO open devices",  defaultValue: "There are no open windows or doors", required: true 
          input "msgDelay", "number", title: "Number of minutes between messages - enter 0 for no delay", description: "Minutes", required: true
           }
+ 	section("Allow messages between what times?") {
+        input "fromTime", "time", title: "From", required: false
+        input "toTime", "time", title: "To", required: false
+} 
+	section("Set different volume on messages between these times?") {
+	input "volume2", "number", title: "Quiet Time Speaker volume", description: "0-100%",  required: false // defaultValue: "0",
+    input "fromTime2", "time", title: "Quiet Time Start", required: false
+    input "toTime2", "time", title: "Quiet Time End", required: false
     }
-     section() {
- 	 input "switchMode1", "bool", title: "Also Control A Switch", required: true, defaultValue: false, submitOnChange:true
-        
-         if(switchMode1 == true){
-          input "switch3", "capability.switch", title: "Select Switch(s) to control", required: false, multiple: true 
-          input "switchMode2", "bool", title: "Switch Mode: On = Turn switch ON when one or more contacts are open - Off = Turn switch On when there are NO open contacts", required: true, defaultValue: false, submitOnChange:true   
-         }
-  }
-	
     
-    section(" ") {}
+   
+    section("'Contact Sensors' to check..."){
+		input "sensors", "capability.contactSensor", multiple: true
+}
 
-
-	section() {
+	section("Logging") {
             input "debugMode", "bool", title: "Enable logging", required: true, defaultValue: false
   	        }
 }
@@ -155,9 +126,7 @@ state.currS1 = "on"
     if(volume2 == null){volume2 = 0}
     
     subscribe(switch1, "switch", switchHandler)
-    if(triggerMode == "Switch"){subscribe(switch2, "switch.on", evtHandler)}
-    if(triggerMode == "Water Sensor"){subscribe(water1, "water.wet", evtHandler)}
-                                
+     subscribe(switch2, "switch.on", switch2Handler)
     subscribe(sensors, "contact", contactHandler)
 }
 
@@ -168,31 +137,32 @@ def switchHandler(evt) {
   					   }
 
 
-def evtHandler (evt){
-    LOGDEBUG("Running evtHandler...") 
+def switch2Handler (evt){
     checkTime()
     if(state.timeOK == true){
     
-LOGDEBUG(" Device activated! - Waiting $delay1 seconds before checking to see if I can play message")
+LOGDEBUG(" Switch activated! - Waiting $delay1 seconds before checking to see if I can play message")
 
 def myDelay1 = delay1
 LOGDEBUG("myDelay1 = $myDelay1") 
  if (state.currS1 != 'nul' && state.currS1 == "on") {
-
+LOGDEBUG("Running switch2Handler...") 
 
 LOGDEBUG("Running soon...") 
 		runIn(myDelay1,talkNow1)
-     
+
+
 	}
 else  if (state.currS1 != 'nul' && state.currS1 == "off") {  
-LOGDEBUG( " Trigger activated but '$switch1' is set to 'Off' so I'm doing as I'm told and keeping quiet!")
+LOGDEBUG( " Switch activated but '$switch1' is set to 'Off' so I'm doing as I'm told and keeping quiet!")
 }		
 }
 }
 
 def contactHandler(evt){
   LOGDEBUG("Contact = $evt.value")  
-  
+    
+    
 }
 
 
@@ -205,29 +175,25 @@ if (state.timer != 'no'){
 def newmsg = message1
 // def newmsg = "It's raining ,,, and the following windows or doors, are open:"  //test
 
-LOGDEBUG(" Checking open contacts now...")
-	
+LOGDEBUG(" Checking open windows & doors now...")
+	setVolume()
     
 LOGDEBUG("Speaker(s) in use: $speaker1")     
 def open = sensors.findAll { it?.latestValue("contact") == 'open' }
 		if (open) { 
 LOGDEBUG("Open windows or doors: ${open.join(',,, ')}")
-                state.fullMsg1 = "$newmsg ,,,  ${open.join(',,, ')}"
-         if(switchMode1 == true){
-    	 if(switchMode2 == true){switchOn()}
-     	 if(switchMode2 == false){switchOff()}
-      }        
- 
-  if (speechMode == "Music Player"){ 
-      LOGDEBUG("Music Player...")
-      setVolume()
-    speaker1.playTextAndRestore(state.fullMsg1)
-  }
+                state.fullMsg1 = "$newmsg  ${open.join(',,, ')}"
+                
+   state.duration = '60'
+  state.sound = textToSpeech(state.fullMsg1)
+LOGDEBUG("state.sound = $state.sound")  
             
-if (speechMode == "Speech Synth"){ 
-    LOGDEBUG("Speech Synth...")
-	speaker1.speak(state.fullMsg1)
-}
+            speaker1.playTextAndRestore(state.fullMsg1)
+// speaker1.playTrackAndRestore(state.sound.uri, state.duration, state.volume)          
+            
+
+	//	speaker1.speak(state.fullMsg1)
+        
 	state.timer = 'no'
     
 // log.debug "Message allow: set to $state.timer as I have just played a message"
@@ -239,27 +205,16 @@ LOGDEBUG("Waiting for $state.timeDelay seconds before resetting timer to allow f
 runIn(state.timeDelay, resetTimer)
 }
 if (!open) {
-//  LOGDEBUG(" Timer = $state.timer")
+LOGDEBUG(" Timer = $state.timer")
 if (state.timer != 'no'){
 state.fullMsg1 = message2
-     if(switchMode1 == true){
-    	if(switchMode2 == false){switchOn()}
-     	if(switchMode2 == true){switchOff()}
-      }
 LOGDEBUG("Speaking now...")
-  if (speechMode == "Music Player"){ 
-      setVolume()
-    speaker1.playTextAndRestore(state.fullMsg1)
-  }
-    
- if (speechMode == "Speech Synth"){ 
-	speaker1.speak(state.fullMsg1)
-}   
-    
+// speaker1.speak(state.fullMsg1)
 
-    
+speaker1.playTextAndRestore(state.fullMsg1)
+
 state.timer = 'no'
-LOGDEBUG("There are no open contacts ")
+LOGDEBUG("There are no open windows or doors ")
 state.timeDelay = 60 * msgDelay
 LOGDEBUG("Waiting for $state.timeDelay seconds before resetting timer to allow further messages")
 runIn(state.timeDelay, resetTimer)
@@ -277,23 +232,9 @@ LOGDEBUG( "Waiting for $state.timeDelay seconds before resetting timer")
 }
 
 
-def switchOn(){
-    LOGDEBUG( "Turning on $switch3...")
-    switch3.on()
-    
-}
-
-def switchOff(){
-    LOGDEBUG( "Turning off $switch3...")
-    switch3.off()
-    
-    
-}
-
-
 def resetTimer() {
 state.timer = 'yes'
-LOGDEBUG("Timer reset - Further messages are now allowed")
+LOGDEBUG("Timer reset - Messages allowed")
 
 }
 
@@ -428,6 +369,6 @@ def updateCheck(){
 }
 
 def setVersion(){
-		state.version = "1.4.0"	 
+		state.version = "1.1.0"	 
 		state.InternalName = "CheckContacts"
 }
