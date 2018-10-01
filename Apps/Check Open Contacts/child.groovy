@@ -33,10 +33,11 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 28/09/2018
+ *  Last Update: 01/10/2018
  *
  *  Changes:
  *
+ *  V1.5.1 - Revised auto update checking and added a manual update check button
  *  V1.5.0 - Converted to Parent/Child app
  *  V1.4.0 - Added capability to turn on a switch after message.
  *  V1.3.0 - Added a second trigger option - Water Sensor.
@@ -79,10 +80,10 @@ display()
     }  
     
 		section() {
-            input "triggerMode", "enum", required: true, title: "Select Trigger Type", submitOnChange: true,  options: ["Switch", "Water Sensor"] 
+            input "triggerMode", "enum", required: true, title: "Select Trigger Type", submitOnChange: true,  options: ["Switch", "Water Sensor", "Mode Change"] 
             if(triggerMode == "Switch"){input "switch2", "capability.switch", title: "Select Trigger Device", required: true, multiple: false}
             if(triggerMode == "Water Sensor"){input "water1", "capability.waterSensor", title: "Select Trigger Device", required: true, multiple: false}
-            
+            if(triggerMode == "Mode Change"){input "newMode1", "mode", title: "Action when changing to this mode",  required: true, multiple: false}
             
     }  
     
@@ -159,7 +160,13 @@ state.currS1 = "on"
     if(triggerMode == "Water Sensor"){subscribe(water1, "water.wet", evtHandler)}
                                 
     subscribe(sensors, "contact", contactHandler)
+    subscribe(location, "mode", modeChangeHandler)
 }
+
+
+// 
+// input "newMode1", "mode", title: "Action when changing to this mode",  required: false
+
 
 
 def switchHandler(evt) {
@@ -374,22 +381,61 @@ def LOGDEBUG(txt){
 
 
 def version(){
+    resetBtnName()
 	unschedule()
 	schedule("0 0 9 ? * FRI *", updateCheck) //  Check for updates at 9am every Friday
 	updateCheck()  
+    checkButtons()
 }
 
 def display(){
+  
 	if(state.status){
 	section{paragraph "<img src='http://update.hubitat.uk/icons/cobra3.png''</img> Version: $state.version <br><font face='Lucida Handwriting'>$state.Copyright </font>"}
-	if(state.status != "Current"){
+       
+        }
+    if(state.status != "<b>** This app is no longer supported by $state.author  **</b>"){
+     section(){ input "updateBtn", "button", title: "$state.btnName"}
+    }
+    
+    if(state.status != "Current"){
 	section{ 
-	paragraph "$state.status"
-	paragraph "$state.UpdateInfo"
+
+	paragraph "<b>Update Info: $state.UpdateInfo ***</b>"
     }
+         
+    }         
+}
+
+def checkButtons(){
+    log.info "Running checkButtons"
+    appButtonHandler("updateBtn")
+}
+
+
+def appButtonHandler(btn){
+    state.btnCall = btn
+    if(state.btnCall == "updateBtn"){
+        log.info "Checking for updates now..."
+        updateCheck()
+        pause(3000)
+  		state.btnName = state.newBtn
+        runIn(2, resetBtnName)
     }
-}
-}
+}   
+def resetBtnName(){
+    log.info "Resetting Button"
+    if(state.status != "Current"){
+	state.btnName = state.newBtn
+    }
+    else{
+ state.btnName = "Check For Update" 
+    }
+}    
+    
+
+
+
 
 
 def updateCheck(){
@@ -407,27 +453,36 @@ def updateCheck(){
                 state.author = (respUD.data.author)
            
 		if(newVer == "NLS"){
-            state.status = "<b>** This app is no longer supported by $state.author  **</b>"       
-            log.warn "** This app is no longer supported by $state.author **"      
+            state.status = "<b>** This app is no longer supported by $state.author  **</b>"  
+             log.warn "** This app is no longer supported by $state.author **" 
+            
       		}           
 		else if(currentVer < newVer){
         	state.status = "<b>New Version Available (Version: $newVerRaw)</b>"
         	log.warn "** There is a newer version of this app available  (Version: $newVerRaw) **"
         	log.warn "** $state.UpdateInfo **"
+             state.newBtn = state.status
        		} 
 		else{ 
       		state.status = "Current"
-      		log.info "You are using the current version of this app"
+       		log.info "You are using the current version of this app"
        		}
       					}
         	} 
         catch (e) {
         	log.error "Something went wrong: CHECK THE JSON FILE AND IT'S URI -  $e"
     		}
- 	
+    if(state.status != "Current"){
+		state.newBtn = state.status
+    }
+    else{
+        state.newBtn = "No Update Available"
+    }
+        
+        
 }
 
 def setVersion(){
-		state.version = "1.5.0"	 
+		state.version = "1.5.1"	 
 		state.InternalName = "CheckContactChild"
 }
