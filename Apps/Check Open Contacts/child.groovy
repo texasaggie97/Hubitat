@@ -430,7 +430,7 @@ def display(){
     if(state.status != "Current"){
 	section{ 
 
-	paragraph "<b>Update Info: $state.UpdateInfo ***</b>"
+	paragraph "<b>*** Update Info: $state.UpdateInfo ***</b>"
     }
          
     }         
@@ -512,6 +512,6 @@ def updateCheck(){
 }
 
 def setVersion(){
-		state.version = "1.6.0"	 
+		state.version = "1.5.0"	 
 		state.InternalName = "CheckContactChild"
 }
