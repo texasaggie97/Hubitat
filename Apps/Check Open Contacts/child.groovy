@@ -37,6 +37,8 @@
  *
  *  Changes:
  *
+ *
+ *  V1.6.0 - Added 'Mode' trigger 
  *  V1.5.1 - Revised auto update checking and added a manual update check button
  *  V1.5.0 - Converted to Parent/Child app
  *  V1.4.0 - Added capability to turn on a switch after message.
@@ -114,7 +116,7 @@ display()
         input "toTime", "time", title: "To", required: false
          input "delay1", "number", title: "Delay before message (Seconds - enter 0 for no delay)", description: "Seconds", required: true
          input "message1", "text", title: "Message to speak before list of open devices",  defaultValue: "The following windows or doors are open:", required: true
-         input "message2", "text", title: "Message to speak if there are NO open devices",  defaultValue: "There are no open windows or doors", required: true 
+         input "message2", "text", title: "Message to speak if there are NO open devices",  defaultValue: "There are no open windows or doors", required: false
          input "msgDelay", "number", title: "Number of minutes between messages - enter 0 for no delay", description: "Minutes", required: true
           }
     }
@@ -158,14 +160,12 @@ state.currS1 = "on"
     subscribe(switch1, "switch", switchHandler)
     if(triggerMode == "Switch"){subscribe(switch2, "switch.on", evtHandler)}
     if(triggerMode == "Water Sensor"){subscribe(water1, "water.wet", evtHandler)}
-                                
+    if(triggerMode == "Mode Change"){ subscribeLocation(location, "mode", modeChangeHandler )}                           
     subscribe(sensors, "contact", contactHandler)
-    subscribe(location, "mode", modeChangeHandler)
+    
+   
 }
 
-
-// 
-// input "newMode1", "mode", title: "Action when changing to this mode",  required: false
 
 
 
@@ -201,10 +201,34 @@ def contactHandler(evt){
   LOGDEBUG("Contact = $evt.value")  
   
 }
+def modeChangeHandler(evt){
+	state.modeNow = evt.value
+	state.modeRequired = newMode1
+ 
+    
+   
+ LOGDEBUG("modeRequired = $state.modeRequired - current mode = $state.modeNow")  
 
+	if (evt.isStateChange){
+     LOGDEBUG("State Change Occured!")   
 
-
-
+      if(state.modeRequired.contains(state.modeNow)){  
+        LOGDEBUG("Mode - YES a match")
+        evtHandler(evt)  
+      }
+        else { 
+    
+   	LOGDEBUG("Mode is now $state.modeNow")
+LOGDEBUG("Mode - NOT a match")
+        	
+    
+    
+    }
+    }
+}
+    
+    
+    
 def talkNow1() {
 LOGDEBUG(" Timer = $state.timer")
 if (state.timer != 'no'){
@@ -218,8 +242,8 @@ LOGDEBUG(" Checking open contacts now...")
 LOGDEBUG("Speaker(s) in use: $speaker1")     
 def open = sensors.findAll { it?.latestValue("contact") == 'open' }
 		if (open) { 
-LOGDEBUG("Open windows or doors: ${open.join(',,, ')}")
-                state.fullMsg1 = "$newmsg ,,,  ${open.join(',,, ')}"
+LOGDEBUG("Open windows or doors: ${open.join(',')}")
+                state.fullMsg1 = "$newmsg ,  ${open.join(',')}"
          if(switchMode1 == true){
     	 if(switchMode2 == true){switchOn()}
      	 if(switchMode2 == false){switchOff()}
@@ -246,9 +270,13 @@ LOGDEBUG("Waiting for $state.timeDelay seconds before resetting timer to allow f
 runIn(state.timeDelay, resetTimer)
 }
 if (!open) {
-//  LOGDEBUG(" Timer = $state.timer")
+
+    
 if (state.timer != 'no'){
+   
 state.fullMsg1 = message2
+    if(state.fullMsg1 != null){
+    
      if(switchMode1 == true){
     	if(switchMode2 == false){switchOn()}
      	if(switchMode2 == true){switchOff()}
@@ -271,9 +299,10 @@ state.timeDelay = 60 * msgDelay
 LOGDEBUG("Waiting for $state.timeDelay seconds before resetting timer to allow further messages")
 runIn(state.timeDelay, resetTimer)
 	}
+    else{LOGDEBUG("There is nothing configured to say if no open contacts")}
 }
 }
-
+}
 	else if (state.timer == 'no'){
 	state.timeDelay = 60 * msgDelay
 LOGDEBUG( "Can't speak message yet - too close to last message")
@@ -483,6 +512,6 @@ def updateCheck(){
 }
 
 def setVersion(){
-		state.version = "1.5.1"	 
+		state.version = "1.6.0"	 
 		state.InternalName = "CheckContactChild"
 }
