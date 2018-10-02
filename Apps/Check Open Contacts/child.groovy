@@ -33,7 +33,7 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 01/10/2018
+ *  Last Update: 02/10/2018
  *
  *  Changes:
  *
@@ -446,7 +446,7 @@ def display(){
     if(state.status != "Current"){
 	section{ 
 
-	paragraph "<b>** Update Info: $state.UpdateInfo ***</b>"
+	paragraph "<b>Update Info: *** $state.UpdateInfo ***</b>"
     }
          
     }         
