@@ -6,7 +6,7 @@
 *  Ported and adapted by @Cobra
 *
 *
-*  V1.0.0 - POC
+*
 *
 *
 */
@@ -41,22 +41,22 @@ def updated() {
 def initialize() {
 	unsubscribe()
 	unschedule() 
-	subscribe(switches, "switch.on", eventHandler)
+	subscribe(switches, "switch", eventHandler)
 }
 
 
 def eventHandler(evt) {
 	if(switches.currentValue("switch") == "on") {
 		for (dimmer in dimmers) {      
-               	def lowLevel= Math.abs(new Random().nextInt() % 3) + 59
-                	def upLevel= Math.abs(new Random().nextInt() % 10) + 90
-                	def upDelay = Math.abs(new Random().nextInt() % 10000)
-                	def lowDelay = upDelay + Math.abs(new Random().nextInt() % 5000)
-            		
-           
-   //     def upLevel = 90
-  //      def lowLevel = 10    
-        log.warn "low: $lowLevel $lowDelay high: $upLevel $upDelay"    
+       //        	def lowLevel= Math.abs(new Random().nextInt() % 3) + 59
+       //         	def upLevel= Math.abs(new Random().nextInt() % 10) + 90
+        //        	def upDelay = Math.abs(new Random().nextInt() % 10000)
+        //        	def lowDelay = upDelay + Math.abs(new Random().nextInt() % 5000)
+        def upDelay = 1000    		
+        def lowDelay = 1000   
+        def upLevel = 90
+       def lowLevel = 10    
+        log.debug "Low Level: $lowLevel Low Delay: $lowDelay High Level: $upLevel High Delay: $upDelay"    
 			dimmer.setLevel(upLevel,[delay: upDelay])
             state.sleepTime = Math.abs(new Random().nextInt() % 10000)
         	pause(state.sleepTime)
@@ -67,4 +67,7 @@ def eventHandler(evt) {
         	pause(state.sleepTime)
         	runIn(5,"eventHandler")
 	}
+    else if(switches.currentValue("switch") == "off") {dimmers.off()}
+ 
+        
 }
