@@ -2,7 +2,7 @@
  *  ****************  Check Open Contacts  ****************
  *
  *  Design Usage:
- *  This was designed to announce if any contacts are open when a switch turns on or a water sensor reports wet - It can also turn on other switches if any open or all closed
+ *  This was designed to announce if any contacts are open when an event is triggered - It can also turn on other switches if any open or all closed
  *
  *
  *  Copyright 2018 Andrew Parker
@@ -38,6 +38,8 @@
  *  Changes:
  *
  *
+ *  V1.8.0 - Added 'Time' trigger
+ *  V1.7.0 - Added 'Button' trigger
  *  V1.6.0 - Added 'Mode' trigger 
  *  V1.5.1 - Revised auto update checking and added a manual update check button
  *  V1.5.0 - Converted to Parent/Child app
@@ -56,7 +58,7 @@ definition(
     name: "Check Open Contacts Child",
     namespace: "Cobra",
     author: "Andrew Parker",
-    description: "This was designed to announce if any contacts are open when a switch turns on or a water sensor reports wet - It can also turn on other switches if any open or all closed",
+    description: "This was designed to announce if any contacts are open when an event is triggered - It can also turn on other switches if any open or all closed",
     category: "",
     
 parent: "Cobra:Check Open Contacts",
@@ -73,7 +75,7 @@ display()
 
 	section() {
     
-        paragraph "This was designed to announce if any contacts are open when a switch turns on or a water sensor reports wet"
+        paragraph "This was designed to announce if any contacts are open when an event is triggered"
     }
 
 	
@@ -82,10 +84,16 @@ display()
     }  
     
 		section() {
-            input "triggerMode", "enum", required: true, title: "Select Trigger Type", submitOnChange: true,  options: ["Switch", "Water Sensor", "Mode Change"] 
+            input "triggerMode", "enum", required: true, title: "Select Trigger Type", submitOnChange: true,  options: ["Button", "Mode Change", "Switch", "Time", "Water Sensor"] 
             if(triggerMode == "Switch"){input "switch2", "capability.switch", title: "Select Trigger Device", required: true, multiple: false}
             if(triggerMode == "Water Sensor"){input "water1", "capability.waterSensor", title: "Select Trigger Device", required: true, multiple: false}
             if(triggerMode == "Mode Change"){input "newMode1", "mode", title: "Action when changing to this mode",  required: true, multiple: false}
+            if(triggerMode == "Button"){
+                input "button1", "capability.pushableButton", title: "Select Button Device", required: true, multiple: false
+            	input "buttonNumber", "enum", title: "Enter Button Number", required: true, options: ["1", "2", "3", "4", "5"] 
+            }
+            if(triggerMode == "Time"){input (name: "runTime", title: "Time to run", type: "time",  required: true)}            
+          
             
     }  
     
@@ -160,7 +168,15 @@ state.currS1 = "on"
     subscribe(switch1, "switch", switchHandler)
     if(triggerMode == "Switch"){subscribe(switch2, "switch.on", evtHandler)}
     if(triggerMode == "Water Sensor"){subscribe(water1, "water.wet", evtHandler)}
-    if(triggerMode == "Mode Change"){ subscribeLocation(location, "mode", modeChangeHandler )}                           
+    if(triggerMode == "Mode Change"){ subscribeLocation(location, "mode", modeChangeHandler )}  
+    if(triggerMode == "Button"){
+        if(buttonNumber == '1'){subscribe(button1, "pushed.1", evtHandler)}
+        if(buttonNumber == '2'){subscribe(button1, "pushed.2", evtHandler)}
+        if(buttonNumber == '3'){subscribe(button1, "pushed.3", evtHandler)}
+        if(buttonNumber == '4'){subscribe(button1, "pushed.4", evtHandler)}
+        if(buttonNumber == '5'){subscribe(button1, "pushed.5", evtHandler)}
+    } 
+    if(triggerMode == "Time"){schedule(runTime, evtHandler)}
     subscribe(sensors, "contact", contactHandler)
     
    
@@ -430,7 +446,7 @@ def display(){
     if(state.status != "Current"){
 	section{ 
 
-	paragraph "<b>*** Update Info: $state.UpdateInfo ***</b>"
+	paragraph "<b>** Update Info: $state.UpdateInfo ***</b>"
     }
          
     }         
@@ -453,7 +469,7 @@ def appButtonHandler(btn){
     }
 }   
 def resetBtnName(){
-    log.info "Resetting Button"
+    LOGDEBUG("Resetting Update Button Label")
     if(state.status != "Current"){
 	state.btnName = state.newBtn
     }
@@ -512,6 +528,6 @@ def updateCheck(){
 }
 
 def setVersion(){
-		state.version = "1.6.0"	 
+		state.version = "1.8.0"	 
 		state.InternalName = "CheckContactChild"
 }
