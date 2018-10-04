@@ -3,7 +3,7 @@
  *
  *  Design Usage:
  *  This was designed to use various triggers to control location modes
- *  Building on the ideas of HE 'Mode Manager' 
+ *  Building on the ideas of HE 'Mode Manager', this app also has restrictions on when it will activate the mode. 
  *
  *  Copyright 2018 Andrew Parker
  *  
@@ -33,13 +33,13 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 03/10/2018
+ *  Last Update: 04/10/2018
  *
  *  Changes:
  *
  *
  *  
- *  
+ *  V1.1.0 - Added restrictions page and handlers
  *  V1.0.0 - POC
  *
  */
@@ -61,7 +61,8 @@ parent: "Cobra:Modes Plus",
 preferences {
 
 section("") {
-        page name: "mainPage", title: "", install: true, uninstall: true
+        page name: "mainPage", title: "", install: false, uninstall: true, nextPage: "restrictionsPage"
+        page name: "restrictionsPage", title: "", install: true, uninstall: true
 		}
    
     
@@ -113,6 +114,72 @@ section("") {
 
 
 
+ def restrictionsPage() {
+       dynamicPage(name: "restrictionsPage") {
+           
+           section() {
+           		mode title: "Run only when in specific mode(s) ", required: false
+            }
+        
+
+		section() {
+        
+    input "restrictions1", "bool", title: "Show Optional Time, Day & Mode Restrictions", required: true, defaultValue: false, submitOnChange: true
+    input "restrictions2", "bool", title: "Show Optional Switch & Presence Restrictions", required: true, defaultValue: false, submitOnChange: true
+     }
+
+      if(restrictions1 == true){    
+     	section() {
+    input "fromTime", "time", title: "Allow actions from", required: false
+    input "toTime", "time", title: "Allow actions until", required: false
+    input "days", "enum", title: "Allow action on these days", required: false, multiple: true, options: ["Monday": "Monday", "Tuesday": "Tuesday", "Wednesday": "Wednesday", "Thursday": "Thursday", "Friday": "Friday", "Saturday": "Saturday", "Sunday": "Sunday"]
+    input "modes", "mode", title: "Allow actions when current mode is:", multiple: true, required: false
+        }      
+      }       
+      if(restrictions2 == true){
+          
+          
+          
+    section() {
+     input(name: "enableswitch1", type: "capability.switch", title: "Allow actions when this switch is on", required: false, multiple: false)   
+        
+    input "restrictPresenceSensor", "capability.presenceSensor", title: "Select presence sensor 1 to restrict action", required: false, multiple: false, submitOnChange: true
+    if(restrictPresenceSensor){
+   	input "restrictPresenceAction", "bool", title: "   On = Action only when someone is 'Present'  \r\n   Off = Action only when someone is 'NOT Present'  ", required: true, defaultValue: false    
+	}
+     input "restrictPresenceSensor1", "capability.presenceSensor", title: "Select presence sensor 2 to restrict action", required: false, multiple: false, submitOnChange: true
+    if(restrictPresenceSensor1){
+   	input "restrictPresenceAction1", "bool", title: "   On = Action only when someone is 'Present'  \r\n   Off = Action only when someone is 'NOT Present'  ", required: true, defaultValue: false    
+	}
+    
+    }
+            }         
+           
+       
+       section() {
+                label title: "Enter a name for this automation", required: false
+            }
+      section() {
+            input "debugMode", "bool", title: "Enable logging", required: true, defaultValue: false
+  	        }
+
+           
+           
+      }          
+           
+       }
+
+           
+
+
+
+
+
+
+
+
+
+
 def installed() {
     initialize()
 }
@@ -124,10 +191,12 @@ def updated() {
 
 def initialize() {
    log.info "Initialised with settings: ${settings}"
-  	schedule("0 0 10 1/1 * ? *", astroCheck)	// checks sunrise/sunset change at 10.00am every day 
+//  	schedule("0 0 10 1/1 * ? *", astroCheck)	// checks sunrise/sunset change at 10.00am every day 
+    
 version()
 logCheck()
     if(triggerMode == "Sunrise" || triggerMode == "Sunset"){
+    schedule("0 0 10 1/1 * ? *", astroCheck)	// checks sunrise/sunset change at 10.00am every day 
     astroCheck()
     }
    if(triggerMode == "Sunrise"){
@@ -151,7 +220,189 @@ logCheck()
     if(triggerMode == "Time"){schedule(runTime, evtHandler)}
     if(triggerMode == "Presence - Arrival"){ subscribe(presence1, "presence", presenceHandler1)}
     if(triggerMode == "Presence - Departure"){ subscribe(presence1, "presence", presenceHandler1)}
+    
+    if (restrictPresenceSensor){subscribe(restrictPresenceSensor, "presence", restrictPresenceSensorHandler)}
+	if (restrictPresenceSensor1){subscribe(restrictPresenceSensor1, "presence", restrictPresence1SensorHandler)}
+    if(enableswitch1){subscribe(enableswitch1, "switch", enableSwitch1Handler)}
+    state.enablecurrS1 = 'on'
+    state.appGo = true
+} 
+
+
+def checkRestrictions(){
+    checkTime()
+    checkDay()
+    checkPresence()
+    checkPresence1()
+    checkMode()
+//    LOGDEBUG("Checking restrictions...state.timeOK == $state.timeOK - state.dayCheck == $state.dayCheck - state.enablecurrS1 == $state.enablecurrS1 - state.presenceRestriction == $state.presenceRestriction -  state.presenceRestriction1 == $state.presenceRestriction1 -  state.modeCheck == $state.modeCheck")
+    if(state.timeOK == true && state.dayCheck == true && state.enablecurrS1 == 'on' && state.presenceRestriction == true && state.presenceRestriction1 == true && state.modeCheck == true){
+        state.appGo = true
+        LOGDEBUG("Restrictions ok.. continue...")
+            }  
+    else {
+        LOGDEBUG("One or more restrictions are in place so cannot continue...")
+         state.appGo = false
+    }
 }
+
+def enableSwitch1Handler(evt){
+state.enablecurrS1 = evt.value
+LOGDEBUG("$enableswitch1 is $state.enablecurrS1")
+    if(state.enablecurrS1 == 'off'){
+    LOGDEBUG("Cannot change mode - App disabled by switch")  
+   }
+   
+}
+
+// Check Mode
+def checkMode() {
+    LOGDEBUG("Checking mode...")
+	def result = !modes || modes.contains(location.mode)
+    
+    LOGDEBUG("Mode = $result")
+    state.modeCheck = result
+    return state.modeCheck
+ }    
+
+
+
+
+
+
+// Check Time Restriction
+def checkTime(){
+    LOGDEBUG("Checking time...")
+def timecheckNow = fromTime
+if (timecheckNow != null){
+def between = timeOfDayIsBetween(fromTime, toTime, new Date(), location.timeZone)
+    if (between) {
+    state.timeOK = true
+   LOGDEBUG("Time is ok so can continue...")
+    
+}
+else if (!between) {
+state.timeOK = false
+LOGDEBUG("Time is NOT ok so cannot continue...")
+	}
+  }
+else if (timecheckNow == null){  
+state.timeOK = true
+  LOGDEBUG("Time restrictions have not been configured -  Continue...")
+  }
+}
+
+
+// check days allowed to run
+def checkDay(){
+    LOGDEBUG("Checking days...")
+def daycheckNow = days
+if (daycheckNow != null){
+ def df = new java.text.SimpleDateFormat("EEEE")
+    
+    df.setTimeZone(location.timeZone)
+    def day = df.format(new Date())
+    def dayCheck1 = days.contains(day)
+    if (dayCheck1) {
+
+  state.dayCheck = true
+LOGDEBUG( " Day ok so can continue...")
+ }       
+ else {
+LOGDEBUG( " Not today!")
+ state.dayCheck = false
+ }
+ }
+if (daycheckNow == null){ 
+ LOGDEBUG("Day restrictions have not been configured -  Continue...")
+ state.dayCheck = true 
+} 
+}
+
+
+// Checking Presence restrictions
+def checkPresence(){
+LOGDEBUG("running checkPresence - restrictPresenceSensor = $restrictPresenceSensor")
+
+if(restrictPresenceSensor){
+LOGDEBUG("Presence = $state.presencestatus1")
+def actionPresenceRestrict = restrictPresenceAction
+
+
+if (state.presencestatus1 == "present" && actionPresenceRestrict == true){
+LOGDEBUG("Presence ok")
+state.presenceRestriction = true
+}
+else if (state.presencestatus1 == "not present" && actionPresenceRestrict == true){
+LOGDEBUG("Presence not ok")
+state.presenceRestriction = false
+}
+
+if (state.presencestatus1 == "not present" && actionPresenceRestrict == false){
+LOGDEBUG("Presence ok")
+state.presenceRestriction = true
+}
+else if (state.presencestatus1 == "present" && actionPresenceRestrict == false){
+LOGDEBUG("Presence not ok")
+state.presenceRestriction = false
+}
+}
+else if(!restrictPresenceSensor){
+state.presenceRestriction = true
+LOGDEBUG("Presence sensor restriction not used")
+}
+}
+
+
+def restrictPresence1SensorHandler(evt){
+state.presencestatus2 = evt.value
+LOGDEBUG("state.presencestatus2 = $evt.value")
+checkPresence1()
+
+
+}
+
+
+def checkPresence1(){
+LOGDEBUG("running checkPresence1 - restrictPresenceSensor1 = $restrictPresenceSensor1")
+
+if(restrictPresenceSensor1){
+LOGDEBUG("Presence = $state.presencestatus1")
+def actionPresenceRestrict1 = restrictPresenceAction1
+
+
+if (state.presencestatus2 == "present" && actionPresenceRestrict1 == true){
+LOGDEBUG("Presence 2 ok")
+state.presenceRestriction1 = true
+}
+else if (state.presencestatus2 == "not present" && actionPresenceRestrict1 == true){
+LOGDEBUG("Presence 2 not ok")
+state.presenceRestriction1 = false
+}
+
+if (state.presencestatus2 == "not present" && actionPresenceRestrict1 == false){
+LOGDEBUG("Presence 2 ok")
+state.presenceRestriction1 = true
+}
+else if (state.presencestatus2 == "present" && actionPresenceRestrict1 == false){
+LOGDEBUG("Presence 2 not ok")
+state.presenceRestriction1 = false
+}
+}
+else if(!restrictPresenceSensor1){
+state.presenceRestriction1 = true
+LOGDEBUG("Presence sensor 2 restriction not used")
+}
+}
+
+    
+    
+    
+
+
+
+
+
 
 
 
@@ -201,7 +452,10 @@ LOGDEBUG("Calling astroCheck...")
 def sunsetHandler(evt) {
 LOGDEBUG("Sun has set!")
     if(state.sunSetGo == true){
-   eventHandler(Sunset)
+   evtHandler()
+    }
+     else{
+    LOGDEBUG("Sunset Trigger not configured!")
     }
 }
 
@@ -209,7 +463,10 @@ LOGDEBUG("Sun has set!")
 def sunriseHandler(evt) {
 LOGDEBUG("Sun has risen!")
     if(state.sunRiseGo == true){
-     eventHandler(Sunrise)
+     evtHandler()
+    }
+    else{
+    LOGDEBUG("Sunrise Trigger not configured!")
     }
 }
 
@@ -230,35 +487,22 @@ def presenceHandler1(evt){
         
 }
 def evtHandler(evt){
-    if(triggerMode != "Time"){
-    LOGDEBUG("Running eventHandler - Event received: $evt.value")
-    }    
+    
+    LOGDEBUG("Running eventHandler ")
+    checkRestrictions()
+    if(state.appGo == true){
     state.requiredMode = newMode1
 
     LOGDEBUG("Changing to: $state.requiredMode ")
     setLocationMode(state.requiredMode) 
+	}
+
 }
 
 
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// ******************************************************************************
-// define debug action
 def logCheck(){
 state.checkLog = debugMode
 if(state.checkLog == true){
@@ -280,7 +524,6 @@ def LOGDEBUG(txt){
 
 def version(){
     resetBtnName()
-	unschedule()
 	schedule("0 0 9 ? * FRI *", updateCheck) //  Check for updates at 9am every Friday
 	updateCheck()  
     checkButtons()
@@ -381,7 +624,7 @@ def updateCheck(){
 }
 
 def setVersion(){
-		state.version = "1.0.0"	 
+		state.version = "1.1.0"	 
 		state.InternalName = "ModesPlusChild"
 }
 
