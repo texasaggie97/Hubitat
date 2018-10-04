@@ -38,7 +38,7 @@
  *  Changes:
  *
  *
- *  
+ *  V1.1.1 - Debug 'Between' time checker
  *  V1.1.0 - Added restrictions page and handlers
  *  V1.0.0 - POC
  *
@@ -275,7 +275,7 @@ def checkTime(){
     LOGDEBUG("Checking time...")
 def timecheckNow = fromTime
 if (timecheckNow != null){
-def between = timeOfDayIsBetween(fromTime, toTime, new Date(), location.timeZone)
+def between = timeOfDayIsBetween(toDateTime(fromTime), toDateTime(toTime), new Date(), location.timeZone)
     if (between) {
     state.timeOK = true
    LOGDEBUG("Time is ok so can continue...")
@@ -624,7 +624,7 @@ def updateCheck(){
 }
 
 def setVersion(){
-		state.version = "1.1.0"	 
+		state.version = "1.1.1"	 
 		state.InternalName = "ModesPlusChild"
 }
 
