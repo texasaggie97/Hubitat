@@ -37,7 +37,7 @@
  *
  *  Changes:
  *
- *
+ *  V1.2.0 - Revised update checking, with the option for a 'Pushover' message if there is an update
  *  V1.1.1 - Debug 'Between' time checker
  *  V1.1.0 - Added restrictions page and handlers
  *  V1.0.0 - POC
@@ -126,6 +126,7 @@ section("") {
         
     input "restrictions1", "bool", title: "Show Optional Time, Day & Mode Restrictions", required: true, defaultValue: false, submitOnChange: true
     input "restrictions2", "bool", title: "Show Optional Switch & Presence Restrictions", required: true, defaultValue: false, submitOnChange: true
+     input "updateNotification", "bool", title: "Send a 'Pushover' message when an update is available", required: true, defaultValue: false, submitOnChange: true
      }
 
       if(restrictions1 == true){    
@@ -153,9 +154,14 @@ section("") {
 	}
     
     }
-            }         
+            } 
            
-       
+           
+           if(updateNotification == true){
+               section() {
+               input "speaker", "capability.speechSynthesis", title: "PushOver Device", required: true, multiple: true
+           }
+           }
        section() {
                 label title: "Enter a name for this automation", required: false
             }
@@ -193,7 +199,7 @@ def initialize() {
    log.info "Initialised with settings: ${settings}"
 //  	schedule("0 0 10 1/1 * ? *", astroCheck)	// checks sunrise/sunset change at 10.00am every day 
     
-version()
+		version()
 logCheck()
     if(triggerMode == "Sunrise" || triggerMode == "Sunset"){
     schedule("0 0 10 1/1 * ? *", astroCheck)	// checks sunrise/sunset change at 10.00am every day 
@@ -542,7 +548,8 @@ def display(){
     if(state.status != "Current"){
 	section{ 
 
-	paragraph "<b>Update Info: $state.UpdateInfo ***</b>"
+	paragraph "<b>Update Info:</b> <BR>$state.UpdateInfo<BR>"
+    paragraph "You can find the new version here: <BR>$state.updateURI "
     }
          
     }         
@@ -574,6 +581,14 @@ def resetBtnName(){
     }
 }    
     
+def pushOver(inMsg){
+    if(updateNotification == true){  
+     newMessage = inMsg
+  LOGDEBUG(" Message = $newMessage ")  
+     state.msg1 = '[L]' + newMessage
+	speaker.speak(state.msg1)
+    }
+}
 
 
 
@@ -587,6 +602,9 @@ def updateCheck(){
  //  log.warn " Version Checking - Response Data: ${respUD.data}"   // Troubleshooting Debug Code 
        		def copyrightRead = (respUD.data.copyright)
        		state.Copyright = copyrightRead
+            def updateUri = (respUD.data.versions.UpdateInfo.GithubLocation.Apps)
+            state.updateURI = updateUri   
+            
             def newVerRaw = (respUD.data.versions.Application.(state.InternalName))
             def newVer = (respUD.data.versions.Application.(state.InternalName).replace(".", ""))
        		def currentVer = state.version.replace(".", "")
@@ -603,6 +621,8 @@ def updateCheck(){
         	log.warn "** There is a newer version of this app available  (Version: $newVerRaw) **"
         	log.warn "** $state.UpdateInfo **"
              state.newBtn = state.status
+            def updateMsg = "There is a new version of '$state.ExternalName' available (Version: $newVerRaw)"
+            pushOver(updateMsg)
        		} 
 		else{ 
       		state.status = "Current"
@@ -615,6 +635,7 @@ def updateCheck(){
     		}
     if(state.status != "Current"){
 		state.newBtn = state.status
+        
     }
     else{
         state.newBtn = "No Update Available"
@@ -624,8 +645,9 @@ def updateCheck(){
 }
 
 def setVersion(){
-		state.version = "1.1.1"	 
+		state.version = "1.2.0"	 
 		state.InternalName = "ModesPlusChild"
+    	state.ExternalName = "Modes Plus Child"
 }
 
 
