@@ -36,10 +36,13 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 20/03/2018
+ *  Last Update: 05/10/2018/2018
  *
  *  Changes:
  *
+ *  V2.6.0 - Added 'restrict by current mode'
+ *  V2.5.0 - code cleanup & Added remote version checking 
+ *  V2.4.0 - Re-enabled TTS talking as an action option
  *  V2.3.1 - Added ability to configure Pushover priority from GUI
  *  V2.3.0 - Added 'PushOver' messaging option
  *  V2.2.0 - Debug SMS and added 5 slots for phone numbers
@@ -57,8 +60,8 @@
  *  V1.0.1 - debug
  *  V1.0.0 - POC
  *
- *  Features to come.... Speak a message, control a door
- *  NOTE: Currently the 'send a message' feature only works with US numbers
+ *  Features to come....  control a garage door?
+ *  
  */
 
  
@@ -72,9 +75,9 @@ definition(
    
     
     parent: "Cobra:Presence Central",
-    iconUrl: "https://raw.githubusercontent.com/cobravmax/SmartThings/master/icons/presence.png",
-    iconX2Url: "https://raw.githubusercontent.com/cobravmax/SmartThings/master/icons/presence.png",
-    iconX3Url: "https://raw.githubusercontent.com/cobravmax/SmartThings/master/icons/presence.png"
+    iconUrl: "",
+    iconX2Url: "",
+    iconX3Url: ""
     )
     
     
@@ -95,15 +98,15 @@ def updated() {
 }
 def initialize() {
  log.info "Initialised with settings: ${settings}"
-    setAppVersion()
     logCheck()
+    version()
     switchRunCheck()
     state.timer1 = true
 	state.timerDoor = true
     state.timerlock = true
 	state.riseSetGo = true
 
-// Basic Subscriptions    
+// Basic Subscriptions 
 	subscribe(location, "hsmStatus", statusHandler)
 	subscribe(enableSwitch, "switch", switchEnable)
 	subscribe(location, "sunriseTime", sunriseSunsetTimeHandler)
@@ -161,16 +164,12 @@ def mainPage() {
     dynamicPage(name: "mainPage") {
       
         section {
-        paragraph image: "https://raw.githubusercontent.com/cobravmax/SmartThings/master/icons/presence.png",
-                  title: "Presence Control Child",
+        paragraph title: "Presence Control Child",
                   required: false,
                   "This child app allows you to define different actions upon arrival or departure of one or more presence sensors"
                   }
-     section() {
-   
-        paragraph image: "https://raw.githubusercontent.com/cobravmax/SmartThings/master/icons/cobra3.png",
-                         "Child Version: $state.appversion - Copyright ? 2018 Cobra"
-    }             
+   display()
+        
       section() {
         	basicInputs()
           	  	}
@@ -210,7 +209,7 @@ def finalPage() {
 				input "days", "enum", title: "Only allow actions on these days of the week", required: false, multiple: true, options: ["Monday": "Monday", "Tuesday": "Tuesday", 
 
 "Wednesday": "Wednesday", "Thursday": "Thursday", "Friday": "Friday", "Saturday": "Saturday", "Sunday": "Sunday"]
-        input "modes", "mode", title: "Allow actions when current mode is:", multiple: true, required: false       
+        input "modes", "mode", title: "Allow actions when current mode is:", multiple: true, required: false        
 		input "setRise", "bool", title: "Only allow actions between SunSet and SunRise", required: false, submitOnChange: true, defaultValue: false
 				
 if(setRise){
@@ -229,7 +228,8 @@ if(riseSet){
 		input "sunsetOffsetDir", "enum", title: "Before or After", required: false, options: ["Before","After"]
 }
 
-  }
+
+            }
              section("Logging") {
             input "debugMode", "bool", title: "Enable logging", required: true, defaultValue: false
   	        }
@@ -290,10 +290,10 @@ def presenceActions(){
 
 
 def outputActions(){
-input "presenceAction", "enum", title: "What action to take?",required: true, submitOnChange: true, options: ["Control A Switch", "Change Mode",  "Control a Lock", "Send An SMS Message", "PushOver Message", "Flash Lights", "Set Safety Monitor Mode", "Speak A Message",]
+input "presenceAction", "enum", title: "What action to take?",required: true, submitOnChange: true, options: ["Control A Switch", "Change Mode",  "Control a Lock", "Send An SMS Message", "PushOver Message", "Speak A Message", "Flash Lights", "Set Safety Monitor Mode"]
 
     // Removed from 'action' options until active/re-coded  ********************************************************************************************************************************
-    // "Speak A Message", "Control a Door", 
+    // , "Control a Door", 
     
     
 if (presenceAction) {
@@ -506,6 +506,7 @@ LOGDEBUG("state.privatePresence = $state.privatePresence")
 }
 
 // end timed presence check =====================================================
+
 // Check Mode
 def checkMode() {
     LOGDEBUG("Checking mode...")
@@ -741,7 +742,6 @@ def arrivalAction(){
 LOGDEBUG("Calling Arrival Action")
 checkTime()
 checkDay()
-checkMode()
 if (state.timeOK == true && state.dayCheck == true && state.modeCheck == true){
 decideActionArrival()
 	}
@@ -753,7 +753,6 @@ def departureAction(){
 LOGDEBUG("Calling Departure Action")
 checkTime()
 checkDay()
-checkMode()
 if (state.timeOK == true && state.dayCheck == true && state.modeCheck == true){
 decideActionDeparture()
 	}
@@ -1235,7 +1234,8 @@ checkVolume()
 
     if ( state.timer1 == true && state.msg1 != null){
 	LOGDEBUG("Speaking now - Message: '$state.msg1'")
-	speaker.speak(state.msg1)
+	speaker.playTextAndRestore(state.msg1)
+ //   speaker.speak(state.msg1)
    	startTimerSpeak()  
  } 
 	else if ( state.timer1 == false){
@@ -1497,7 +1497,7 @@ LOGDEBUG( "Timer reset - Actions allowed again...")
 
 def checkTime(){
 if(fromTime){
-def between = timeOfDayIsBetween(toDateTime(fromTime), toDateTime(toTime), new Date(), location.timeZone)
+def between = timeOfDayIsBetween(fromTime, toTime, new Date(), location.timeZone)
     if (between) {
     state.timeOK = true
    LOGDEBUG("Time is ok so can continue...")
@@ -1619,7 +1619,7 @@ log.info "Further Logging Disabled"
 }
 def LOGDEBUG(txt){
     try {
-    	if (settings.debugMode) { log.debug("${app.label.replace(" ","_").toUpperCase()}  (Childapp Version: ${state.appversion}) - ${txt}") }
+    	if (settings.debugMode) { log.debug("${app.label.replace(" ","_").toUpperCase()}  (Childapp Version: ${state.version}) - ${txt}") }
     } catch(ex) {
     	log.error("LOGDEBUG unable to output requested data!")
     }
@@ -1628,8 +1628,63 @@ def LOGDEBUG(txt){
 
 
 
-// App Version   ***********************************************
-def setAppVersion(){
-    state.appversion = "2.1.3"
+def version(){
+	unschedule()
+	schedule("0 0 9 ? * FRI *", updateCheck) //  Check for updates at 9am every Friday
+	updateCheck()  
 }
-// end app version *********************************************
+
+def display(){
+	if(state.status){
+	section{paragraph "Version: $state.version -  $state.Copyright"}
+	if(state.status != "Current"){
+	section{ 
+	paragraph "$state.status"
+	paragraph "$state.UpdateInfo"
+    }
+    }
+}
+}
+
+
+def updateCheck(){
+    setVersion()
+	def paramsUD = [uri: "http://update.hubitat.uk/cobra.json"]
+       	try {
+        httpGet(paramsUD) { respUD ->
+//  log.warn " Version Checking - Response Data: ${respUD.data}"   // Troubleshooting Debug Code 
+       		def copyrightRead = (respUD.data.copyright)
+       		state.Copyright = copyrightRead
+            def newVerRaw = (respUD.data.versions.Application.(state.InternalName))
+            def newVer = (respUD.data.versions.Application.(state.InternalName).replace(".", ""))
+       		def currentVer = state.version.replace(".", "")
+      		state.UpdateInfo = (respUD.data.versions.UpdateInfo.Application.(state.InternalName))
+                state.author = (respUD.data.author)
+           
+		if(newVer == "NLS"){
+            state.status = "<b>** This app is no longer supported by $state.author  **</b>"       
+            log.warn "** This app is no longer supported by $state.author **"      
+      		}           
+		else if(currentVer < newVer){
+        	state.status = "<b>New Version Available (Version: $newVerRaw)</b>"
+        	log.warn "** There is a newer version of this app available  (Version: $newVerRaw) **"
+        	log.warn "** $state.UpdateInfo **"
+       		} 
+		else{ 
+      		state.status = "Current"
+      		log.info "You are using the current version of this app"
+       		}
+      					}
+        	} 
+        catch (e) {
+        	log.error "Something went wrong: CHECK THE JSON FILE AND IT'S URI -  $e"
+    		}
+   		
+    
+    	//	
+}
+
+def setVersion(){
+		state.version = "2.6.0"
+     		state.InternalName = "PCchild"
+}
