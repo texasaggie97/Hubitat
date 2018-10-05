@@ -327,6 +327,16 @@ if (daycheckNow == null){
 
 
 // Checking Presence restrictions
+def restrictPresenceSensorHandler(evt){
+state.presencestatus1 = evt.value
+LOGDEBUG("state.presencestatus1 = $evt.value")
+checkPresence()
+
+
+}
+
+
+
 def checkPresence(){
 LOGDEBUG("running checkPresence - restrictPresenceSensor = $restrictPresenceSensor")
 
@@ -364,7 +374,6 @@ def restrictPresence1SensorHandler(evt){
 state.presencestatus2 = evt.value
 LOGDEBUG("state.presencestatus2 = $evt.value")
 checkPresence1()
-
 
 }
 
