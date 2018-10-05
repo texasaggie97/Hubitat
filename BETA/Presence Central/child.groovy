@@ -229,11 +229,7 @@ if(riseSet){
 		input "sunsetOffsetDir", "enum", title: "Before or After", required: false, options: ["Before","After"]
 }
 
-
-                 
-                 
-                 
-            }
+  }
              section("Logging") {
             input "debugMode", "bool", title: "Enable logging", required: true, defaultValue: false
   	        }
@@ -294,7 +290,7 @@ def presenceActions(){
 
 
 def outputActions(){
-input "presenceAction", "enum", title: "What action to take?",required: true, submitOnChange: true, options: ["Control A Switch", "Change Mode",  "Control a Lock", "Send An SMS Message", "PushOver Message", "Flash Lights", "Set Safety Monitor Mode"]
+input "presenceAction", "enum", title: "What action to take?",required: true, submitOnChange: true, options: ["Control A Switch", "Change Mode",  "Control a Lock", "Send An SMS Message", "PushOver Message", "Flash Lights", "Set Safety Monitor Mode", "Speak A Message",]
 
     // Removed from 'action' options until active/re-coded  ********************************************************************************************************************************
     // "Speak A Message", "Control a Door", 
