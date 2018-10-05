@@ -104,12 +104,6 @@ section("") {
      }
          
  }  
-        section() {
-        label title: "Enter a name for this child app (optional)", required: false
-            }    
-       section(" ") {
-            input "debugMode", "bool", title: "Enable logging", required: true, defaultValue: false
-  	        }
     }
     }
 
@@ -661,7 +655,6 @@ def setVersion(){
 		state.InternalName = "ModesPlusChild"
     	state.ExternalName = "Modes Plus Child"
 }
-
 
 
 
