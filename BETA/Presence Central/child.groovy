@@ -742,6 +742,7 @@ def arrivalAction(){
 LOGDEBUG("Calling Arrival Action")
 checkTime()
 checkDay()
+checkMode()
 if (state.timeOK == true && state.dayCheck == true && state.modeCheck == true){
 decideActionArrival()
 	}
@@ -753,6 +754,7 @@ def departureAction(){
 LOGDEBUG("Calling Departure Action")
 checkTime()
 checkDay()
+checkMode()
 if (state.timeOK == true && state.dayCheck == true && state.modeCheck == true){
 decideActionDeparture()
 	}
