@@ -199,8 +199,8 @@ def initialize() {
    log.info "Initialised with settings: ${settings}"
 //  	schedule("0 0 10 1/1 * ? *", astroCheck)	// checks sunrise/sunset change at 10.00am every day 
     
-		version()
-logCheck()
+	version()
+	logCheck()
     if(triggerMode == "Sunrise" || triggerMode == "Sunset"){
     schedule("0 0 10 1/1 * ? *", astroCheck)	// checks sunrise/sunset change at 10.00am every day 
     astroCheck()
@@ -547,11 +547,10 @@ def display(){
     
     if(state.status != "Current"){
 	section{ 
-
-	paragraph "<b>Update Info:</b> <BR>$state.UpdateInfo<BR>"
-    paragraph "You can find the new version here: <BR>$state.updateURI "
+	paragraph "<b>Update Info:</b> <BR>$state.UpdateInfo <BR>$state.updateURI"
+ // paragraph "$state.updateURI" 
     }
-         
+//    section(){ input "updateBtn1", "button", title: "$state.btnName1"}    
     }         
 }
 
@@ -570,6 +569,11 @@ def appButtonHandler(btn){
   		state.btnName = state.newBtn
         runIn(2, resetBtnName)
     }
+    if(state.btnCall == "updateBtn1"){
+    state.btnName1 = "Click Here" 
+    httpGet("https://github.com/CobraVmax/Hubitat/tree/master/Apps' target='_blank")
+    }
+    
 }   
 def resetBtnName(){
     log.info "Resetting Button"
@@ -602,7 +606,7 @@ def updateCheck(){
  //  log.warn " Version Checking - Response Data: ${respUD.data}"   // Troubleshooting Debug Code 
        		def copyrightRead = (respUD.data.copyright)
        		state.Copyright = copyrightRead
-            def updateUri = (respUD.data.versions.UpdateInfo.GithubLocation.Apps)
+            def updateUri = (respUD.data.versions.UpdateInfo.GithubFiles.Apps)
             state.updateURI = updateUri   
             
             def newVerRaw = (respUD.data.versions.Application.(state.InternalName))
