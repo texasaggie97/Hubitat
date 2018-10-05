@@ -1497,7 +1497,7 @@ LOGDEBUG( "Timer reset - Actions allowed again...")
 
 def checkTime(){
 if(fromTime){
-def between = timeOfDayIsBetween(fromTime, toTime, new Date(), location.timeZone)
+def between = timeOfDayIsBetween(toDateTime(fromTime), toDateTime(toTime), new Date(), location.timeZone)
     if (between) {
     state.timeOK = true
    LOGDEBUG("Time is ok so can continue...")
