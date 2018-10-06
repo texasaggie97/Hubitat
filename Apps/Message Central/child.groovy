@@ -33,11 +33,12 @@
  *-------------------------------------------------------------------------------------------------------------------
  *
  *
- *  Last Update: 01/10/2018
+ *  Last Update: 06/10/2018
  *
  *  Changes:
  *
- *	V12.2.1 - Revised auto update checking and added manual check for update button
+ *  V12.3.0 - Added %alert% as a variable for use with weather devices
+ *  V12.2.1 - Revised auto update checking and added manual check for update button
  *  V12.2.0 - Added 'Lock' as a trigger
  *  V12.1.1 - Code consolidation & Debug mp3 playing
  *  V12.1.0 - Added three new variables for use within messages: %opencount%, %closedcount% & %mode%
@@ -3613,11 +3614,8 @@ private getGroup4(msgPostitem) {
 
 
 
-
-
 def version(){
     resetBtnName()
-	unschedule()
 	schedule("0 0 9 ? * FRI *", updateCheck) //  Check for updates at 9am every Friday
 	updateCheck()  
     checkButtons()
@@ -3635,10 +3633,8 @@ def display(){
     
     if(state.status != "Current"){
 	section{ 
-
-	paragraph "<b>Update Info: $state.UpdateInfo ***</b>"
-    }
-         
+	paragraph "<b>Update Info:</b> <BR>$state.UpdateInfo <BR>$state.updateURI"
+     }
     }         
 }
 
@@ -3657,6 +3653,11 @@ def appButtonHandler(btn){
   		state.btnName = state.newBtn
         runIn(2, resetBtnName)
     }
+    if(state.btnCall == "updateBtn1"){
+    state.btnName1 = "Click Here" 
+    httpGet("https://github.com/CobraVmax/Hubitat/tree/master/Apps' target='_blank")
+    }
+    
 }   
 def resetBtnName(){
     log.info "Resetting Button"
@@ -3668,6 +3669,14 @@ def resetBtnName(){
     }
 }    
     
+def pushOver(inMsg){
+    if(updateNotification == true){  
+     newMessage = inMsg
+  LOGDEBUG(" Message = $newMessage ")  
+     state.msg1 = '[L]' + newMessage
+	speaker.speak(state.msg1)
+    }
+}
 
 
 
@@ -3681,6 +3690,9 @@ def updateCheck(){
  //  log.warn " Version Checking - Response Data: ${respUD.data}"   // Troubleshooting Debug Code 
        		def copyrightRead = (respUD.data.copyright)
        		state.Copyright = copyrightRead
+            def updateUri = (respUD.data.versions.UpdateInfo.GithubFiles.(state.InternalName))
+            state.updateURI = updateUri   
+            
             def newVerRaw = (respUD.data.versions.Application.(state.InternalName))
             def newVer = (respUD.data.versions.Application.(state.InternalName).replace(".", ""))
        		def currentVer = state.version.replace(".", "")
@@ -3697,6 +3709,8 @@ def updateCheck(){
         	log.warn "** There is a newer version of this app available  (Version: $newVerRaw) **"
         	log.warn "** $state.UpdateInfo **"
              state.newBtn = state.status
+            def updateMsg = "There is a new version of '$state.ExternalName' available (Version: $newVerRaw)"
+            pushOver(updateMsg)
        		} 
 		else{ 
       		state.status = "Current"
@@ -3709,6 +3723,7 @@ def updateCheck(){
     		}
     if(state.status != "Current"){
 		state.newBtn = state.status
+        
     }
     else{
         state.newBtn = "No Update Available"
@@ -3718,6 +3733,6 @@ def updateCheck(){
 }
 
 def setVersion(){
-		state.version = "12.2.1"	 
+		state.version = "12.3.0"	 
 		state.InternalName = "MCchild"  
 }
