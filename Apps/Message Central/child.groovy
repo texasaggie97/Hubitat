@@ -38,7 +38,7 @@
  *  Changes:
  *
  *  V12.3.0 - Added %alert% as a variable for use with weather devices
- *  V12.2.1 - Revised auto update checking and added manual check for update button
+ *	V12.2.1 - Revised auto update checking and added manual check for update button
  *  V12.2.0 - Added 'Lock' as a trigger
  *  V12.1.1 - Code consolidation & Debug mp3 playing
  *  V12.1.0 - Added three new variables for use within messages: %opencount%, %closedcount% & %mode%
@@ -3734,5 +3734,6 @@ def updateCheck(){
 
 def setVersion(){
 		state.version = "12.3.0"	 
-		state.InternalName = "MCchild"  
+		state.InternalName = "MCchild" 
+    		state.ExternalName = "Message Central Child"
 }
