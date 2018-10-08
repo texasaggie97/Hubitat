@@ -33,10 +33,11 @@
  *-------------------------------------------------------------------------------------------------------------------
  *
  *
- *  Last Update: 06/10/2018
+ *  Last Update: 08/10/2018
  *
  *  Changes:
  *
+ *  V12.3.1 - Added optional pushover message for updates
  *  V12.3.0 - Added %alert% as a variable for use with weather devices
  *	V12.2.1 - Revised auto update checking and added manual check for update button
  *  V12.2.0 - Added 'Lock' as a trigger
@@ -3614,6 +3615,7 @@ private getGroup4(msgPostitem) {
 
 
 
+
 def version(){
     resetBtnName()
 	schedule("0 0 9 ? * FRI *", updateCheck) //  Check for updates at 9am every Friday
@@ -3627,6 +3629,8 @@ def display(){
 	section{paragraph "<img src='http://update.hubitat.uk/icons/cobra3.png''</img> Version: $state.version <br><font face='Lucida Handwriting'>$state.Copyright </font>"}
        
         }
+   
+
     if(state.status != "<b>** This app is no longer supported by $state.author  **</b>"){
      section(){ input "updateBtn", "button", title: "$state.btnName"}
     }
@@ -3635,7 +3639,11 @@ def display(){
 	section{ 
 	paragraph "<b>Update Info:</b> <BR>$state.UpdateInfo <BR>$state.updateURI"
      }
-    }         
+    }
+	section(" ") {
+      input "updateNotification", "bool", title: "Send a 'Pushover' message when an update is available", required: true, defaultValue: false, submitOnChange: true 
+      if(updateNotification == true){ input "speaker", "capability.speechSynthesis", title: "PushOver Device", required: true, multiple: true}
+    }
 }
 
 def checkButtons(){
@@ -3669,7 +3677,7 @@ def resetBtnName(){
     }
 }    
     
-def pushOver(inMsg){
+def pushOverUpdate(inMsg){
     if(updateNotification == true){  
      newMessage = inMsg
   LOGDEBUG(" Message = $newMessage ")  
@@ -3710,7 +3718,7 @@ def updateCheck(){
         	log.warn "** $state.UpdateInfo **"
              state.newBtn = state.status
             def updateMsg = "There is a new version of '$state.ExternalName' available (Version: $newVerRaw)"
-            pushOver(updateMsg)
+            pushOverUpdate(updateMsg)
        		} 
 		else{ 
       		state.status = "Current"
@@ -3732,8 +3740,10 @@ def updateCheck(){
         
 }
 
+
+
 def setVersion(){
-		state.version = "12.3.0"	 
+		state.version = "12.3.1"	 
 		state.InternalName = "MCchild" 
-    		state.ExternalName = "Message Central Child"
+    	state.ExternalName = "Message Central Child"
 }
