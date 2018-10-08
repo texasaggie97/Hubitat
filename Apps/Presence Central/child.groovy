@@ -1698,7 +1698,7 @@ def resetBtnName(){
     }
 }    
     
-def pushOverNow(inMsg){
+def pushOverUpdate(inMsg){
     if(updateNotification == true){  
      newMessage = inMsg
   LOGDEBUG(" Message = $newMessage ")  
@@ -1739,7 +1739,7 @@ def updateCheck(){
         	log.warn "** $state.UpdateInfo **"
              state.newBtn = state.status
             def updateMsg = "There is a new version of '$state.ExternalName' available (Version: $newVerRaw)"
-            pushOverNow(updateMsg)
+            pushOverUpdate(updateMsg)
        		} 
 		else{ 
       		state.status = "Current"
