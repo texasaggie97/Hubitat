@@ -134,7 +134,7 @@ def display(){
     
     if(state.status != "Current"){
 	section{ 
-	paragraph "<b>Update Info:</b> <BR>$state.UpdateInfo <BR>$state.updateURI"
+	paragraph "<b>Update Information:</b> <BR>$state.UpdateInfo <BR>$state.updateURI"
      }
     }         
 }
@@ -211,7 +211,7 @@ def updateCheck(){
         	log.warn "** $state.UpdateInfo **"
              state.newBtn = state.status
             def updateMsg = "There is a new version of '$state.ExternalName' available (Version: $newVerRaw)"
-   //         pushOver(updateMsg)
+
        		} 
 		else{ 
       		state.status = "Current"
@@ -238,5 +238,5 @@ def updateCheck(){
 def setVersion(){
 		state.version = "2.2.1"	 
 		state.InternalName = "PCparent"
-    		state.ExternalName = "Presence Central Parent"
+    	state.ExternalName = "Presence Central Parent"
 }
