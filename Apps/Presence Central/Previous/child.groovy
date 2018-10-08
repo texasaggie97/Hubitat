@@ -36,12 +36,10 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 08/10/2018/2018
+ *  Last Update: 20/08/2018
  *
  *  Changes:
  *
- *  V2.6.1 - Revised auto update checking and added a manual update check button
- *  V2.6.0 - Added 'restrict by current mode'
  *  V2.5.0 - code cleanup & Added remote version checking 
  *  V2.4.0 - Re-enabled TTS talking as an action option
  *  V2.3.1 - Added ability to configure Pushover priority from GUI
@@ -101,7 +99,6 @@ def initialize() {
  log.info "Initialised with settings: ${settings}"
     logCheck()
     version()
-    checkButtons()
     switchRunCheck()
     state.timer1 = true
 	state.timerDoor = true
@@ -211,7 +208,7 @@ def finalPage() {
 				input "days", "enum", title: "Only allow actions on these days of the week", required: false, multiple: true, options: ["Monday": "Monday", "Tuesday": "Tuesday", 
 
 "Wednesday": "Wednesday", "Thursday": "Thursday", "Friday": "Friday", "Saturday": "Saturday", "Sunday": "Sunday"]
-        input "modes", "mode", title: "Allow actions when current mode is:", multiple: true, required: false        
+                
 		input "setRise", "bool", title: "Only allow actions between SunSet and SunRise", required: false, submitOnChange: true, defaultValue: false
 				
 if(setRise){
@@ -232,12 +229,7 @@ if(riseSet){
 
 
             }
-
-                 
-                 
-                 
-               section(" ") {
-        
+             section("Logging") {
             input "debugMode", "bool", title: "Enable logging", required: true, defaultValue: false
   	        }
             
@@ -514,15 +506,6 @@ LOGDEBUG("state.privatePresence = $state.privatePresence")
 
 // end timed presence check =====================================================
 
-// Check Mode
-def checkMode() {
-    LOGDEBUG("Checking mode...")
-	def result = !modes || modes.contains(location.mode)
-    
-    LOGDEBUG("Mode = $result")
-    state.modeCheck = result
-    return state.modeCheck
- } 
 
 // Sunset & Sunrise Handlers ====================================================
 def sunriseSunsetTimeHandler(evt) {
@@ -749,8 +732,7 @@ def arrivalAction(){
 LOGDEBUG("Calling Arrival Action")
 checkTime()
 checkDay()
-checkMode()
-if (state.timeOK == true && state.dayCheck == true && state.modeCheck == true){
+if (state.timeOK == true && state.dayCheck == true){
 decideActionArrival()
 	}
 }
@@ -761,8 +743,7 @@ def departureAction(){
 LOGDEBUG("Calling Departure Action")
 checkTime()
 checkDay()
-checkMode()
-if (state.timeOK == true && state.dayCheck == true && state.modeCheck == true){
+if (state.timeOK == true && state.dayCheck == true){
 decideActionDeparture()
 	}
 }
@@ -1506,7 +1487,7 @@ LOGDEBUG( "Timer reset - Actions allowed again...")
 
 def checkTime(){
 if(fromTime){
-def between = timeOfDayIsBetween(toDateTime(fromTime), toDateTime(toTime), new Date(), location.timeZone)
+def between = timeOfDayIsBetween(fromTime, toTime, new Date(), location.timeZone)
     if (between) {
     state.timeOK = true
    LOGDEBUG("Time is ok so can continue...")
@@ -1638,77 +1619,22 @@ def LOGDEBUG(txt){
 
 
 def version(){
-    resetBtnName()
+	unschedule()
 	schedule("0 0 9 ? * FRI *", updateCheck) //  Check for updates at 9am every Friday
 	updateCheck()  
-    checkButtons()
 }
 
 def display(){
-  
 	if(state.status){
-	section{paragraph "<img src='http://update.hubitat.uk/icons/cobra3.png''</img> Version: $state.version <br><font face='Lucida Handwriting'>$state.Copyright </font>"}
-       
-        }
-   
-
-    if(state.status != "<b>** This app is no longer supported by $state.author  **</b>"){
-     section(){ input "updateBtn", "button", title: "$state.btnName"}
-    }
-    
-    if(state.status != "Current"){
+	section{paragraph "Version: $state.version -  $state.Copyright"}
+	if(state.status != "Current"){
 	section{ 
-	paragraph "<b>Update Info:</b> <BR>$state.UpdateInfo <BR>$state.updateURI"
-     }
+	paragraph "$state.status"
+	paragraph "$state.UpdateInfo"
     }
-	section(" ") {
-      input "updateNotification", "bool", title: "Send a 'Pushover' message when an update is available", required: true, defaultValue: false, submitOnChange: true 
-      if(updateNotification == true){ input "speaker", "capability.speechSynthesis", title: "PushOver Device", required: true, multiple: true}
     }
 }
-
-def checkButtons(){
-    log.info "Running checkButtons"
-    appButtonHandler("updateBtn")
 }
-
-
-def appButtonHandler(btn){
-    state.btnCall = btn
-    if(state.btnCall == "updateBtn"){
-        log.info "Checking for updates now..."
-        updateCheck()
-        pause(3000)
-  		state.btnName = state.newBtn
-        runIn(2, resetBtnName)
-    }
-    if(state.btnCall == "updateBtn1"){
-    state.btnName1 = "Click Here" 
-    httpGet("https://github.com/CobraVmax/Hubitat/tree/master/Apps' target='_blank")
-    }
-    
-}   
-def resetBtnName(){
-    log.info "Resetting Button"
-    if(state.status != "Current"){
-	state.btnName = state.newBtn
-    }
-    else{
- state.btnName = "Check For Update" 
-    }
-}    
-    
-def pushOverNow(inMsg){
-    if(updateNotification == true){  
-     newMessage = inMsg
-  LOGDEBUG(" Message = $newMessage ")  
-     state.msg1 = '[L]' + newMessage
-	speaker.speak(state.msg1)
-    }
-}
-
-
-
 
 
 def updateCheck(){
@@ -1716,12 +1642,9 @@ def updateCheck(){
 	def paramsUD = [uri: "http://update.hubitat.uk/cobra.json"]
        	try {
         httpGet(paramsUD) { respUD ->
- //  log.warn " Version Checking - Response Data: ${respUD.data}"   // Troubleshooting Debug Code 
+//  log.warn " Version Checking - Response Data: ${respUD.data}"   // Troubleshooting Debug Code 
        		def copyrightRead = (respUD.data.copyright)
        		state.Copyright = copyrightRead
-            def updateUri = (respUD.data.versions.UpdateInfo.GithubFiles.(state.InternalName))
-            state.updateURI = updateUri   
-            
             def newVerRaw = (respUD.data.versions.Application.(state.InternalName))
             def newVer = (respUD.data.versions.Application.(state.InternalName).replace(".", ""))
        		def currentVer = state.version.replace(".", "")
@@ -1729,41 +1652,29 @@ def updateCheck(){
                 state.author = (respUD.data.author)
            
 		if(newVer == "NLS"){
-            state.status = "<b>** This app is no longer supported by $state.author  **</b>"  
-             log.warn "** This app is no longer supported by $state.author **" 
-            
+            state.status = "<b>** This app is no longer supported by $state.author  **</b>"       
+            log.warn "** This app is no longer supported by $state.author **"      
       		}           
 		else if(currentVer < newVer){
         	state.status = "<b>New Version Available (Version: $newVerRaw)</b>"
         	log.warn "** There is a newer version of this app available  (Version: $newVerRaw) **"
         	log.warn "** $state.UpdateInfo **"
-             state.newBtn = state.status
-            def updateMsg = "There is a new version of '$state.ExternalName' available (Version: $newVerRaw)"
-            pushOverNow(updateMsg)
        		} 
 		else{ 
       		state.status = "Current"
-       		log.info "You are using the current version of this app"
+      		log.info "You are using the current version of this app"
        		}
       					}
         	} 
         catch (e) {
         	log.error "Something went wrong: CHECK THE JSON FILE AND IT'S URI -  $e"
     		}
-    if(state.status != "Current"){
-		state.newBtn = state.status
-        
-    }
-    else{
-        state.newBtn = "No Update Available"
-    }
-        
-        
+   		
+    
+    	//	
 }
 
-
 def setVersion(){
-		state.version = "2.6.1"
+		state.version = "2.5.0"
      		state.InternalName = "PCchild"
-    		state.ExternalName = "Presence Central Child"
 }
