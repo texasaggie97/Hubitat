@@ -33,10 +33,12 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 04/10/2018
+ *  Last Update: 11/10/2018
  *
  *  Changes:
  *
+ *  V1.4.0 - Added 'illuminance' trigger
+ *  V1.3.0 - Initial Release to the community
  *  V1.2.0 - Revised update checking, with the option for a 'Pushover' message if there is an update
  *  V1.1.1 - Debug 'Between' time checker
  *  V1.1.0 - Added restrictions page and handlers
@@ -77,7 +79,7 @@ section("") {
  section("") {
    input "newMode1", "mode", title: "Which Mode do you want to enter?",  required: true, multiple: false, submitOnChange:true
      if(newMode1){
-    input "triggerMode", "enum", required: true, title: "Select Trigger ", submitOnChange: true,  options: ["Button", "Presence - Arrival", "Presence - Departure", "Sunrise", "Sunset", "Switch", "Time"]
+    input "triggerMode", "enum", required: true, title: "Select Trigger ", submitOnChange: true,  options: ["Button", "Illuminance", "Presence - Arrival", "Presence - Departure", "Sunrise", "Sunset", "Switch", "Time"]
          
           if(triggerMode == "Switch"){input "switch2", "capability.switch", title: "Select Switch", required: true, multiple: false}
           if(triggerMode == "Button"){
@@ -101,14 +103,13 @@ section("") {
 				input "sunriseOffsetDir", "enum", title: "Before or After", required: false, options: ["Before","After"]
          
      }
+     if(triggerMode == "Illuminance"){
+         	input "luxDevice", "capability.sensor", title: "Lux Device", required: false
+     		input "luxLevel", "number", title: "Lux level to trigger", required: false
+         	input "luxMode", "enum", title: "Change mode above  or below  this level", required: true, options: ["Above", "Below"]
+     }
          
  }  
-        section() {
-        label title: "Enter a name for this child app (optional)", required: false
-            }    
-       section(" ") {
-            input "debugMode", "bool", title: "Enable logging", required: true, defaultValue: false
-  	        }
     }
     }
 
@@ -126,7 +127,7 @@ section("") {
         
     input "restrictions1", "bool", title: "Show Optional Time, Day & Mode Restrictions", required: true, defaultValue: false, submitOnChange: true
     input "restrictions2", "bool", title: "Show Optional Switch & Presence Restrictions", required: true, defaultValue: false, submitOnChange: true
-     input "updateNotification", "bool", title: "Send a 'Pushover' message when an update is available", required: true, defaultValue: false, submitOnChange: true
+   
      }
 
       if(restrictions1 == true){    
@@ -157,11 +158,7 @@ section("") {
             } 
            
            
-           if(updateNotification == true){
-               section() {
-               input "speaker", "capability.speechSynthesis", title: "PushOver Device", required: true, multiple: true
-           }
-           }
+          
        section() {
                 label title: "Enter a name for this automation", required: false
             }
@@ -205,6 +202,15 @@ def initialize() {
     schedule("0 0 10 1/1 * ? *", astroCheck)	// checks sunrise/sunset change at 10.00am every day 
     astroCheck()
     }
+    
+     if(triggerMode == "Illuminance"){
+         if(luxMode){state.luxAction = luxMode}
+         if(!luxMode){state.luxAction = false}
+   	   subscribe(luxDevice, "illuminance", luxHandler)
+   } 
+    
+    
+    
    if(triggerMode == "Sunrise"){
        state.sunRiseGo = true
        state.sunSetGo = false
@@ -413,6 +419,18 @@ LOGDEBUG("Presence sensor 2 restriction not used")
     
     
     
+def luxHandler(evt){
+    state.newLux = evt.value.toDouble()
+    state.requiredLux = luxLevel.toDouble()
+    LOGDEBUG("Recieved Lux:$state.newLux")
+    
+    if(state.newLux > state.requiredLux && state.luxAction == "Above"){ evtHandler()}
+    if(state.newLux < state.requiredLux && state.luxAction == "Below"){ evtHandler()}
+    
+    
+    }
+    
+    
 
 
 
@@ -550,6 +568,8 @@ def display(){
 	section{paragraph "<img src='http://update.hubitat.uk/icons/cobra3.png''</img> Version: $state.version <br><font face='Lucida Handwriting'>$state.Copyright </font>"}
        
         }
+   
+
     if(state.status != "<b>** This app is no longer supported by $state.author  **</b>"){
      section(){ input "updateBtn", "button", title: "$state.btnName"}
     }
@@ -557,10 +577,12 @@ def display(){
     if(state.status != "Current"){
 	section{ 
 	paragraph "<b>Update Info:</b> <BR>$state.UpdateInfo <BR>$state.updateURI"
- // paragraph "$state.updateURI" 
+     }
     }
-//    section(){ input "updateBtn1", "button", title: "$state.btnName1"}    
-    }         
+	section(" ") {
+      input "updateNotification", "bool", title: "Send a 'Pushover' message when an update is available", required: true, defaultValue: false, submitOnChange: true 
+      if(updateNotification == true){ input "speaker", "capability.speechSynthesis", title: "PushOver Device", required: true, multiple: true}
+    }
 }
 
 def checkButtons(){
@@ -594,7 +616,7 @@ def resetBtnName(){
     }
 }    
     
-def pushOver(inMsg){
+def pushOverNow(inMsg){
     if(updateNotification == true){  
      newMessage = inMsg
   LOGDEBUG(" Message = $newMessage ")  
@@ -615,7 +637,7 @@ def updateCheck(){
  //  log.warn " Version Checking - Response Data: ${respUD.data}"   // Troubleshooting Debug Code 
        		def copyrightRead = (respUD.data.copyright)
        		state.Copyright = copyrightRead
-            def updateUri = (respUD.data.versions.UpdateInfo.GithubFiles.Apps)
+            def updateUri = (respUD.data.versions.UpdateInfo.GithubFiles.(state.InternalName))
             state.updateURI = updateUri   
             
             def newVerRaw = (respUD.data.versions.Application.(state.InternalName))
@@ -635,7 +657,7 @@ def updateCheck(){
         	log.warn "** $state.UpdateInfo **"
              state.newBtn = state.status
             def updateMsg = "There is a new version of '$state.ExternalName' available (Version: $newVerRaw)"
-            pushOver(updateMsg)
+            pushOverNow(updateMsg)
        		} 
 		else{ 
       		state.status = "Current"
@@ -656,13 +678,11 @@ def updateCheck(){
         
         
 }
-
 def setVersion(){
-		state.version = "1.2.0"	 
+		state.version = "1.4.0"	 
 		state.InternalName = "ModesPlusChild"
     	state.ExternalName = "Modes Plus Child"
 }
-
 
 
 
