@@ -37,6 +37,7 @@
  *
  *  Changes:
  *
+ *  V12.3.2 - Debug locks & mp3
  *  V12.3.1 - Added optional pushover message for updates
  *  V12.3.0 - Added %alert% as a variable for use with weather devices
  *	V12.2.1 - Revised auto update checking and added manual check for update button
@@ -1429,14 +1430,15 @@ pushOver(2, msg)
 
 // Temperature
 def tempTalkNow(evt){
-state.tempStatus1 = evt.value as double
+state.tempStatus2 = evt.value
+state.tempStatus1 = state.tempStatus2.toDouble()
 state.nameOfDevice = evt.displayName
 state.actionEvent = evt.value
     LOGDEBUG("$state.nameOfDevice - is reporting temperature as: $state.tempStatus1")
     
 state.msg1 = message1
 state.msgNow = 'oneNow'
-def myTemp = temperature1 as int
+def myTemp = temperature1.toDouble()
 LOGDEBUG("myTemp = $myTemp")
     
  if(state.tempStatus1 > myTemp){   
@@ -1475,11 +1477,11 @@ LOGDEBUG("TempTalkNow - Join Message - Sending Message: $msg")
  joinMsg(msg)
 	}
     
-    else if(state.msgType == "Play an Mp3 (No variables can be used)"){
-	mp3EventHandler()
-    if(state.soundToPlay == null){ LOGDEBUG(" Mp3 ERROR - cannot find $state.soundToPlay")} 
-    LOGDEBUG("TempTalkNow - Mp3 - Playing: $state.soundToPlay")   
-	}   
+ if(state.msgType == "Play an Mp3 (No variables can be used)"){
+			mp3EventHandler()
+    		if(state.soundToPlay == null){ LOGDEBUG(" Mp3 ERROR - cannot find $state.soundToPlay")}
+} 
+    
 }    
     
 if(tempActionType == false && state.tempStatus1 < myTemp){
@@ -1488,37 +1490,36 @@ if(tempActionType == false && state.tempStatus1 < myTemp){
     talkSwitch()
    }          
   
-   else if(state.msgType == "Voice Message (SpeechSynth)"){
+   if(state.msgType == "Voice Message (SpeechSynth)"){
     def msg = message1    
     LOGDEBUG("TempTalkNow - Speech Synth Message - Sending Message: $msg")   
     speechSynthNow(msg)  
         } 
     
-  else if(state.msgType == "SMS Message"){
+  if(state.msgType == "SMS Message"){
 	def msg = message1
       
 LOGDEBUG("TempTalkNow - SMS Message - Sending Message: $msg")
   sendMessage(msg)
 	}
     
-  else if(state.msgType == "PushOver Message"){
+ if(state.msgType == "PushOver Message"){
 	def msg = message1
 LOGDEBUG("TempTalkNow - PushOver Message - Sending Message: $msg")
  pushOver(1, msg)
 	}
     
     
-   else if(state.msgType == "Join Message"){
+   if(state.msgType == "Join Message"){
 	def msg = message1
 LOGDEBUG("TempTalkNow - Join Message - Sending Message: $msg")
  joinMsg(msg)
 	}
     
-   else if(state.msgType == "Play an Mp3 (No variables can be used)"){
-	mp3EventHandler()
-    if(state.soundToPlay == null){ LOGDEBUG(" Mp3 ERROR - cannot find $state.soundToPlay")} 
-    LOGDEBUG("TempTalkNow - Mp3 - Playing: $state.soundToPlay")   
-	}   
+ if(state.msgType == "Play an Mp3 (No variables can be used)"){
+			mp3EventHandler()
+    		if(state.soundToPlay == null){ LOGDEBUG(" Mp3 ERROR - cannot find $state.soundToPlay")}
+} 
     
     
     
@@ -1551,36 +1552,37 @@ if(motionActionType == true && state.motionStatus1 == 'active'){
     if(state.msgType == "Voice Message (MusicPlayer)"){
     talkSwitch()
    }          
-   else if(state.msgType == "Voice Message (SpeechSynth)"){
+
+    if(state.msgType == "Voice Message (SpeechSynth)"){
     def msg = message1    
     LOGDEBUG("MotionTalkNow - Speech Synth Message - Sending Message: $msg")   
     speechSynthNow(msg)  
         } 
       
-  else if(state.msgType == "SMS Message"){
+
+    if(state.msgType == "SMS Message"){
 	def msg = message1
 LOGDEBUG("MotionTalkNow - SMS Message - Sending Message: $msg")
   sendMessage(msg)
 	}
     
     
-  else if(state.msgType == "PushOver Message"){
+if(state.msgType == "PushOver Message"){
 	def msg = message1
 LOGDEBUG("MotionTalkNow - PushOver Message - Sending Message: $msg")
  pushOver(1, msg)
 }
     
-      else if(state.msgType == "Join Message"){
+ if(state.msgType == "Join Message"){
 	def msg = message1
 LOGDEBUG("MotionTalkNow - Join Message - Sending Message: $msg")
  joinMsg(msg)
 	}  
     
-   else if(state.msgType == "Play an Mp3 (No variables can be used)"){
-	mp3EventHandler()
-    if(state.soundToPlay == null){ LOGDEBUG(" Mp3 ERROR - cannot find $state.soundToPlay")} 
-       else{LOGDEBUG("MotionTalkNow - Mp3 - Playing: $state.soundToPlay") }  
-	}   
+ if(state.msgType == "Play an Mp3 (No variables can be used)"){
+			mp3EventHandler()
+    		if(state.soundToPlay == null){ LOGDEBUG(" Mp3 ERROR - cannot find $state.soundToPlay")}
+}   
 }
     
 if(motionActionType == false && state.motionStatus1 == 'inactive'){
@@ -1589,34 +1591,33 @@ if(motionActionType == false && state.motionStatus1 == 'inactive'){
     if(state.msgType == "Voice Message (MusicPlayer)"){
     talkSwitch()
    }          
-  else if(state.msgType == "Voice Message (SpeechSynth)"){
+ if(state.msgType == "Voice Message (SpeechSynth)"){
     def msg = message1    
     LOGDEBUG("MotionTalkNow - Speech Synth Message - Sending Message: $msg")   
     speechSynthNow(msg)  
         }      
-  else if(state.msgType == "SMS Message"){
+ if(state.msgType == "SMS Message"){
 	def msg = message1
 LOGDEBUG("MotionTalkNow - SMS Message - Sending Message: $msg")
   sendMessage(msg)
 	}
     
-  else if(state.msgType == "PushOver Message"){
+if(state.msgType == "PushOver Message"){
 	def msg = message1
 LOGDEBUG("MotionTalkNow - PushOver Message - Sending Message: $msg")
  pushOver(1, msg)
 }
 
-   else if(state.msgType == "Join Message"){
+if(state.msgType == "Join Message"){
 	def msg = message1
 LOGDEBUG("MotionTalkNow - Join Message - Sending Message: $msg")
  joinMsg(msg)
 	}
     
-   else if(state.msgType == "Play an Mp3 (No variables can be used)"){
-	mp3EventHandler()
-    if(state.soundToPlay == null){ LOGDEBUG(" Mp3 ERROR - cannot find $state.soundToPlay")} 
-       else{ LOGDEBUG("MotionTalkNow - Mp3 - Playing: $state.soundToPlay")  }
-	}   
+ if(state.msgType == "Play an Mp3 (No variables can be used)"){
+			mp3EventHandler()
+    		if(state.soundToPlay == null){ LOGDEBUG(" Mp3 ERROR - cannot find $state.soundToPlay")}
+}    
 }
 }
 
@@ -1667,35 +1668,34 @@ if (state.openContact == 'open'){
     if(state.msgType == "Voice Message (MusicPlayer)"){
     talkSwitch()
    }          
-     else if(state.msgType == "Voice Message (SpeechSynth)"){
+ if(state.msgType == "Voice Message (SpeechSynth)"){
     def msg = message1    
     LOGDEBUG("OpenContact Speak - Speech Synth Message - Sending Message: $msg")   
     speechSynthNow(msg)  
         }
       
-  else if(state.msgType == "SMS Message"){
+if(state.msgType == "SMS Message"){
 	def msg = message1
 LOGDEBUG("tooLongOpen - SMS Message - Sending Message: $msg")
   sendMessage(msg)
 	}
    
-   else if(state.msgType == "PushOver Message"){
+if(state.msgType == "PushOver Message"){
 	def msg = message1
 LOGDEBUG("tooLongOpen - PushOver Message - Sending Message: $msg")
  pushOver(1, msg)
 }
     
-      else if(state.msgType == "Join Message"){
+if(state.msgType == "Join Message"){
 	def msg = message1
 LOGDEBUG("tooLongOpen - Join Message - Sending Message: $msg")
  joinMsg(msg)
 	}
     
-   else if(state.msgType == "Play an Mp3 (No variables can be used)"){
-	mp3EventHandler()
-    if(state.soundToPlay == null){ LOGDEBUG(" Mp3 ERROR - cannot find $state.soundToPlay")} 
-       else{ LOGDEBUG("tooLongOpen - Mp3 - Playing: $state.soundToPlay")  }
-	}      
+ if(state.msgType == "Play an Mp3 (No variables can be used)"){
+			mp3EventHandler()
+    		if(state.soundToPlay == null){ LOGDEBUG(" Mp3 ERROR - cannot find $state.soundToPlay")}
+}      
   }
  }
 
@@ -1732,7 +1732,7 @@ def modeRequired = newMode1
         LOGDEBUG("not an exact match")
           
       }
-	else if(state.modeNow == modeRequired){
+	 if(state.modeNow == modeRequired){
     
    	LOGDEBUG("Mode is now $modeRequired")
     
@@ -1742,36 +1742,35 @@ checkVolume()
 LOGDEBUG("Speaker(s) in use: $speaker set at: $state.volume% - waiting $mydelay seconds before continuing..."  )
 runIn(mydelay, talkSwitch)
 }
-   else if(state.msgType == "Voice Message (SpeechSynth)"){
+ if(state.msgType == "Voice Message (SpeechSynth)"){
     def msg = message1    
     LOGDEBUG("Mode - Speech Synth Message - Sending Message: $msg")   
     speechSynthNow(msg)  
         }	
 
-else if(state.msgType == "SMS Message"){
+if(state.msgType == "SMS Message"){
 def msg = message1
 LOGDEBUG("Mode Change - SMS Message - Sending Message: $msg")
   sendMessage(msg)
 	} 
 
-else if(state.msgType == "PushOver Message"){
+ if(state.msgType == "PushOver Message"){
 	def msg = message1
 LOGDEBUG("Mode Change - PushOver Message - Sending Message: $msg")
  pushOver(1, msg)
 
    }
         
-      else if(state.msgType == "Join Message"){
+if(state.msgType == "Join Message"){
 	def msg = message1
 LOGDEBUG("Mode Change - Join Message - Sending Message: $msg")
  joinMsg(msg)
 	}
         
-   else if(state.msgType == "Play an Mp3 (No variables can be used)"){
-	mp3EventHandler()
-    if(state.soundToPlay == null){ LOGDEBUG(" Mp3 ERROR - cannot find $state.soundToPlay")} 
-       else{ LOGDEBUG("Mode Change - Mp3 - Playing: $state.soundToPlay")  }
-	}        
+ if(state.msgType == "Play an Mp3 (No variables can be used)"){
+			mp3EventHandler()
+    		if(state.soundToPlay == null){ LOGDEBUG(" Mp3 ERROR - cannot find $state.soundToPlay")}
+}        
 }
 }
  }
@@ -1980,6 +1979,11 @@ LOGDEBUG("Time - PushOver - PushOver Message - Sending Message: $msg")
 LOGDEBUG("Time - Join Message - Sending Message: $msg")
  joinMsg(state.fullPhrase)
 	}
+        
+ if(state.msgType == "Play an Mp3 (No variables can be used)"){
+			mp3EventHandler()
+    		if(state.soundToPlay == null){ LOGDEBUG(" Mp3 ERROR - cannot find $state.soundToPlay")}
+}         
 
     }
 }
@@ -2192,9 +2196,7 @@ LOGDEBUG("Switch - Join Message - Sending Message: $msg - $state.nameOfDevice")
     if(state.soundToPlay == null){ LOGDEBUG(" Mp3 ERROR - cannot find $state.soundToPlay")} 
       
          }   
-         
-         
-	}        
+}        
     
     
     
@@ -2260,8 +2262,9 @@ LOGDEBUG("Contact - SMS Message - Sending Message: $state.fullPhrase")
    compileMsg(msg)    
     LOGDEBUG("Contact - Speech Synth Message - Sending Message: $msg")   
     speechSynthNow(state.fullPhrase)  
-        }     
+        }
      
+    
  }     
          
     
@@ -2300,7 +2303,21 @@ LOGDEBUG("Contact - Join Message - Sending Message: $state.fullPhrase")
 
 }
 
-	}     
+	} 
+    
+          if(state.msgType == "Play an Mp3 (No variables can be used)"){
+         if(state.talkcontact == 'open' && state.mp3Switch == true){
+	mp3EventHandler()
+    if(state.soundToPlay == null){ LOGDEBUG(" Mp3 ERROR - cannot find $state.soundToPlay")} 
+      
+         } 
+         
+        if(state.talkswitch1 == 'off' && state.mp3Switch == false){
+	mp3EventHandler()
+    if(state.soundToPlay == null){ LOGDEBUG(" Mp3 ERROR - cannot find $state.soundToPlay")} 
+      
+         }   
+}     
     
 }
 
@@ -2317,10 +2334,10 @@ state.msg2 = message2
 
 if(state.msgType == "Voice Message (MusicPlayer)"){
         
-	if(state.talkwater == 'locked'){
+	if(state.talklock == 'locked'){
 state.msgNow = 'oneNow'
 	}
-	else if (state.talkwater == 'unlocked'){
+	else if (state.talklock == 'unlocked'){
 state.msgNow = 'twoNow'
 	}
 
@@ -2331,13 +2348,13 @@ LOGDEBUG( "Speaker(s) in use: $speaker set at: $state.volume% - waiting $mydelay
 runIn(mydelay, talkSwitch)
 	}
   if(state.msgType == "Voice Message (SpeechSynth)"){
-     if(state.talkwater == 'locked' && state.msg1 != null){
+     if(state.talklock == 'locked' && state.msg1 != null){
    def msg = message1     
    compileMsg(msg)    
    LOGDEBUG("Lock - Speech Synth Message - Sending Message: $msg") 
    speechSynthNow(state.fullPhrase) 
         }
-     if(state.talkwater == 'unlocked' && state.msg2 != null){
+     if(state.talklock == 'unlocked' && state.msg2 != null){
      def msg = message2     
    compileMsg(msg)    
     LOGDEBUG("Lock - Speech Synth Message - Sending Message: $msg")   
@@ -2351,7 +2368,7 @@ runIn(mydelay, talkSwitch)
     
     
 if(state.msgType == "SMS Message"){
-	if(state.talkwater == 'locked' && state.msg1 != null){
+	if(state.talklock == 'locked' && state.msg1 != null){
 def msg = message1
         compileMsg(msg)
 LOGDEBUG("Lock - SMS Message - Sending Message: $state.fullPhrase")
@@ -2359,7 +2376,7 @@ LOGDEBUG("Lock - SMS Message - Sending Message: $state.fullPhrase")
 
 }
 
-	else if(state.talkwater == 'unlocked' && state.msg2 != null){
+	else if(state.talklock == 'unlocked' && state.msg2 != null){
 def msg = message2
         compileMsg(msg)
 LOGDEBUG("Lock - SMS Message - Sending Message: $state.fullPhrase")
@@ -2368,7 +2385,7 @@ LOGDEBUG("Lock - SMS Message - Sending Message: $state.fullPhrase")
 }    
 }    
 if(state.msgType == "PushOver Message"){
-	if(state.talkwater == 'locked' && state.msg1 != null){
+	if(state.talklock == 'locked' && state.msg1 != null){
 def msg = message1
         compileMsg(msg)
 LOGDEBUG("Lock - PushOver Message - Sending Message: $state.fullPhrase")
@@ -2376,7 +2393,7 @@ LOGDEBUG("Lock - PushOver Message - Sending Message: $state.fullPhrase")
 
 }
 
-	else if(state.talkwater == 'unlocked' && state.msg2 != null){
+	else if(state.talklock == 'unlocked' && state.msg2 != null){
 def msg = message2
         compileMsg(msg)
 LOGDEBUG("Lock - PushOver Message - Sending Message: $state.fullPhrase")
@@ -2384,11 +2401,19 @@ LOGDEBUG("Lock - PushOver Message - Sending Message: $state.fullPhrase")
 
 }    
 }    
-     if(state.msgType == "Play an Mp3 (No variables can be used)"){
+              if(state.msgType == "Play an Mp3 (No variables can be used)"){
+         if(state.talklock == 'locked' && state.mp3Switch == true){
 	mp3EventHandler()
-    if(state.soundToPlay == null){ LOGDEBUG(" Mp3 ERROR - cannot find mp3")} 
-       else{ LOGDEBUG("Lock - Mp3 - Playing: $state.soundToPlay")  }
-	}  
+    if(state.soundToPlay == null){ LOGDEBUG(" Mp3 ERROR - cannot find $state.soundToPlay")} 
+      
+         } 
+         
+        if(state.talklock == 'unlocked' && state.mp3Switch == false){
+	mp3EventHandler()
+    if(state.soundToPlay == null){ LOGDEBUG(" Mp3 ERROR - cannot find $state.soundToPlay")} 
+      
+         }   
+} 
 }
 
 
@@ -2471,7 +2496,22 @@ LOGDEBUG("Water - SMS Message - Sending Message: $state.fullPhrase")
  pushOver(2, state.fullPhrase)
 
 }    
-}    
+}
+    
+     if(state.msgType == "Play an Mp3 (No variables can be used)"){
+         if(state.talkwater == 'wet' && state.mp3Switch == true){
+	mp3EventHandler()
+    if(state.soundToPlay == null){ LOGDEBUG(" Mp3 ERROR - cannot find $state.soundToPlay")} 
+      
+         } 
+         
+        if(state.talkwater == 'dry' && state.mp3Switch == false){
+	mp3EventHandler()
+    if(state.soundToPlay == null){ LOGDEBUG(" Mp3 ERROR - cannot find $state.soundToPlay")} 
+      
+         }   
+}
+    
  
 }
 
@@ -2569,7 +2609,19 @@ LOGDEBUG("Presence - Join Message - Sending Message: $state.fullPhrase")
 }    
 } 
 
-
+     if(state.msgType == "Play an Mp3 (No variables can be used)"){
+         if(state.talkpresence == 'present' && state.mp3Switch == true){
+	mp3EventHandler()
+    if(state.soundToPlay == null){ LOGDEBUG(" Mp3 ERROR - cannot find $state.soundToPlay")} 
+      
+         } 
+         
+        if(state.talkpresence == 'not present' && state.mp3Switch == false){
+	mp3EventHandler()
+    if(state.soundToPlay == null){ LOGDEBUG(" Mp3 ERROR - cannot find $state.soundToPlay")} 
+      
+         }   
+}
 
 }
 
@@ -2685,8 +2737,7 @@ def speakNow(){
             if(state.msgType == "Play an Mp3 (No variables can be used)"){
 			mp3EventHandler()
     		if(state.soundToPlay == null){ LOGDEBUG(" Mp3 ERROR - cannot find $state.soundToPlay")} 
-       		else{ LOGDEBUG("Power - Mp3 - Playing: $state.soundToPlay")  }
-            startTimerPower()    
+       		startTimerPower()    
 	}
 		}    
   		if(state.presenceRestriction ==  false || state.presenceRestriction1 ==  false){
@@ -3765,7 +3816,7 @@ def updateCheck(){
 
 
 def setVersion(){
-		state.version = "12.3.1"	 
+		state.version = "12.3.2"	 
 		state.InternalName = "MCchild" 
     	state.ExternalName = "Message Central Child"
 }
