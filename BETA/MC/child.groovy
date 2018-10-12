@@ -246,7 +246,7 @@ subscribe(openSensor, "contact", tooLongOpen)
 state.timeDelay = 0
 	}
     
-else if(trigger == 'Lock'){
+else if(trigger == 'Lock/Unlock'){
     LOGDEBUG("trigger is $trigger")
 subscribe(lock1, "lock" , lockTalkNow) 
      
