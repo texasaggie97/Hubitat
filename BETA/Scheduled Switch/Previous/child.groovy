@@ -33,11 +33,11 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 12/10/2018
+ *  Last Update: 08/10/2018
  *
  *  Changes:
  *
- *  V1.2.0 - Added pause switch
+ * 
  *  V1.1.0 - Added 'return' option
  *  V1.0.1 - Code cleanup & revised version checking - Debug - March was not working correctly when selected
  *  V1.0.0 - POC 
@@ -69,8 +69,6 @@ section ("") {
  
  }
  display()
-   
-    
 	 section(){
 		input "switch1",  "capability.switch",  title: "Switch to Schedule", multiple: false, required: true
 	  
@@ -124,10 +122,9 @@ def initialize() {
     state.return = return1
     if(state.return == true){
     calculateCron2()    
+        
     }
-   state.pauseApp = false
-    
-    
+   
 }
 
 
@@ -192,7 +189,6 @@ state.schedule2 = "0 ${state.selectedMin2} ${state.selectedHour2} ${state.select
 
 
 def switchNow1(){
-    if(state.pauseApp == false){
 state.switchMode = mode1
     
     if(state.switchMode == true){
@@ -203,10 +199,9 @@ state.switchMode = mode1
         log.info "It's $state.selectedHour:$state.selectedMin on $state.selectedMonth $state.selectedDate so switching off: $switch1"
         switch1.off()
     } 
-    }   
+    
 }
 def switchNow2(){
-    if(state.pauseApp == false){
 state.switchMode = mode2
     
     if(state.switchMode == true){
@@ -217,7 +212,7 @@ state.switchMode = mode2
         log.info "It's $state.selectedHour2:$state.selectedMin2 on $state.selectedMonth2 $state.selectedDate2 so switching off: $switch1"
         switch1.off()
     } 
-    }   
+    
 }
 
 
@@ -252,23 +247,6 @@ def display(){
        paragraph "$state.Status"
        paragraph "$state.updateInfo"
     }
-    }
-    
-     section(){
-    input "pause1", "bool", title: "Pause This App", required: true, submitOnChange: true, defaultValue: false  
-        if(pause1 == true){
-            if(app.label.contains('red')){log.warn "Already Paused"}
-               else{app.updateLabel(app.label + (" <font color = 'red'>(Paused) </font>" ))}
-            state.pauseApp = true
-        log.warn "App Paused"
-    }                 
-     if(pause1 == false){
-          if(app.label.contains('red')){
-        app.updateLabel(app.label.minus("<font color = 'red'>(Paused) </font>"  ))
-              state.pauseApp = false
-       log.info "App Released"
-    }
-     }
     }
 }
 
@@ -310,7 +288,7 @@ def setAppVersion(){
      state.version = "1.1.0"
      state.InternalName = "SchedSwitchchild"
      state.Type = "Application"
-
+ //  state.Type = "Driver"
 
 }
  
