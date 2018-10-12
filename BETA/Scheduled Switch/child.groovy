@@ -33,11 +33,11 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 12/10/2018
+ *  Last Update: 08/10/2018
  *
  *  Changes:
  *
- *  V1.2.0 - Added pause switch
+ *  V1.2.0 - Added 'pause' switch
  *  V1.1.0 - Added 'return' option
  *  V1.0.1 - Code cleanup & revised version checking - Debug - March was not working correctly when selected
  *  V1.0.0 - POC 
@@ -118,7 +118,8 @@ def updated() {
 
 def initialize() {
     version()
-    state.switchMode == true
+    state.switchMode == false
+    state.switchMode2 == false
 	subscribe(switch1, "switch", switchHandler1)
     calculateCron1()
     state.return = return1
@@ -207,13 +208,13 @@ state.switchMode = mode1
 }
 def switchNow2(){
     if(state.pauseApp == false){
-state.switchMode = mode2
+state.switchMode2 = mode2
     
-    if(state.switchMode == true){
+    if(state.switchMode2 == true){
         log.info "It's $state.selectedHour2:$state.selectedMin2 on $state.selectedMonth2 $state.selectedDate2 so switching on: $switch1"
         switch1.on()
     } 
-        if(state.switchMode == false){
+        if(state.switchMode2 == false){
         log.info "It's $state.selectedHour2:$state.selectedMin2 on $state.selectedMonth2 $state.selectedDate2 so switching off: $switch1"
         switch1.off()
     } 
@@ -307,7 +308,7 @@ def updatecheck(){
 }        
 
 def setAppVersion(){
-     state.version = "1.1.0"
+     state.version = "1.2.0"
      state.InternalName = "SchedSwitchchild"
      state.Type = "Application"
 
