@@ -33,11 +33,13 @@
  *-------------------------------------------------------------------------------------------------------------------
  *
  *
- *  Last Update: 11/10/2018
+ *  Last Update: 12/10/2018
  *
  *  Changes:
  *
- *  V12.3.2 - Debug locks & mp3
+ *
+ *  V12.3.3 - Debug lock trigger
+ *  V12.3.2 - Debug mp3 playback - Now fixed!
  *  V12.3.1 - Added optional pushover message for updates
  *  V12.3.0 - Added %alert% as a variable for use with weather devices
  *	V12.2.1 - Revised auto update checking and added manual check for update button
@@ -246,7 +248,7 @@ state.timeDelay = 0
     
 else if(trigger == 'Lock'){
     LOGDEBUG("trigger is $trigger")
-subscribe(lock1, "lock" , LockTalkNow) 
+subscribe(lock1, "lock" , lockTalkNow) 
      
 	}        
 
@@ -2401,7 +2403,7 @@ LOGDEBUG("Lock - PushOver Message - Sending Message: $state.fullPhrase")
 
 }    
 }    
-              if(state.msgType == "Play an Mp3 (No variables can be used)"){
+     if(state.msgType == "Play an Mp3 (No variables can be used)"){
          if(state.talklock == 'locked' && state.mp3Switch == true){
 	mp3EventHandler()
     if(state.soundToPlay == null){ LOGDEBUG(" Mp3 ERROR - cannot find $state.soundToPlay")} 
@@ -3157,6 +3159,7 @@ private compileMsg(msg) {
     if (msgComp.toUpperCase().contains("%GROUP1%")) {msgComp = msgComp.toUpperCase().replace('%GROUP1%', getPre() )}
     if (msgComp.toUpperCase().contains("%GROUP2%")) {msgComp = msgComp.toUpperCase().replace('%GROUP2%', getPost() )}
     if (msgComp.toUpperCase().contains("%GROUP3%")) {msgComp = msgComp.toUpperCase().replace('%GROUP3%', getWakeUp() )}
+    if (msgComp.toUpperCase().contains("%GROUP4%")) {msgComp = msgComp.toUpperCase().replace('%GROUP4%', getGroup4() )}
     if (msgComp.toUpperCase().contains("%ALERT%")) {msgComp = msgComp.toUpperCase().replace('%ALERT%', state.weatherAlert1 )}
     if (msgComp.toUpperCase().contains("%WNOW%")) {msgComp = msgComp.toUpperCase().replace('%WNOW%', state.weatherNow )}
     if (msgComp.toUpperCase().contains("%RAIN%")) {msgComp = msgComp.toUpperCase().replace('%RAIN%', state.weatherChanceOfRain )}
@@ -3172,18 +3175,16 @@ private compileMsg(msg) {
     if (msgComp.toUpperCase().contains("%WSUM%")) {msgComp = msgComp.toUpperCase().replace('%WSUM%', state.weatherSummary )} 
     if (msgComp.toUpperCase().contains("%TIME%")) {msgComp = msgComp.toUpperCase().replace('%TIME%', getTime(false,true))}  
     if (msgComp.toUpperCase().contains(":")) {msgComp = msgComp.toUpperCase().replace(':', ' ')}
+    if (msgComp.toUpperCase().contains("!")) {msgComp = msgComp.toUpperCase().replace('!', ' ')}
     if (msgComp.toUpperCase().contains("%DAY%")) {msgComp = msgComp.toUpperCase().replace('%DAY%', getDay() )}  
 	if (msgComp.toUpperCase().contains("%DATE%")) {msgComp = msgComp.toUpperCase().replace('%DATE%', getdate() )}  
     if (msgComp.toUpperCase().contains("%YEAR%")) {msgComp = msgComp.toUpperCase().replace('%YEAR%', getyear() )}  
  	if (msgComp.toUpperCase().contains("%OPENCONTACT%")) {msgComp = msgComp.toUpperCase().replace('%OPENCONTACT%', getContactReportOpen() )}  
     if (msgComp.toUpperCase().contains("%CLOSEDCONTACT%")) {msgComp = msgComp.toUpperCase().replace('%CLOSEDCONTACT%', getContactReportClosed() )} 
     if (msgComp.toUpperCase().contains("%MODE%")) {msgComp = msgComp.toUpperCase().replace('%MODE%', state.modeNow )}
-    
-    if (msgComp.toUpperCase().contains("%OPENCOUNT%")) {msgComp = msgComp.toUpperCase().replace('%OPENCOUNT%', getContactOpenCount() )}  
+	if (msgComp.toUpperCase().contains("%OPENCOUNT%")) {msgComp = msgComp.toUpperCase().replace('%OPENCOUNT%', getContactOpenCount() )}  
     if (msgComp.toUpperCase().contains("%CLOSEDCOUNT%")) {msgComp = msgComp.toUpperCase().replace('%CLOSEDCOUNT%', getContactClosedCount() )} 
- 
-    
-	if (msgComp.toUpperCase().contains("%DEVICE%")) {msgComp = msgComp.toUpperCase().replace('%DEVICE%', getNameofDevice() )}  
+ 	if (msgComp.toUpperCase().contains("%DEVICE%")) {msgComp = msgComp.toUpperCase().replace('%DEVICE%', getNameofDevice() )}  
 	if (msgComp.toUpperCase().contains("%EVENT%")) {msgComp = msgComp.toUpperCase().replace('%EVENT%', getWhatHappened() )}  
     if (msgComp.toUpperCase().contains("%GREETING%")) {msgComp = msgComp.toUpperCase().replace('%GREETING%', getGreeting() )}      
     if (msgComp.toUpperCase().contains("N/A")) {msgComp = msgComp.toUpperCase().replace('N/A', ' ' )}
@@ -3408,7 +3409,11 @@ LOGDEBUG("hour24 = $hour24 -  So converting hours to 24hr format")
     	  if(timeampm.contains ("pm")){timeampm = timeampm.replace("pm", " ")}
      else if(timeampm.contains ("am")){timeampm = timeampm.replace("am", " ")}
       }
-      
+     if (timemm == "00" && hour24 == false) {
+     LOGDEBUG("timemm = 00  - So changing to o'clock")
+     timemm = timemm.replace("00", "o'clock")
+     }
+    
 else if (timemm == "1") {timemm = timemm.replace("1", "01")}
 else if (timemm == "2") {timemm = timemm.replace("2", "02")}
 else if (timemm == "3") {timemm = timemm.replace("3", "03")}
@@ -3419,12 +3424,7 @@ else if (timemm == "7") {timemm = timemm.replace("7", "07")}
 else if (timemm == "8") {timemm = timemm.replace("8", "08")}  
 else if (timemm == "9") {timemm = timemm.replace("9", "09")}  
 
-         
- 
- 
- 
- 
- 
+
  LOGDEBUG("timeHH Now = $timeHH")
     def timestring = "${timeHH}:${timemm}"
     if (includeSeconds) { timestring += ":${timess}" }
@@ -3616,7 +3616,7 @@ private getGroup3(msgWakeitem) {
         "I am not asking again.  Wake Up!",
         "Rise and shine! It's time to get up!",
         "Don't make me come over there. Get out of bed!,NOW!",
-        "I am going to start counting!"    
+        "I am going to start counting! ,,, 5 ,,, 4 ,,, 3,,, 2 ,,, 1"    
     ]
     if(state.wakeCount>10){
         for(int i = 10;i<state.wakeCount;i++) {
@@ -3680,10 +3680,10 @@ private getGroup4(msgPostitem) {
         LOGDEBUG("randomKey4 = $randomKey4") 
         msgPost = postList[randomKey4]
     } else {
-        msgPost = postList[msgPostitem]
+        msgPos1t = postList[msgPostitem]
     }
 
-	return msgPost
+	return msgPost1
 }
 
 
@@ -3816,7 +3816,7 @@ def updateCheck(){
 
 
 def setVersion(){
-		state.version = "12.3.2"	 
+		state.version = "12.3.3"	 
 		state.InternalName = "MCchild" 
     	state.ExternalName = "Message Central Child"
 }
