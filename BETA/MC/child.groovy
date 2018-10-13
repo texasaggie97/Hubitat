@@ -33,11 +33,11 @@
  *-------------------------------------------------------------------------------------------------------------------
  *
  *
- *  Last Update: 12/10/2018
+ *  Last Update: 13/10/2018
  *
  *  Changes:
  *
- *
+ *  V12.3.4 - Debug 'Join' message on Lock/Unlock
  *  V12.3.3 - Debug lock trigger
  *  V12.3.2 - Debug mp3 playback - Now fixed!
  *  V12.3.1 - Added optional pushover message for updates
@@ -2416,6 +2416,26 @@ LOGDEBUG("Lock - PushOver Message - Sending Message: $state.fullPhrase")
       
          }   
 } 
+    
+    
+    if(state.msgType == "Join Message"){
+	if(state.talklock == 'locked' && state.msg1 != null){
+def msg = message1
+        compileMsg(msg)
+LOGDEBUG("Locked - Join Message - Sending Message: $state.fullPhrase")
+ joinMsg(state.fullPhrase)
+
+}
+
+	else if (state.talklock == 'unlocked' && state.msg2 != null){
+def msg = message2
+        compileMsg(msg)
+LOGDEBUG("Unlocked - Join Message - Sending Message: $state.fullPhrase")
+  joinMsg(state.fullPhrase)
+
+}
+
+	} 
 }
 
 
@@ -3174,8 +3194,6 @@ private compileMsg(msg) {
     if (msgComp.toUpperCase().contains("%HIGH%")) {msgComp = msgComp.toUpperCase().replace('%HIGH%', state.weatherForecastHigh )} 
     if (msgComp.toUpperCase().contains("%WSUM%")) {msgComp = msgComp.toUpperCase().replace('%WSUM%', state.weatherSummary )} 
     if (msgComp.toUpperCase().contains("%TIME%")) {msgComp = msgComp.toUpperCase().replace('%TIME%', getTime(false,true))}  
-    if (msgComp.toUpperCase().contains(":")) {msgComp = msgComp.toUpperCase().replace(':', ' ')}
-    if (msgComp.toUpperCase().contains("!")) {msgComp = msgComp.toUpperCase().replace('!', ' ')}
     if (msgComp.toUpperCase().contains("%DAY%")) {msgComp = msgComp.toUpperCase().replace('%DAY%', getDay() )}  
 	if (msgComp.toUpperCase().contains("%DATE%")) {msgComp = msgComp.toUpperCase().replace('%DATE%', getdate() )}  
     if (msgComp.toUpperCase().contains("%YEAR%")) {msgComp = msgComp.toUpperCase().replace('%YEAR%', getyear() )}  
@@ -3189,6 +3207,8 @@ private compileMsg(msg) {
     if (msgComp.toUpperCase().contains("%GREETING%")) {msgComp = msgComp.toUpperCase().replace('%GREETING%', getGreeting() )}      
     if (msgComp.toUpperCase().contains("N/A")) {msgComp = msgComp.toUpperCase().replace('N/A', ' ' )}
 	if (msgComp.toUpperCase().contains("NO STATION DATA")) {msgComp = msgComp.toUpperCase().replace('NO STATION DATA', ' ' )}
+    if (msgComp.toUpperCase().contains(":")) {msgComp = msgComp.toUpperCase().replace(':', ' ')}
+    if (msgComp.toUpperCase().contains("!")) {msgComp = msgComp.toUpperCase().replace('!', ' ')}
     LOGDEBUG("1st Stage Compile (Pre weather processing) = $msgComp")
     convertWeatherMessage(msgComp)
   	LOGDEBUG("2nd Stage Compile (Post weather processing) = $state.fullPhrase")
@@ -3374,6 +3394,7 @@ private getTime(includeSeconds, includeAmPm){
     def timeampm = calendar.get(Calendar.AM_PM) ? "pm" : "am" 
     
 LOGDEBUG("timeHH = $timeHH")
+LOGDEBUG("timemm = $timemm")
  
  if (timeHH == "0") {timeHH = timeHH.replace("0", "12")}   //  Changes hours so it doesn't say 0 for 12 midday/midnight
 //     if(state.msgType == "Voice Message"){
@@ -3402,30 +3423,28 @@ LOGDEBUG("hour24 = $hour24 -  So converting hours to 24hr format")
      else if(timeampm.contains ("am")){timeampm = timeampm.replace("am", " ")}
       }
  }
- 
-     if (timemm == "0" && hour24 == false) {
-     LOGDEBUG("timemm = 0  - So changing to o'clock")
+    if(hour24 == false){
+     if (timemm == "0" || timemm == "00" || timemm == null){
+     LOGDEBUG("timemm = $timemm  - So changing to o'clock")
      timemm = timemm.replace("0", "o'clock")
-    	  if(timeampm.contains ("pm")){timeampm = timeampm.replace("pm", " ")}
-     else if(timeampm.contains ("am")){timeampm = timeampm.replace("am", " ")}
+     if(timeampm.contains ("pm")){timeampm = timeampm.replace("pm", " ")}
+     if(timeampm.contains ("am")){timeampm = timeampm.replace("am", " ")}
       }
-     if (timemm == "00" && hour24 == false) {
-     LOGDEBUG("timemm = 00  - So changing to o'clock")
-     timemm = timemm.replace("00", "o'clock")
-     }
-    
-else if (timemm == "1") {timemm = timemm.replace("1", "01")}
-else if (timemm == "2") {timemm = timemm.replace("2", "02")}
-else if (timemm == "3") {timemm = timemm.replace("3", "03")}
-else if (timemm == "4") {timemm = timemm.replace("4", "04")}  
-else if (timemm == "5") {timemm = timemm.replace("5", "05")}  
-else if (timemm == "6") {timemm = timemm.replace("6", "06")}  
-else if (timemm == "7") {timemm = timemm.replace("7", "07")}  
-else if (timemm == "8") {timemm = timemm.replace("8", "08")}  
-else if (timemm == "9") {timemm = timemm.replace("9", "09")}  
 
+    
+	if (timemm == "1") {timemm = timemm.replace("1", "01")}
+	if (timemm == "2") {timemm = timemm.replace("2", "02")}
+	if (timemm == "3") {timemm = timemm.replace("3", "03")}
+	if (timemm == "4") {timemm = timemm.replace("4", "04")}  
+	if (timemm == "5") {timemm = timemm.replace("5", "05")}  
+	if (timemm == "6") {timemm = timemm.replace("6", "06")}  
+	if (timemm == "7") {timemm = timemm.replace("7", "07")}  
+	if (timemm == "8") {timemm = timemm.replace("8", "08")}  
+	if (timemm == "9") {timemm = timemm.replace("9", "09")}  
+}
 
  LOGDEBUG("timeHH Now = $timeHH")
+ LOGDEBUG("timemm Now = $timemm")   
     def timestring = "${timeHH}:${timemm}"
     if (includeSeconds) { timestring += ":${timess}" }
     if (includeAmPm) { timestring += " ${timeampm}" }
@@ -3816,7 +3835,7 @@ def updateCheck(){
 
 
 def setVersion(){
-		state.version = "12.3.3"	 
+		state.version = "12.3.4"	 
 		state.InternalName = "MCchild" 
     	state.ExternalName = "Message Central Child"
 }
