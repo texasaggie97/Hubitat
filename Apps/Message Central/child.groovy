@@ -33,10 +33,16 @@
  *-------------------------------------------------------------------------------------------------------------------
  *
  *
- *  Last Update: 08/10/2018
+ *  Last Update: 16/10/2018
  *
  *  Changes:
  *
+ *
+ *  V12.4.0 - Added new trigger: 'Weather Alerts' will alert if weather device reports a change in 'Alert' attribute
+ *  V12.3.5 - Fixed issue with '0 pm' being spoken not "o'clock" as it should be on the hour (12 hr setting)
+ *  V12.3.4 - Debug 'Join' message on Lock/Unlock
+ *  V12.3.3 - Debug lock trigger
+ *  V12.3.2 - Debug mp3 playback - Now fixed!
  *  V12.3.1 - Added optional pushover message for updates
  *  V12.3.0 - Added %alert% as a variable for use with weather devices
  *	V12.2.1 - Revised auto update checking and added manual check for update button
@@ -141,6 +147,7 @@ def updated() {
 }
 
 def initialize() {
+    state.oldAlert = null  // for testing
 	  log.info "Initialised with settings: ${settings}"
       
       logCheck()
@@ -152,6 +159,7 @@ def initialize() {
       state.timeDelay = 0
 	  state.duration = 30
       state.mp3Timer = true
+  	  state.mp3Switch = mp3Action
     
       if (!restrictPresenceSensor){
       state.presenceRestriction = true
@@ -169,7 +177,7 @@ def initialize() {
 // Subscriptions    
 
 subscribe(enableSwitch, "switch", switchEnable)
-subscribe(location, "mode", modeChangeHandler)
+subscribe(location, "mode", modeHandler)
 
 if(trigger == 'Time'){
    LOGDEBUG("Trigger is $trigger")
@@ -232,7 +240,7 @@ subscribe(tempSensor, "temperature" , tempTalkNow)
 
 else if(trigger == 'Mode Change'){
     LOGDEBUG("trigger is $trigger")
-// subscribe(location, "mode", modeChangeHandler)
+ subscribe(location, "mode", modeChangeHandler)
 
 	}
     
@@ -242,9 +250,9 @@ subscribe(openSensor, "contact", tooLongOpen)
 state.timeDelay = 0
 	}
     
-else if(trigger == 'Lock'){
+else if(trigger == 'Lock/Unlock'){
     LOGDEBUG("trigger is $trigger")
-subscribe(lock1, "lock" , LockTalkNow) 
+subscribe(lock1, "lock" , lockTalkNow) 
      
 	}        
 
@@ -272,6 +280,7 @@ subscribe(restrictPresenceSensor1, "presence", restrictPresence1SensorHandler)
         subscribe(weather1, "visibility", weatherVisibility) 
  		subscribe(weather1, "chanceOfRain", weatherChanceOfRain)
     }
+    if(weather2){ subscribe(weather2, "alert", weatherAlert)}
 
 }
 
@@ -454,8 +463,8 @@ def restrictionsPage() {
        
        } 
         section("Weather Device") { 
-       input "weather1", "capability.sensor", title: "If using any of the weather variables, choose weather device", required: false, multiple: false, submitOnChange: true
-      
+       input "weather1", "capability.sensor", title: "If using any of the weather variables (Except 'Alert' trigger) choose weather device", required: false, multiple: false, submitOnChange: true
+            if (weather1){input "pollorNot", "bool", title: "Poll weather device before speaking", required: true, defaultValue: true}
        } 
            
            
@@ -554,7 +563,7 @@ def speakerInputs(){
 
 // inputs ***********************************************************************************
 def triggerInput() {
-   input "trigger", "enum", title: "How to trigger message?",required: false, submitOnChange: true, options: ["Appliance Power Monitor", "Contact", "Contact - Open Too Long", "Lock/Unlock", "Mode Change", "Motion", "Power", "Presence", "Switch", "Time", "Time if Contact Open", "Water"]
+   input "trigger", "enum", title: "How to trigger message?",required: false, submitOnChange: true, options: ["Appliance Power Monitor", "Contact", "Contact - Open Too Long", "Lock/Unlock", "Mode Change", "Motion", "Power", "Presence", "Switch", "Time", "Time if Contact Open", "Water", "Weather Alert"]
   /// "Temperature",  "Button",
 }
 
@@ -1025,7 +1034,7 @@ else if(state.selection == 'Mode Change'){
 	} 
     
  
-if(state.selection == 'Contact - Open Too Long'){
+	else if(state.selection == 'Contact - Open Too Long'){
 	input "openSensor", "capability.contactSensor", title: "Select contact sensor to trigger message", required: false, multiple: false 
    	input(name: "opendelay1", type: "number", title: "Only if it stays open for this number of minutes...", required: true, description: "this number of minutes", defaultValue: '0')
    
@@ -1091,6 +1100,34 @@ if(state.selection == 'Contact - Open Too Long'){
 	}
 }   
 
+               
+     else if(state.selection == 'Weather Alert'){
+	 input "weather2", "capability.sensor", title: "Select Weather Device", required: false, multiple: false 
+     
+    if(state.msgType == "Voice Message (MusicPlayer)" || state.msgType == "Voice Message (SpeechSynth)"){
+    input "triggerDelay", "number", title: "Delay after trigger before speaking (Enter 0 for no delay)", description: "Seconds", required: true
+   
+	}
+
+    if(state.msgType == "SMS Message"){
+    input "triggerDelay", "number", title: "Delay after trigger before sending (Enter 0 for no delay)", defaultValue: '0', description: "Seconds", required: true
+	
+   
+    	}
+    if(state.msgType == "PushOver Message"){
+    input "priority1", "enum", title: "Message Priority", required: true, submitOnChange: true, options: ["None", "Low", "Normal", "High"], defaultValue: "None"
+     }
+    
+    if(state.msgType == "Join Message"){
+   
+   
+     }
+
+	if(state.msgType == "Play an Mp3 (No variables can be used)"){
+	 input "mp3Action", "bool", title: "Play mp3 when LOCKED (ON) or UNLOCKED (OFF)? ", required: true, defaultValue: true  
+	}
+}   
+        
 }
 }
 
@@ -1112,9 +1149,59 @@ def weatherNow(evt){
   LOGDEBUG("state.weatherNow = $state.weatherNow")  
 }
 def weatherAlert(evt){
- state.weatherAlert1 = evt.value
- LOGDEBUG("Running weatherAlert.. ")
-  LOGDEBUG("state.weatherAlert1 = $state.weatherAlert1")  
+ state.weatherAlertRaw = evt.value
+ LOGDEBUG("Running weatherAlert.. Previous Alert = $state.oldAlert - Current Alert = $state.weatherAlertRaw")
+    if(state.oldAlert == state.weatherAlertRaw){
+     LOGDEBUG("No new weather alert.. ") 
+     state.weatherAlert = state.weatherAlertRaw
+    }
+    if(state.oldAlert != state.weatherAlertRaw){
+        LOGDEBUG("New weather alert received.. ") 
+    state.oldAlert = state.weatherAlertRaw
+        state.weatherAlert = state.weatherAlertRaw
+ 
+        
+        
+       if(state.msgType == "Voice Message (MusicPlayer)"){
+           state.msg1 = state.weatherAlert
+			state.msgNow = 'oneNow'
+    talkSwitch()
+   }          
+
+    if(state.msgType == "Voice Message (SpeechSynth)"){
+    def msg = state.weatherAlert    
+    LOGDEBUG("weatherNow - Speech Synth Message - Sending Message: $msg")   
+    speechSynthNow(msg)  
+        } 
+      
+
+    if(state.msgType == "SMS Message"){
+	def msg = state.weatherAlert
+LOGDEBUG("weatherNow - SMS Message - Sending Message: $msg")
+  sendMessage(msg)
+	}
+    
+    
+if(state.msgType == "PushOver Message"){
+	def msg = state.weatherAlert
+LOGDEBUG("weatherNow - PushOver Message - Sending Message: $msg")
+ pushOver(1, msg)
+}
+    
+ if(state.msgType == "Join Message"){
+	def msg = state.weatherAlert
+LOGDEBUG("weatherNow - Join Message - Sending Message: $msg")
+ joinMsg(msg)
+	}  
+    
+ if(state.msgType == "Play an Mp3 (No variables can be used)"){
+			mp3EventHandler()
+    		if(state.soundToPlay == null){ LOGDEBUG(" Mp3 ERROR - cannot find $state.soundToPlay")}
+}       
+        
+    }
+    
+  LOGDEBUG("Current Alert = $state.weatherAlert")  
 }
 
 def weatherForecastHigh(evt){
@@ -1428,14 +1515,15 @@ pushOver(2, msg)
 
 // Temperature
 def tempTalkNow(evt){
-state.tempStatus1 = evt.value as double
+state.tempStatus2 = evt.value
+state.tempStatus1 = state.tempStatus2.toDouble()
 state.nameOfDevice = evt.displayName
 state.actionEvent = evt.value
     LOGDEBUG("$state.nameOfDevice - is reporting temperature as: $state.tempStatus1")
     
 state.msg1 = message1
 state.msgNow = 'oneNow'
-def myTemp = temperature1 as int
+def myTemp = temperature1.toDouble()
 LOGDEBUG("myTemp = $myTemp")
     
  if(state.tempStatus1 > myTemp){   
@@ -1474,11 +1562,11 @@ LOGDEBUG("TempTalkNow - Join Message - Sending Message: $msg")
  joinMsg(msg)
 	}
     
-    else if(state.msgType == "Play an Mp3 (No variables can be used)"){
-	mp3EventHandler()
-    if(state.soundToPlay == null){ LOGDEBUG(" Mp3 ERROR - cannot find $state.soundToPlay")} 
-    LOGDEBUG("TempTalkNow - Mp3 - Playing: $state.soundToPlay")   
-	}   
+ if(state.msgType == "Play an Mp3 (No variables can be used)"){
+			mp3EventHandler()
+    		if(state.soundToPlay == null){ LOGDEBUG(" Mp3 ERROR - cannot find $state.soundToPlay")}
+} 
+    
 }    
     
 if(tempActionType == false && state.tempStatus1 < myTemp){
@@ -1487,37 +1575,36 @@ if(tempActionType == false && state.tempStatus1 < myTemp){
     talkSwitch()
    }          
   
-   else if(state.msgType == "Voice Message (SpeechSynth)"){
+   if(state.msgType == "Voice Message (SpeechSynth)"){
     def msg = message1    
     LOGDEBUG("TempTalkNow - Speech Synth Message - Sending Message: $msg")   
     speechSynthNow(msg)  
         } 
     
-  else if(state.msgType == "SMS Message"){
+  if(state.msgType == "SMS Message"){
 	def msg = message1
       
 LOGDEBUG("TempTalkNow - SMS Message - Sending Message: $msg")
   sendMessage(msg)
 	}
     
-  else if(state.msgType == "PushOver Message"){
+ if(state.msgType == "PushOver Message"){
 	def msg = message1
 LOGDEBUG("TempTalkNow - PushOver Message - Sending Message: $msg")
  pushOver(1, msg)
 	}
     
     
-   else if(state.msgType == "Join Message"){
+   if(state.msgType == "Join Message"){
 	def msg = message1
 LOGDEBUG("TempTalkNow - Join Message - Sending Message: $msg")
  joinMsg(msg)
 	}
     
-   else if(state.msgType == "Play an Mp3 (No variables can be used)"){
-	mp3EventHandler()
-    if(state.soundToPlay == null){ LOGDEBUG(" Mp3 ERROR - cannot find $state.soundToPlay")} 
-    LOGDEBUG("TempTalkNow - Mp3 - Playing: $state.soundToPlay")   
-	}   
+ if(state.msgType == "Play an Mp3 (No variables can be used)"){
+			mp3EventHandler()
+    		if(state.soundToPlay == null){ LOGDEBUG(" Mp3 ERROR - cannot find $state.soundToPlay")}
+} 
     
     
     
@@ -1550,36 +1637,37 @@ if(motionActionType == true && state.motionStatus1 == 'active'){
     if(state.msgType == "Voice Message (MusicPlayer)"){
     talkSwitch()
    }          
-   else if(state.msgType == "Voice Message (SpeechSynth)"){
+
+    if(state.msgType == "Voice Message (SpeechSynth)"){
     def msg = message1    
     LOGDEBUG("MotionTalkNow - Speech Synth Message - Sending Message: $msg")   
     speechSynthNow(msg)  
         } 
       
-  else if(state.msgType == "SMS Message"){
+
+    if(state.msgType == "SMS Message"){
 	def msg = message1
 LOGDEBUG("MotionTalkNow - SMS Message - Sending Message: $msg")
   sendMessage(msg)
 	}
     
     
-  else if(state.msgType == "PushOver Message"){
+if(state.msgType == "PushOver Message"){
 	def msg = message1
 LOGDEBUG("MotionTalkNow - PushOver Message - Sending Message: $msg")
  pushOver(1, msg)
 }
     
-      else if(state.msgType == "Join Message"){
+ if(state.msgType == "Join Message"){
 	def msg = message1
 LOGDEBUG("MotionTalkNow - Join Message - Sending Message: $msg")
  joinMsg(msg)
 	}  
     
-   else if(state.msgType == "Play an Mp3 (No variables can be used)"){
-	mp3EventHandler()
-    if(state.soundToPlay == null){ LOGDEBUG(" Mp3 ERROR - cannot find $state.soundToPlay")} 
-       else{LOGDEBUG("MotionTalkNow - Mp3 - Playing: $state.soundToPlay") }  
-	}   
+ if(state.msgType == "Play an Mp3 (No variables can be used)"){
+			mp3EventHandler()
+    		if(state.soundToPlay == null){ LOGDEBUG(" Mp3 ERROR - cannot find $state.soundToPlay")}
+}   
 }
     
 if(motionActionType == false && state.motionStatus1 == 'inactive'){
@@ -1588,34 +1676,33 @@ if(motionActionType == false && state.motionStatus1 == 'inactive'){
     if(state.msgType == "Voice Message (MusicPlayer)"){
     talkSwitch()
    }          
-  else if(state.msgType == "Voice Message (SpeechSynth)"){
+ if(state.msgType == "Voice Message (SpeechSynth)"){
     def msg = message1    
     LOGDEBUG("MotionTalkNow - Speech Synth Message - Sending Message: $msg")   
     speechSynthNow(msg)  
         }      
-  else if(state.msgType == "SMS Message"){
+ if(state.msgType == "SMS Message"){
 	def msg = message1
 LOGDEBUG("MotionTalkNow - SMS Message - Sending Message: $msg")
   sendMessage(msg)
 	}
     
-  else if(state.msgType == "PushOver Message"){
+if(state.msgType == "PushOver Message"){
 	def msg = message1
 LOGDEBUG("MotionTalkNow - PushOver Message - Sending Message: $msg")
  pushOver(1, msg)
 }
 
-   else if(state.msgType == "Join Message"){
+if(state.msgType == "Join Message"){
 	def msg = message1
 LOGDEBUG("MotionTalkNow - Join Message - Sending Message: $msg")
  joinMsg(msg)
 	}
     
-   else if(state.msgType == "Play an Mp3 (No variables can be used)"){
-	mp3EventHandler()
-    if(state.soundToPlay == null){ LOGDEBUG(" Mp3 ERROR - cannot find $state.soundToPlay")} 
-       else{ LOGDEBUG("MotionTalkNow - Mp3 - Playing: $state.soundToPlay")  }
-	}   
+ if(state.msgType == "Play an Mp3 (No variables can be used)"){
+			mp3EventHandler()
+    		if(state.soundToPlay == null){ LOGDEBUG(" Mp3 ERROR - cannot find $state.soundToPlay")}
+}    
 }
 }
 
@@ -1666,39 +1753,47 @@ if (state.openContact == 'open'){
     if(state.msgType == "Voice Message (MusicPlayer)"){
     talkSwitch()
    }          
-     else if(state.msgType == "Voice Message (SpeechSynth)"){
+ if(state.msgType == "Voice Message (SpeechSynth)"){
     def msg = message1    
     LOGDEBUG("OpenContact Speak - Speech Synth Message - Sending Message: $msg")   
     speechSynthNow(msg)  
         }
       
-  else if(state.msgType == "SMS Message"){
+if(state.msgType == "SMS Message"){
 	def msg = message1
 LOGDEBUG("tooLongOpen - SMS Message - Sending Message: $msg")
   sendMessage(msg)
 	}
    
-   else if(state.msgType == "PushOver Message"){
+if(state.msgType == "PushOver Message"){
 	def msg = message1
 LOGDEBUG("tooLongOpen - PushOver Message - Sending Message: $msg")
  pushOver(1, msg)
 }
     
-      else if(state.msgType == "Join Message"){
+if(state.msgType == "Join Message"){
 	def msg = message1
 LOGDEBUG("tooLongOpen - Join Message - Sending Message: $msg")
  joinMsg(msg)
 	}
     
-   else if(state.msgType == "Play an Mp3 (No variables can be used)"){
-	mp3EventHandler()
-    if(state.soundToPlay == null){ LOGDEBUG(" Mp3 ERROR - cannot find $state.soundToPlay")} 
-       else{ LOGDEBUG("tooLongOpen - Mp3 - Playing: $state.soundToPlay")  }
-	}      
+ if(state.msgType == "Play an Mp3 (No variables can be used)"){
+			mp3EventHandler()
+    		if(state.soundToPlay == null){ LOGDEBUG(" Mp3 ERROR - cannot find $state.soundToPlay")}
+}      
   }
  }
 
 // Mode Change
+
+def modeHandler(evt){
+ state.modeNow = evt.value
+state.actionEvent = evt.value
+    LOGDEBUG("state.actionEvent = $evt.value")   
+    
+    
+}
+
 
 def modeChangeHandler(evt){
 state.modeNow = evt.value
@@ -1722,7 +1817,7 @@ def modeRequired = newMode1
         LOGDEBUG("not an exact match")
           
       }
-	else if(state.modeNow == modeRequired){
+	 if(state.modeNow == modeRequired){
     
    	LOGDEBUG("Mode is now $modeRequired")
     
@@ -1732,36 +1827,35 @@ checkVolume()
 LOGDEBUG("Speaker(s) in use: $speaker set at: $state.volume% - waiting $mydelay seconds before continuing..."  )
 runIn(mydelay, talkSwitch)
 }
-   else if(state.msgType == "Voice Message (SpeechSynth)"){
+ if(state.msgType == "Voice Message (SpeechSynth)"){
     def msg = message1    
     LOGDEBUG("Mode - Speech Synth Message - Sending Message: $msg")   
     speechSynthNow(msg)  
         }	
 
-else if(state.msgType == "SMS Message"){
+if(state.msgType == "SMS Message"){
 def msg = message1
 LOGDEBUG("Mode Change - SMS Message - Sending Message: $msg")
   sendMessage(msg)
 	} 
 
-else if(state.msgType == "PushOver Message"){
+ if(state.msgType == "PushOver Message"){
 	def msg = message1
 LOGDEBUG("Mode Change - PushOver Message - Sending Message: $msg")
  pushOver(1, msg)
 
    }
         
-      else if(state.msgType == "Join Message"){
+if(state.msgType == "Join Message"){
 	def msg = message1
 LOGDEBUG("Mode Change - Join Message - Sending Message: $msg")
  joinMsg(msg)
 	}
         
-   else if(state.msgType == "Play an Mp3 (No variables can be used)"){
-	mp3EventHandler()
-    if(state.soundToPlay == null){ LOGDEBUG(" Mp3 ERROR - cannot find $state.soundToPlay")} 
-       else{ LOGDEBUG("Mode Change - Mp3 - Playing: $state.soundToPlay")  }
-	}        
+ if(state.msgType == "Play an Mp3 (No variables can be used)"){
+			mp3EventHandler()
+    		if(state.soundToPlay == null){ LOGDEBUG(" Mp3 ERROR - cannot find $state.soundToPlay")}
+}        
 }
 }
  }
@@ -1970,6 +2064,11 @@ LOGDEBUG("Time - PushOver - PushOver Message - Sending Message: $msg")
 LOGDEBUG("Time - Join Message - Sending Message: $msg")
  joinMsg(state.fullPhrase)
 	}
+        
+ if(state.msgType == "Play an Mp3 (No variables can be used)"){
+			mp3EventHandler()
+    		if(state.soundToPlay == null){ LOGDEBUG(" Mp3 ERROR - cannot find $state.soundToPlay")}
+}         
 
     }
 }
@@ -2069,11 +2168,13 @@ LOGDEBUG( "Cannot continue - $contact1 is Closed")
 
 // Switch
 def switchTalkNow(evt){
+    log.warn "talkswitch called"
 state.talkswitch1 = evt.value
 state.nameOfDevice = evt.displayName
 state.actionEvent = evt.value
 state.msg1 = message1
 state.msg2 = message2
+    
 def mydelay = triggerDelay
 
 if(state.msgType == "Voice Message (MusicPlayer)"){
@@ -2147,7 +2248,7 @@ LOGDEBUG("Switch - PushOver Message - Sending Message: $state.fullPhrase - $stat
 LOGDEBUG("Switch - PushOver Message - Sending Message: $state.fullPhrase")
  pushOver(2, state.fullPhrase)
     }
-    
+}   
     
 if(state.msgType == "Join Message"){
 LOGDEBUG("Switch - Join Message")
@@ -2169,16 +2270,24 @@ LOGDEBUG("Switch - Join Message - Sending Message: $msg - $state.nameOfDevice")
 }
     
      if(state.msgType == "Play an Mp3 (No variables can be used)"){
+         if(state.talkswitch1 == 'on' && state.mp3Switch == true){
 	mp3EventHandler()
     if(state.soundToPlay == null){ LOGDEBUG(" Mp3 ERROR - cannot find $state.soundToPlay")} 
-       else{ LOGDEBUG("Mode Change - Mp3 - Playing: $state.soundToPlay")  }
-	}        
+      
+         } 
+         
+        if(state.talkswitch1 == 'off' && state.mp3Switch == false){
+	mp3EventHandler()
+    if(state.soundToPlay == null){ LOGDEBUG(" Mp3 ERROR - cannot find $state.soundToPlay")} 
+      
+         }   
+}        
     
     
     
     
 }
-}
+
 
 
 
@@ -2238,8 +2347,9 @@ LOGDEBUG("Contact - SMS Message - Sending Message: $state.fullPhrase")
    compileMsg(msg)    
     LOGDEBUG("Contact - Speech Synth Message - Sending Message: $msg")   
     speechSynthNow(state.fullPhrase)  
-        }     
+        }
      
+    
  }     
          
     
@@ -2278,7 +2388,21 @@ LOGDEBUG("Contact - Join Message - Sending Message: $state.fullPhrase")
 
 }
 
-	}     
+	} 
+    
+          if(state.msgType == "Play an Mp3 (No variables can be used)"){
+         if(state.talkcontact == 'open' && state.mp3Switch == true){
+	mp3EventHandler()
+    if(state.soundToPlay == null){ LOGDEBUG(" Mp3 ERROR - cannot find $state.soundToPlay")} 
+      
+         } 
+         
+        if(state.talkswitch1 == 'off' && state.mp3Switch == false){
+	mp3EventHandler()
+    if(state.soundToPlay == null){ LOGDEBUG(" Mp3 ERROR - cannot find $state.soundToPlay")} 
+      
+         }   
+}     
     
 }
 
@@ -2295,10 +2419,10 @@ state.msg2 = message2
 
 if(state.msgType == "Voice Message (MusicPlayer)"){
         
-	if(state.talkwater == 'locked'){
+	if(state.talklock == 'locked'){
 state.msgNow = 'oneNow'
 	}
-	else if (state.talkwater == 'unlocked'){
+	else if (state.talklock == 'unlocked'){
 state.msgNow = 'twoNow'
 	}
 
@@ -2309,13 +2433,13 @@ LOGDEBUG( "Speaker(s) in use: $speaker set at: $state.volume% - waiting $mydelay
 runIn(mydelay, talkSwitch)
 	}
   if(state.msgType == "Voice Message (SpeechSynth)"){
-     if(state.talkwater == 'locked' && state.msg1 != null){
+     if(state.talklock == 'locked' && state.msg1 != null){
    def msg = message1     
    compileMsg(msg)    
    LOGDEBUG("Lock - Speech Synth Message - Sending Message: $msg") 
    speechSynthNow(state.fullPhrase) 
         }
-     if(state.talkwater == 'unlocked' && state.msg2 != null){
+     if(state.talklock == 'unlocked' && state.msg2 != null){
      def msg = message2     
    compileMsg(msg)    
     LOGDEBUG("Lock - Speech Synth Message - Sending Message: $msg")   
@@ -2329,7 +2453,7 @@ runIn(mydelay, talkSwitch)
     
     
 if(state.msgType == "SMS Message"){
-	if(state.talkwater == 'locked' && state.msg1 != null){
+	if(state.talklock == 'locked' && state.msg1 != null){
 def msg = message1
         compileMsg(msg)
 LOGDEBUG("Lock - SMS Message - Sending Message: $state.fullPhrase")
@@ -2337,7 +2461,7 @@ LOGDEBUG("Lock - SMS Message - Sending Message: $state.fullPhrase")
 
 }
 
-	else if(state.talkwater == 'unlocked' && state.msg2 != null){
+	else if(state.talklock == 'unlocked' && state.msg2 != null){
 def msg = message2
         compileMsg(msg)
 LOGDEBUG("Lock - SMS Message - Sending Message: $state.fullPhrase")
@@ -2346,7 +2470,7 @@ LOGDEBUG("Lock - SMS Message - Sending Message: $state.fullPhrase")
 }    
 }    
 if(state.msgType == "PushOver Message"){
-	if(state.talkwater == 'locked' && state.msg1 != null){
+	if(state.talklock == 'locked' && state.msg1 != null){
 def msg = message1
         compileMsg(msg)
 LOGDEBUG("Lock - PushOver Message - Sending Message: $state.fullPhrase")
@@ -2354,7 +2478,7 @@ LOGDEBUG("Lock - PushOver Message - Sending Message: $state.fullPhrase")
 
 }
 
-	else if(state.talkwater == 'unlocked' && state.msg2 != null){
+	else if(state.talklock == 'unlocked' && state.msg2 != null){
 def msg = message2
         compileMsg(msg)
 LOGDEBUG("Lock - PushOver Message - Sending Message: $state.fullPhrase")
@@ -2363,10 +2487,38 @@ LOGDEBUG("Lock - PushOver Message - Sending Message: $state.fullPhrase")
 }    
 }    
      if(state.msgType == "Play an Mp3 (No variables can be used)"){
+         if(state.talklock == 'locked' && state.mp3Switch == true){
 	mp3EventHandler()
-    if(state.soundToPlay == null){ LOGDEBUG(" Mp3 ERROR - cannot find mp3")} 
-       else{ LOGDEBUG("Lock - Mp3 - Playing: $state.soundToPlay")  }
-	}  
+    if(state.soundToPlay == null){ LOGDEBUG(" Mp3 ERROR - cannot find $state.soundToPlay")} 
+      
+         } 
+         
+        if(state.talklock == 'unlocked' && state.mp3Switch == false){
+	mp3EventHandler()
+    if(state.soundToPlay == null){ LOGDEBUG(" Mp3 ERROR - cannot find $state.soundToPlay")} 
+      
+         }   
+} 
+    
+    
+    if(state.msgType == "Join Message"){
+	if(state.talklock == 'locked' && state.msg1 != null){
+def msg = message1
+        compileMsg(msg)
+LOGDEBUG("Locked - Join Message - Sending Message: $state.fullPhrase")
+ joinMsg(state.fullPhrase)
+
+}
+
+	else if (state.talklock == 'unlocked' && state.msg2 != null){
+def msg = message2
+        compileMsg(msg)
+LOGDEBUG("Unlocked - Join Message - Sending Message: $state.fullPhrase")
+  joinMsg(state.fullPhrase)
+
+}
+
+	} 
 }
 
 
@@ -2449,7 +2601,22 @@ LOGDEBUG("Water - SMS Message - Sending Message: $state.fullPhrase")
  pushOver(2, state.fullPhrase)
 
 }    
-}    
+}
+    
+     if(state.msgType == "Play an Mp3 (No variables can be used)"){
+         if(state.talkwater == 'wet' && state.mp3Switch == true){
+	mp3EventHandler()
+    if(state.soundToPlay == null){ LOGDEBUG(" Mp3 ERROR - cannot find $state.soundToPlay")} 
+      
+         } 
+         
+        if(state.talkwater == 'dry' && state.mp3Switch == false){
+	mp3EventHandler()
+    if(state.soundToPlay == null){ LOGDEBUG(" Mp3 ERROR - cannot find $state.soundToPlay")} 
+      
+         }   
+}
+    
  
 }
 
@@ -2547,7 +2714,19 @@ LOGDEBUG("Presence - Join Message - Sending Message: $state.fullPhrase")
 }    
 } 
 
-
+     if(state.msgType == "Play an Mp3 (No variables can be used)"){
+         if(state.talkpresence == 'present' && state.mp3Switch == true){
+	mp3EventHandler()
+    if(state.soundToPlay == null){ LOGDEBUG(" Mp3 ERROR - cannot find $state.soundToPlay")} 
+      
+         } 
+         
+        if(state.talkpresence == 'not present' && state.mp3Switch == false){
+	mp3EventHandler()
+    if(state.soundToPlay == null){ LOGDEBUG(" Mp3 ERROR - cannot find $state.soundToPlay")} 
+      
+         }   
+}
 
 }
 
@@ -2663,8 +2842,7 @@ def speakNow(){
             if(state.msgType == "Play an Mp3 (No variables can be used)"){
 			mp3EventHandler()
     		if(state.soundToPlay == null){ LOGDEBUG(" Mp3 ERROR - cannot find $state.soundToPlay")} 
-       		else{ LOGDEBUG("Power - Mp3 - Playing: $state.soundToPlay")  }
-            startTimerPower()    
+       		startTimerPower()    
 	}
 		}    
   		if(state.presenceRestriction ==  false || state.presenceRestriction1 ==  false){
@@ -2695,9 +2873,14 @@ def pushOver(msgType, inMsg){
        modeCheck()
     if(state.modeCheck == true && state.appgo == true){  
     if(state.timer1 == true){
- compileMsg(inMsg)
+        if(state.selection == "Weather Alert"){state.fullPhrase = inMsg}
+        if(state.selection != "Weather Alert"){
+            compileMsg(inMsg)
+             LOGDEBUG("Compiled Message = $state.fullPhrase ")
+                                              }
+ 
     newMessage = state.fullPhrase
-  LOGDEBUG(" converted message = $newMessage ")  
+   
  if(msgType == 1){
   def newPriority = priority1 
   LOGDEBUG("Message priority = $newPriority - Action = $msgType" ) 
@@ -2757,6 +2940,7 @@ def pushOver(msgType, inMsg){
     else{
         LOGDEBUG("One or more conditions not met - Unable to continue")
     }
+    
 }
 
 
@@ -2777,8 +2961,13 @@ def speechSynthNow(inMsg){
         if(state.timeOK == true && state.dayCheck == true && state.presenceRestriction == true && state.presenceRestriction1 == true){
             if(state.timer1 == true){
 	            def newMessage = inMsg
-          		LOGDEBUG(" converted message = $newMessage ")  
-	            state.msg1 = newMessage
+         if(state.selection == "Weather Alert"){state.msg1 = inMsg}
+        if(state.selection != "Weather Alert"){
+            compileMsg(inMsg)
+             LOGDEBUG("Compiled Message = $state.fullPhrase ")
+                                              }
+           
+	            state.msg1 = state.fullPhrase
             	speaker.speak(state.msg1)
 				state.timer1 = false
 				startTimer1()
@@ -2839,7 +3028,9 @@ LOGDEBUG( " Continue... Check delay...")
 
 if(state.msgNow == 'oneNow' && state.timer1 == true && state.msg1 != null){
 LOGDEBUG("Calling.. CompileMsg")
-compileMsg(state.msg1)
+    if(state.selection == 'Weather Alert'){state.fullPhrase = state.msg1}
+    if(state.selection != 'Weather Alert'){compileMsg(state.msg1)}    
+
 LOGDEBUG("All OK! - Playing message 1: '$state.fullPhrase'")
     
 
@@ -3073,7 +3264,7 @@ def waitabit(){
 
 private compileMsg(msg) {
 	LOGDEBUG("compileMsg - msg = ${msg}")
-    if(weather1){
+    if(pollorNot){
         weather1.poll()
         runIn(10, waitabit)
 		LOGDEBUG("Waiting a short while for the weather device to catch up")  
@@ -3084,7 +3275,8 @@ private compileMsg(msg) {
     if (msgComp.toUpperCase().contains("%GROUP1%")) {msgComp = msgComp.toUpperCase().replace('%GROUP1%', getPre() )}
     if (msgComp.toUpperCase().contains("%GROUP2%")) {msgComp = msgComp.toUpperCase().replace('%GROUP2%', getPost() )}
     if (msgComp.toUpperCase().contains("%GROUP3%")) {msgComp = msgComp.toUpperCase().replace('%GROUP3%', getWakeUp() )}
-    if (msgComp.toUpperCase().contains("%ALERT%")) {msgComp = msgComp.toUpperCase().replace('%ALERT%', state.weatherAlert1 )}
+    if (msgComp.toUpperCase().contains("%GROUP4%")) {msgComp = msgComp.toUpperCase().replace('%GROUP4%', getGroup4() )}
+    if (msgComp.toUpperCase().contains("%ALERT%")) {msgComp = msgComp.toUpperCase().replace('%ALERT%', state.weatherAlert )}
     if (msgComp.toUpperCase().contains("%WNOW%")) {msgComp = msgComp.toUpperCase().replace('%WNOW%', state.weatherNow )}
     if (msgComp.toUpperCase().contains("%RAIN%")) {msgComp = msgComp.toUpperCase().replace('%RAIN%', state.weatherChanceOfRain )}
     if (msgComp.toUpperCase().contains("%VIS%")) {msgComp = msgComp.toUpperCase().replace('%VIS%', state.weatherVisibility )}
@@ -3098,23 +3290,21 @@ private compileMsg(msg) {
     if (msgComp.toUpperCase().contains("%HIGH%")) {msgComp = msgComp.toUpperCase().replace('%HIGH%', state.weatherForecastHigh )} 
     if (msgComp.toUpperCase().contains("%WSUM%")) {msgComp = msgComp.toUpperCase().replace('%WSUM%', state.weatherSummary )} 
     if (msgComp.toUpperCase().contains("%TIME%")) {msgComp = msgComp.toUpperCase().replace('%TIME%', getTime(false,true))}  
-    if (msgComp.toUpperCase().contains(":")) {msgComp = msgComp.toUpperCase().replace(':', ' ')}
     if (msgComp.toUpperCase().contains("%DAY%")) {msgComp = msgComp.toUpperCase().replace('%DAY%', getDay() )}  
 	if (msgComp.toUpperCase().contains("%DATE%")) {msgComp = msgComp.toUpperCase().replace('%DATE%', getdate() )}  
     if (msgComp.toUpperCase().contains("%YEAR%")) {msgComp = msgComp.toUpperCase().replace('%YEAR%', getyear() )}  
  	if (msgComp.toUpperCase().contains("%OPENCONTACT%")) {msgComp = msgComp.toUpperCase().replace('%OPENCONTACT%', getContactReportOpen() )}  
     if (msgComp.toUpperCase().contains("%CLOSEDCONTACT%")) {msgComp = msgComp.toUpperCase().replace('%CLOSEDCONTACT%', getContactReportClosed() )} 
     if (msgComp.toUpperCase().contains("%MODE%")) {msgComp = msgComp.toUpperCase().replace('%MODE%', state.modeNow )}
-    
-    if (msgComp.toUpperCase().contains("%OPENCOUNT%")) {msgComp = msgComp.toUpperCase().replace('%OPENCOUNT%', getContactOpenCount() )}  
+	if (msgComp.toUpperCase().contains("%OPENCOUNT%")) {msgComp = msgComp.toUpperCase().replace('%OPENCOUNT%', getContactOpenCount() )}  
     if (msgComp.toUpperCase().contains("%CLOSEDCOUNT%")) {msgComp = msgComp.toUpperCase().replace('%CLOSEDCOUNT%', getContactClosedCount() )} 
- 
-    
-	if (msgComp.toUpperCase().contains("%DEVICE%")) {msgComp = msgComp.toUpperCase().replace('%DEVICE%', getNameofDevice() )}  
+ 	if (msgComp.toUpperCase().contains("%DEVICE%")) {msgComp = msgComp.toUpperCase().replace('%DEVICE%', getNameofDevice() )}  
 	if (msgComp.toUpperCase().contains("%EVENT%")) {msgComp = msgComp.toUpperCase().replace('%EVENT%', getWhatHappened() )}  
     if (msgComp.toUpperCase().contains("%GREETING%")) {msgComp = msgComp.toUpperCase().replace('%GREETING%', getGreeting() )}      
     if (msgComp.toUpperCase().contains("N/A")) {msgComp = msgComp.toUpperCase().replace('N/A', ' ' )}
 	if (msgComp.toUpperCase().contains("NO STATION DATA")) {msgComp = msgComp.toUpperCase().replace('NO STATION DATA', ' ' )}
+    if (msgComp.toUpperCase().contains(":")) {msgComp = msgComp.toUpperCase().replace(':', ' ')}
+    if (msgComp.toUpperCase().contains("!")) {msgComp = msgComp.toUpperCase().replace('!', ' ')}
     LOGDEBUG("1st Stage Compile (Pre weather processing) = $msgComp")
     convertWeatherMessage(msgComp)
   	LOGDEBUG("2nd Stage Compile (Post weather processing) = $state.fullPhrase")
@@ -3155,7 +3345,6 @@ private getWakeUp(){
 }
 
 // End random message processing ************************************
-
 
 
 // 'Greeting' message processing
@@ -3294,12 +3483,16 @@ LOGDEBUG("Running convertWeatherMessage... Converting weather message to English
 private getTime(includeSeconds, includeAmPm){
     def calendar = Calendar.getInstance()
 	calendar.setTimeZone(location.timeZone)
-	def timeHH = calendar.get(Calendar.HOUR) toString()
-    def timemm = calendar.get(Calendar.MINUTE) toString()
-    def timess = calendar.get(Calendar.SECOND)
+	def timeHH1 = calendar.get(Calendar.HOUR) 
+    def timeHH = timeHH1.toString()
+    def timemm1 = calendar.get(Calendar.MINUTE)
+    def timemm = timemm1.toString()
+    def timess1 = calendar.get(Calendar.SECOND)
+    def timess = timess1.toString()
     def timeampm = calendar.get(Calendar.AM_PM) ? "pm" : "am" 
     
 LOGDEBUG("timeHH = $timeHH")
+LOGDEBUG("timemm = $timemm")
  
  if (timeHH == "0") {timeHH = timeHH.replace("0", "12")}   //  Changes hours so it doesn't say 0 for 12 midday/midnight
 //     if(state.msgType == "Voice Message"){
@@ -3321,44 +3514,43 @@ LOGDEBUG("hour24 = $hour24 -  So converting hours to 24hr format")
  if (timeHH == "10" && timeampm.contains ("pm")){timeHH = timeHH.replace("10", "22")}
  if (timeHH == "11" && timeampm.contains ("pm")){timeHH = timeHH.replace("11", "23")}
  timeampm = timeampm.replace("pm", " ")
+     
   if (timemm == "0") {
      LOGDEBUG("timemm = 0  - So changing to 'hundred hours")
      timemm = timemm.replace("0", " hundred hours")
     	  if(timeampm.contains ("pm")){timeampm = timeampm.replace("pm", " ")}
-     else if(timeampm.contains ("am")){timeampm = timeampm.replace("am", " ")}
+     	  if(timeampm.contains ("am")){timeampm = timeampm.replace("am", " ")}
       }
  }
- 
-     if (timemm == "0" && hour24 == false) {
-     LOGDEBUG("timemm = 0  - So changing to o'clock")
+    if(hour24 != true){
+     if (timemm == "0"){
+     LOGDEBUG("timemm = $timemm  - So changing to o'clock")
      timemm = timemm.replace("0", "o'clock")
-    	  if(timeampm.contains ("pm")){timeampm = timeampm.replace("pm", " ")}
-     else if(timeampm.contains ("am")){timeampm = timeampm.replace("am", " ")}
+     if(timeampm.contains ("pm")){timeampm = timeampm.replace("pm", " ")}
+     if(timeampm.contains ("am")){timeampm = timeampm.replace("am", " ")}
       }
-      
-else if (timemm == "1") {timemm = timemm.replace("1", "01")}
-else if (timemm == "2") {timemm = timemm.replace("2", "02")}
-else if (timemm == "3") {timemm = timemm.replace("3", "03")}
-else if (timemm == "4") {timemm = timemm.replace("4", "04")}  
-else if (timemm == "5") {timemm = timemm.replace("5", "05")}  
-else if (timemm == "6") {timemm = timemm.replace("6", "06")}  
-else if (timemm == "7") {timemm = timemm.replace("7", "07")}  
-else if (timemm == "8") {timemm = timemm.replace("8", "08")}  
-else if (timemm == "9") {timemm = timemm.replace("9", "09")}  
 
-         
- 
- 
- 
- 
- 
+    
+	if (timemm == "1") {timemm = timemm.replace("1", "01")}
+	if (timemm == "2") {timemm = timemm.replace("2", "02")}
+	if (timemm == "3") {timemm = timemm.replace("3", "03")}
+	if (timemm == "4") {timemm = timemm.replace("4", "04")}  
+	if (timemm == "5") {timemm = timemm.replace("5", "05")}  
+	if (timemm == "6") {timemm = timemm.replace("6", "06")}  
+	if (timemm == "7") {timemm = timemm.replace("7", "07")}  
+	if (timemm == "8") {timemm = timemm.replace("8", "08")}  
+	if (timemm == "9") {timemm = timemm.replace("9", "09")}  
+
+
  LOGDEBUG("timeHH Now = $timeHH")
+ LOGDEBUG("timemm Now = $timemm")   
     def timestring = "${timeHH}:${timemm}"
     if (includeSeconds) { timestring += ":${timess}" }
     if (includeAmPm) { timestring += " ${timeampm}" }
    LOGDEBUG("timestring = $timestring")
     
     return timestring
+}
 }
 
 private getDay(){
@@ -3543,7 +3735,7 @@ private getGroup3(msgWakeitem) {
         "I am not asking again.  Wake Up!",
         "Rise and shine! It's time to get up!",
         "Don't make me come over there. Get out of bed!,NOW!",
-        "I am going to start counting!"    
+        "I am going to start counting! ,,, 5 ,,, 4 ,,, 3,,, 2 ,,, 1"    
     ]
     if(state.wakeCount>10){
         for(int i = 10;i<state.wakeCount;i++) {
@@ -3607,10 +3799,10 @@ private getGroup4(msgPostitem) {
         LOGDEBUG("randomKey4 = $randomKey4") 
         msgPost = postList[randomKey4]
     } else {
-        msgPost = postList[msgPostitem]
+        msgPos1t = postList[msgPostitem]
     }
 
-	return msgPost
+	return msgPost1
 }
 
 
@@ -3743,7 +3935,7 @@ def updateCheck(){
 
 
 def setVersion(){
-		state.version = "12.3.1"	 
+		state.version = "12.4.0"	 
 		state.InternalName = "MCchild" 
     	state.ExternalName = "Message Central Child"
 }
