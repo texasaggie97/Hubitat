@@ -33,10 +33,12 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 05/10/2018
+ *  Last Update: 11/10/2018
  *
  *  Changes:
  *
+ *  V1.5.0 - Added 'Pause' switch to temporarily disable the app
+ *  V1.4.0 - Added 'illuminance' trigger
  *  V1.3.0 - Initial Release to the community
  *  V1.2.0 - Revised update checking, with the option for a 'Pushover' message if there is an update
  *  V1.1.1 - Debug 'Between' time checker
@@ -78,7 +80,7 @@ section("") {
  section("") {
    input "newMode1", "mode", title: "Which Mode do you want to enter?",  required: true, multiple: false, submitOnChange:true
      if(newMode1){
-    input "triggerMode", "enum", required: true, title: "Select Trigger ", submitOnChange: true,  options: ["Button", "Presence - Arrival", "Presence - Departure", "Sunrise", "Sunset", "Switch", "Time"]
+    input "triggerMode", "enum", required: true, title: "Select Trigger ", submitOnChange: true,  options: ["Button", "Illuminance", "Presence - Arrival", "Presence - Departure", "Sunrise", "Sunset", "Switch", "Time"]
          
           if(triggerMode == "Switch"){input "switch2", "capability.switch", title: "Select Switch", required: true, multiple: false}
           if(triggerMode == "Button"){
@@ -102,6 +104,11 @@ section("") {
 				input "sunriseOffsetDir", "enum", title: "Before or After", required: false, options: ["Before","After"]
          
      }
+     if(triggerMode == "Illuminance"){
+         	input "luxDevice", "capability.sensor", title: "Lux Device", required: false
+     		input "luxLevel", "number", title: "Lux level to trigger", required: false
+         	input "luxMode", "enum", title: "Change mode above  or below  this level", required: true, options: ["Above", "Below"]
+     }
          
  }  
     }
@@ -119,9 +126,9 @@ section("") {
 
 		section() {
         
-    input "restrictions1", "bool", title: "Show Optional Time, Day & Mode Restrictions", required: true, defaultValue: false, submitOnChange: true
+    input "restrictions1", "bool", title: "Show Optional Time, Day, Sunset/Sunrise & Mode Restrictions", required: true, defaultValue: false, submitOnChange: true
     input "restrictions2", "bool", title: "Show Optional Switch & Presence Restrictions", required: true, defaultValue: false, submitOnChange: true
-     input "updateNotification", "bool", title: "Send a 'Pushover' message when an update is available", required: true, defaultValue: false, submitOnChange: true
+   
      }
 
       if(restrictions1 == true){    
@@ -130,7 +137,19 @@ section("") {
     input "toTime", "time", title: "Allow actions until", required: false
     input "days", "enum", title: "Allow action on these days", required: false, multiple: true, options: ["Monday": "Monday", "Tuesday": "Tuesday", "Wednesday": "Wednesday", "Thursday": "Thursday", "Friday": "Friday", "Saturday": "Saturday", "Sunday": "Sunday"]
     input "modes", "mode", title: "Allow actions when current mode is:", multiple: true, required: false
-        }      
+    input "sunriseSunset", "enum", title: "Sunrise/Sunset Restriction", required: false, submitOnChange: true, options: ["Sunrise","Sunset"] 
+      
+     if(sunriseSunset == "Sunset"){	
+       			input "sunsetOffsetValue", "number", title: "Optional Sunset Offset (Minutes)", required: false
+				input "sunsetOffsetDir", "enum", title: "Before or After", required: false, options: ["Before","After"]
+        }
+     if(sunriseSunset == "Sunrise"){
+    			input "sunriseOffsetValue", "number", title: "Optional Sunrise Offset (Minutes)", required: false
+				input "sunriseOffsetDir", "enum", title: "Before or After", required: false, options: ["Before","After"]
+         
+     }
+            
+        }       
       }       
       if(restrictions2 == true){
           
@@ -152,11 +171,7 @@ section("") {
             } 
            
            
-           if(updateNotification == true){
-               section() {
-               input "speaker", "capability.speechSynthesis", title: "PushOver Device", required: true, multiple: true
-           }
-           }
+          
        section() {
                 label title: "Enter a name for this automation", required: false
             }
@@ -191,16 +206,18 @@ def updated() {
 }
 
 def initialize() {
-   log.info "Initialised with settings: ${settings}"
-//  	schedule("0 0 10 1/1 * ? *", astroCheck)	// checks sunrise/sunset change at 10.00am every day 
-    
+   	logCheck()
 	version()
-	logCheck()
-    if(triggerMode == "Sunrise" || triggerMode == "Sunset"){
-    schedule("0 0 10 1/1 * ? *", astroCheck)	// checks sunrise/sunset change at 10.00am every day 
+	pauseOrNot()
+    schedule("0 1 0 1/1 * ? *", astroCheck)	// checks sunrise/sunset change at 00.01am every day 
     astroCheck()
-    }
-   if(triggerMode == "Sunrise"){
+    
+     if(triggerMode == "Illuminance"){
+         if(luxMode){state.luxAction = luxMode}
+         if(!luxMode){state.luxAction = false}
+   	   subscribe(luxDevice, "illuminance", luxHandler)
+   } 
+    if(triggerMode == "Sunrise"){
        state.sunRiseGo = true
        state.sunSetGo = false
    }
@@ -211,7 +228,7 @@ def initialize() {
     
    
     if(triggerMode == "Switch"){subscribe(switch2, "switch.on", evtHandler)}
-     if(triggerMode == "Button"){
+    if(triggerMode == "Button"){
         if(buttonNumber == '1'){subscribe(button1, "pushed.1", evtHandler)}
         if(buttonNumber == '2'){subscribe(button1, "pushed.2", evtHandler)}
         if(buttonNumber == '3'){subscribe(button1, "pushed.3", evtHandler)}
@@ -221,12 +238,15 @@ def initialize() {
     if(triggerMode == "Time"){schedule(runTime, evtHandler)}
     if(triggerMode == "Presence - Arrival"){ subscribe(presence1, "presence", presenceHandler1)}
     if(triggerMode == "Presence - Departure"){ subscribe(presence1, "presence", presenceHandler1)}
-    
     if (restrictPresenceSensor){subscribe(restrictPresenceSensor, "presence", restrictPresenceSensorHandler)}
 	if (restrictPresenceSensor1){subscribe(restrictPresenceSensor1, "presence", restrictPresence1SensorHandler)}
     if(enableswitch1){subscribe(enableswitch1, "switch", enableSwitch1Handler)}
     state.enablecurrS1 = 'on'
     state.appGo = true
+    log.info "Initialised with settings: ${settings}"
+    
+//    state.astro = "Rise" // test code
+    
 } 
 
 
@@ -236,8 +256,9 @@ def checkRestrictions(){
     checkPresence()
     checkPresence1()
     checkMode()
+    checkSun()
 //    LOGDEBUG("Checking restrictions...state.timeOK == $state.timeOK - state.dayCheck == $state.dayCheck - state.enablecurrS1 == $state.enablecurrS1 - state.presenceRestriction == $state.presenceRestriction -  state.presenceRestriction1 == $state.presenceRestriction1 -  state.modeCheck == $state.modeCheck")
-    if(state.timeOK == true && state.dayCheck == true && state.enablecurrS1 == 'on' && state.presenceRestriction == true && state.presenceRestriction1 == true && state.modeCheck == true){
+    if(state.timeOK == true && state.dayCheck == true && state.enablecurrS1 == 'on' && state.presenceRestriction == true && state.presenceRestriction1 == true && state.modeCheck == true && state.sunGoNow == true){
         state.appGo = true
         LOGDEBUG("Restrictions ok.. continue...")
             }  
@@ -326,8 +347,6 @@ def restrictPresenceSensorHandler(evt){
 state.presencestatus1 = evt.value
 LOGDEBUG("state.presencestatus1 = $evt.value")
 checkPresence()
-
-
 }
 
 
@@ -338,7 +357,6 @@ LOGDEBUG("running checkPresence - restrictPresenceSensor = $restrictPresenceSens
 if(restrictPresenceSensor){
 LOGDEBUG("Presence = $state.presencestatus1")
 def actionPresenceRestrict = restrictPresenceAction
-
 
 if (state.presencestatus1 == "present" && actionPresenceRestrict == true){
 LOGDEBUG("Presence ok")
@@ -405,62 +423,91 @@ LOGDEBUG("Presence sensor 2 restriction not used")
 }
 }
 
+// Astro restrictions
+
+def checkSun(){
+    LOGDEBUG("Checking Sunrise/Sunset restrictions...")
+    if(!sunriseSunset){
+        state.sunGoNow = true
+        LOGDEBUG("No Sunrise/Sunset restrictions in place")
+    }
+         
+    if(sunriseSunset){
+        if(sunriseSunset == "Sunset"){	
+            if(state.astro == "Set"){
+                state.sunGoNow = true
+            LOGDEBUG("Sunset OK")
+            } 
+    		if(state.astro == "Rise"){
+                state.sunGoNow = false
+             LOGDEBUG("Sunset NOT OK")
+            } 
+        }
+    if(sunriseSunset == "Sunrise"){	
+            if(state.astro == "Rise"){
+                state.sunGoNow = true
+            LOGDEBUG("Sunrise OK")
+            } 
+    		if(state.astro == "Set"){
+                state.sunGoNow = false
+             LOGDEBUG("Sunrise NOT OK")
+            } 
+        }  
+    } 
+		return state.sunGoNow
+}    
     
+def luxHandler(evt){
+    state.newLux = evt.value.toDouble()
+    state.requiredLux = luxLevel.toDouble()
+    LOGDEBUG("Recieved Lux:$state.newLux")
+    if(state.newLux > state.requiredLux && state.luxAction == "Above"){ evtHandler()}
+    if(state.newLux < state.requiredLux && state.luxAction == "Below"){ evtHandler()}
+    }
     
-    
-
-
-
-
-
-
-
-
-
 
 def astroCheck() {
-LOGDEBUG("Calling astroCheck...")
-
-
-	def s = getSunriseAndSunset(sunriseOffset: sunriseOffset, sunsetOffset: sunsetOffset)
+    state.sunsetOffsetValue1 = sunsetOffsetValue
+    state.sunriseOffsetValue1 = sunriseOffsetValue
+    
+ //   log.warn "state.sunriseOffsetValue1 = $state.sunriseOffsetValue1 - state.sunsetOffsetValue1 = $state.sunsetOffsetValue1"  // test code
+    
+    if(sunsetOffsetDir == "Before"){state.sunsetOffset1 = -state.sunsetOffsetValue1}
+    if(sunsetOffsetDir == "after"){state.sunsetOffset1 = state.sunsetOffsetValue1}
+    if(sunriseOffsetDir == "Before"){state.sunriseOffset1 = -state.sunriseOffsetValue1}
+    if(sunriseOffsetDir == "after"){state.sunriseOffset1 = state.sunriseOffsetValue1}
+    
+	def both = getSunriseAndSunset(sunriseOffset: state.sunriseOffset1, sunsetOffset: state.sunsetOffset1)
+	 
+    
 	def now = new Date()
-	def riseTime = s.sunrise
-	def setTime = s.sunset
-	LOGDEBUG("riseTime: $riseTime")
-	LOGDEBUG("setTime: $setTime")
+	def riseTime = both.sunrise
+	def setTime = both.sunset
+	log.debug "riseTime: $riseTime"
+	log.debug "setTime: $setTime"
+    
 
-	if (state.riseTime != riseTime.time) {
 		unschedule("sunriseHandler")
-
-		if(riseTime.before(now)) {
-			riseTime = riseTime.next()
-		}
-
-		state.riseTime = riseTime.time
-
-		LOGDEBUG("Scheduling sunrise handler for $riseTime")
-		schedule(riseTime, sunriseHandler)
-	}
-
-	if (state.setTime != setTime.time) {
 		unschedule("sunsetHandler")
 
-	    if(setTime.before(now)) {
-		    setTime = setTime.next()
-	    }
+		if (riseTime.after(now)) {
+			log.info "scheduling sunrise handler for $riseTime"
+			runOnce(riseTime, sunriseHandler)
+		}
 
-		state.setTime = setTime.time
+		if (setTime.after(now)) {
+			log.info "scheduling sunset handler for $setTime"
+			runOnce(setTime, sunsetHandler)
+		}
 
-		LOGDEBUG("Scheduling sunset handler for $setTime")
-	    schedule(setTime, sunsetHandler)
-	
-  }
    LOGDEBUG("AstroCheck Complete")
 }
 
 
 def sunsetHandler(evt) {
 LOGDEBUG("Sun has set!")
+   state.astro = "Set" 
+    
     if(state.sunSetGo == true){
    evtHandler()
     }
@@ -472,6 +519,7 @@ LOGDEBUG("Sun has set!")
 
 def sunriseHandler(evt) {
 LOGDEBUG("Sun has risen!")
+    state.astro = "Rise"
     if(state.sunRiseGo == true){
      evtHandler()
     }
@@ -497,16 +545,16 @@ def presenceHandler1(evt){
         
 }
 def evtHandler(evt){
-    
-    LOGDEBUG("Running eventHandler ")
+    LOGDEBUG("Running eventHandler... ")
+    if(state.pauseApp == true){log.warn "Unable to continue - App paused"}
+    if(state.pauseApp == false){log.info "Continue - App NOT paused" 
     checkRestrictions()
     if(state.appGo == true){
     state.requiredMode = newMode1
-
     LOGDEBUG("Changing to: $state.requiredMode ")
     setLocationMode(state.requiredMode) 
 	}
-
+  }
 }
 
 
@@ -515,14 +563,10 @@ def evtHandler(evt){
 
 def logCheck(){
 state.checkLog = debugMode
-if(state.checkLog == true){
-log.info "All Logging Enabled"
-}
-else if(state.checkLog == false){
-log.info "Further Logging Disabled"
+    if(state.checkLog == true){log.info "All Logging Enabled"}
+    if(state.checkLog == false){log.info "Further Logging Disabled"}
 }
 
-}
 def LOGDEBUG(txt){
     try {
     	if (settings.debugMode) { log.debug("${app.label.replace(" ","_").toUpperCase()}  (App Version: ${state.version}) - ${txt}") }
@@ -537,6 +581,8 @@ def version(){
 	schedule("0 0 9 ? * FRI *", updateCheck) //  Check for updates at 9am every Friday
 	updateCheck()  
     checkButtons()
+    
+    
 }
 
 def display(){
@@ -545,19 +591,32 @@ def display(){
 	section{paragraph "<img src='http://update.hubitat.uk/icons/cobra3.png''</img> Version: $state.version <br><font face='Lucida Handwriting'>$state.Copyright </font>"}
        
         }
+   
+
     if(state.status != "<b>** This app is no longer supported by $state.author  **</b>"){
      section(){ input "updateBtn", "button", title: "$state.btnName"}
     }
     
+    section(){
+        log.info "app.label = $app.label"
+    input "pause1", "bool", title: "Pause This App", required: true, submitOnChange: true, defaultValue: false  
+     }
+    pauseOrNot()   
     if(state.status != "Current"){
 	section{ 
 	paragraph "<b>Update Info:</b> <BR>$state.UpdateInfo <BR>$state.updateURI"
      }
-    }         
+    }
+	section(" ") {
+      input "updateNotification", "bool", title: "Send a 'Pushover' message when an update is available", required: true, defaultValue: false, submitOnChange: true 
+      if(updateNotification == true){ input "speaker", "capability.speechSynthesis", title: "PushOver Device", required: true, multiple: true}
+    }
+    
+
 }
 
 def checkButtons(){
-    log.info "Running checkButtons"
+    LOGDEBUG("Running checkButtons")
     appButtonHandler("updateBtn")
 }
 
@@ -565,7 +624,7 @@ def checkButtons(){
 def appButtonHandler(btn){
     state.btnCall = btn
     if(state.btnCall == "updateBtn"){
-        log.info "Checking for updates now..."
+       log.info "Checking for updates now..."
         updateCheck()
         pause(3000)
   		state.btnName = state.newBtn
@@ -578,7 +637,7 @@ def appButtonHandler(btn){
     
 }   
 def resetBtnName(){
-    log.info "Resetting Button"
+//    log.info "Resetting Update Button Name"
     if(state.status != "Current"){
 	state.btnName = state.newBtn
     }
@@ -587,17 +646,38 @@ def resetBtnName(){
     }
 }    
     
-def pushOver(inMsg){
+def pushOverNow(inMsg){
     if(updateNotification == true){  
      newMessage = inMsg
-  LOGDEBUG(" Message = $newMessage ")  
+  log.info "Message = $newMessage " 
      state.msg1 = '[L]' + newMessage
 	speaker.speak(state.msg1)
     }
 }
 
-
-
+def pauseOrNot(){
+//    log.info " Calling 'pauseOrNot'..."
+    state.pauseNow = pause1
+        if(state.pauseNow == true){
+            state.pauseApp = true
+            if(app.label.contains('red')){
+                log.warn "Paused"}
+            else{app.updateLabel(app.label + ("<font color = 'red'> (Paused) </font>" ))
+              log.warn "App Paused - state.pauseApp = $state.pauseApp "   
+                }
+    
+       
+        }
+    
+     if(state.pauseNow == false){
+         state.pauseApp = false
+     if(app.label.contains('red')){ app.updateLabel(app.label.minus("<font color = 'red'> (Paused) </font>" ))
+         log.info "App Released - state.pauseApp = $state.pauseApp "                          
+                                  }
+	
+  }    
+    
+}
 
 
 def updateCheck(){
@@ -628,7 +708,7 @@ def updateCheck(){
         	log.warn "** $state.UpdateInfo **"
              state.newBtn = state.status
             def updateMsg = "There is a new version of '$state.ExternalName' available (Version: $newVerRaw)"
-            pushOver(updateMsg)
+            pushOverNow(updateMsg)
        		} 
 		else{ 
       		state.status = "Current"
@@ -650,8 +730,9 @@ def updateCheck(){
         
 }
 
+
 def setVersion(){
-		state.version = "1.3.0"	 
+		state.version = "1.5.0"	 
 		state.InternalName = "ModesPlusChild"
     	state.ExternalName = "Modes Plus Child"
 }

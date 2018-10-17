@@ -1,6 +1,6 @@
 /**
  *  Design Usage:
- *  This is the 'Parent' app for Modes Plus
+ *  This is the 'Parent' app for All 
  *
  *
  *  Copyright 2018 Andrew Parker
@@ -33,11 +33,15 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 17/10/2018
+ *  Last Update: 08/10/2018
  *
  *  Changes:
  *
- *  V1.1.0 - Included into 'Cobra Apps' 
+ * 
+ *
+ *  
+ *  V1.0.2 - Revised auto update checking and added a manual update check button
+ *  V1.0.1 - added revised first page
  *  V1.0.0 - POC
  *
  */
@@ -45,14 +49,11 @@
 
 
 definition(
-    name:"Modes Plus",
+    name:"Cobra Apps",
     namespace: "Cobra",
     author: "Andrew Parker",
-    description: "Parent App for Modes Plus ChildApps -  This is designed to use various triggers to control location modes",
+    description: "Parent container for all Cobra Apps ",
     category: "Convenience",
-    
-    parent: "Cobra:Cobra Apps",  // ************* comment this out if not using the 'Cobra Apps' container  *******************
-    
     iconUrl: "",
     iconX2Url: "",
     iconX3Url: ""
@@ -84,6 +85,7 @@ def updated() {
 
 def initialize() {
 	version()
+   childAppList()
     log.info "There are ${childApps.size()} child apps"
     childApps.each {child ->
     log.info "Child app: ${child.label}"
@@ -97,29 +99,62 @@ def mainPage() {
       installCheck()
         
 if(state.appInstalled == 'COMPLETE'){
-    
 			display()
+    section{paragraph "If you remove this group, you will remove ALL apps in this container from your system"}
+			childAppList()
+    
+    
+    
 
-  section (""){
-		app(name: "modeApp", appName: "Modes Plus Child", namespace: "Cobra", title: "<b>Add a new Mode automation</b>", multiple: true)
-            }
-    section (" "){}
-  section() {
-        label title: "Enter a name for this parent app (optional)", required: false
-            }    
+  
 	}
   }
 }
 
 
+
 def installCheck(){         
    state.appInstalled = app.getInstallationState() 
   if(state.appInstalled != 'COMPLETE'){
-section{paragraph "Please hit 'Done' to install 'Modes Plus' parent app "}
+section{paragraph "Please hit 'Done' to install '${app.label}' parent app "}
   }
     else{
  //       log.info "Parent Installed OK"
     }
+	}
+
+
+
+def childAppList(){
+    state.appName1 = ""
+    childApps.each {child -> child.label
+        state.appName1 = state.appName1 + " " + child.label
+      
+       }
+     log.warn "Installed Apps = $state.appName1"
+    if(!state.appName1.contains("Message Central")){
+        log.warn "Message Central Parent already installed"
+        section (""){
+        app(name: "mcParent", appName: "Message Central", namespace: "Cobra", title: "<b>Install Message Central</b>", multiple: true)
+        } 
+    }
+     if(!state.appName1.contains("Average All")){
+        log.warn "Average All Parent already installed"
+      section (""){
+		app(name: "averageParent", appName: "Average All", namespace: "Cobra", title: "<b>Install Average All</b>", multiple: true)
+            }
+     }
+    if(!state.appName1.contains("Modes Plus")){
+        log.warn "Modes Plus Parent already installed"
+      section (""){
+		app(name: "modesPlusParent", appName: "Modes Plus", namespace: "Cobra", title: "<b>Install Modes Plus</b>", multiple: true)
+            }
+     }
+    
+    
+    
+    
+    
 }
 
 def version(){
@@ -141,7 +176,7 @@ def display(){
     
     if(state.status != "Current"){
 	section{ 
-	paragraph "<b>Update Info:</b> <BR>$state.UpdateInfo <BR>$state.updateURI"
+	paragraph "<b>Update Information:</b> <BR>$state.UpdateInfo <BR>$state.updateURI"
      }
     }         
 }
@@ -218,7 +253,7 @@ def updateCheck(){
         	log.warn "** $state.UpdateInfo **"
              state.newBtn = state.status
             def updateMsg = "There is a new version of '$state.ExternalName' available (Version: $newVerRaw)"
-   //         pushOver(updateMsg)
+
        		} 
 		else{ 
       		state.status = "Current"
@@ -243,10 +278,11 @@ def updateCheck(){
 
 
 def setVersion(){
-		state.version = "1.1.0"	 
-		state.InternalName = "ModesPlusParent"
-    		state.ExternalName = " Modes Plus Parent"
+		state.version = "1.0.0"	 
+		state.InternalName = "Cobraparent" 
+    	state.ExternalName = "Cobra Apps Container"
 }
+
 
 
 

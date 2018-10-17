@@ -33,10 +33,11 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 04/10/2018
+ *  Last Update: 05/10/2018
  *
  *  Changes:
  *
+ *  V1.3.0 - Initial Release to the community
  *  V1.2.0 - Revised update checking, with the option for a 'Pushover' message if there is an update
  *  V1.1.1 - Debug 'Between' time checker
  *  V1.1.0 - Added restrictions page and handlers
@@ -103,12 +104,6 @@ section("") {
      }
          
  }  
-        section() {
-        label title: "Enter a name for this child app (optional)", required: false
-            }    
-       section(" ") {
-            input "debugMode", "bool", title: "Enable logging", required: true, defaultValue: false
-  	        }
     }
     }
 
@@ -557,9 +552,7 @@ def display(){
     if(state.status != "Current"){
 	section{ 
 	paragraph "<b>Update Info:</b> <BR>$state.UpdateInfo <BR>$state.updateURI"
- // paragraph "$state.updateURI" 
-    }
-//    section(){ input "updateBtn1", "button", title: "$state.btnName1"}    
+     }
     }         
 }
 
@@ -615,7 +608,7 @@ def updateCheck(){
  //  log.warn " Version Checking - Response Data: ${respUD.data}"   // Troubleshooting Debug Code 
        		def copyrightRead = (respUD.data.copyright)
        		state.Copyright = copyrightRead
-            def updateUri = (respUD.data.versions.UpdateInfo.GithubFiles.Apps)
+            def updateUri = (respUD.data.versions.UpdateInfo.GithubFiles.(state.InternalName))
             state.updateURI = updateUri   
             
             def newVerRaw = (respUD.data.versions.Application.(state.InternalName))
@@ -658,11 +651,10 @@ def updateCheck(){
 }
 
 def setVersion(){
-		state.version = "1.2.0"	 
+		state.version = "1.3.0"	 
 		state.InternalName = "ModesPlusChild"
     	state.ExternalName = "Modes Plus Child"
 }
-
 
 
 
