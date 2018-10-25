@@ -1,6 +1,6 @@
 /**
  *  Design Usage:
- *  This is the 'Parent' app for All 
+ *  This is the 'Parent' app for all 'Cobra' apps
  *
  *
  *  Copyright 2018 Andrew Parker
@@ -33,15 +33,12 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 08/10/2018
+ *  Last Update: 18/10/2018
  *
  *  Changes:
  *
  * 
  *
- *  
- *  V1.0.2 - Revised auto update checking and added a manual update check button
- *  V1.0.1 - added revised first page
  *  V1.0.0 - POC
  *
  */
@@ -85,7 +82,7 @@ def updated() {
 
 def initialize() {
 	version()
-   childAppList()
+    installCheck()
     log.info "There are ${childApps.size()} child apps"
     childApps.each {child ->
     log.info "Child app: ${child.label}"
@@ -96,11 +93,35 @@ def initialize() {
 
 def mainPage() {
     dynamicPage(name: "mainPage") {
-      installCheck()
-        
+      
+       
 if(state.appInstalled == 'COMPLETE'){
 			display()
-    section{paragraph "If you remove this group, you will remove ALL apps in this container from your system"}
+    if(state.appName1){
+    state.para1 = "<b>Installed Apps:</b>"
+        
+        if(state.appName1.contains("Average All")) {state.para1 = state.para1 + "<BR>Average All"}
+        if(state.appName1.contains("Message Central")){state.para1 = state.para1 + "<BR>Message Central"}
+    	if(state.appName1.contains("Modes Plus")) {state.para1 = state.para1 + "<BR>Modes Plus"}
+        if(state.appName1.contains( "One To Many")) {state.para1 = state.para1 + "<BR>One To Many"} 
+    	if(state.appName1.contains("Presence Central")) {state.para1 = state.para1 + "<BR>Presence Central"}  
+        if(state.appName1.contains("Scheduled Switch")) {state.para1 = state.para1 + "<BR>Scheduled Switch"}  
+        if(state.appName1.contains("Temperature Controlled Switch")) {state.para1 = state.para1 + "<BR>Temperature Controlled Switch"}  
+    	if(state.appName1.contains("Weather Switch")) {state.para1 = state.para1 + "<BR>Weather Switch"}  
+    	
+   
+    
+    section(){paragraph state.para1}}
+                                
+   
+                               
+ 
+   // section(" "){""}
+    
+    section(){
+        paragraph "If you remove the Cobra Apps container, you will remove ALL configured apps & child apps from your system"
+        paragraph  "You can only install apps here once you have already installed the code for that app (Both parent and child)"
+             }
 			childAppList()
     
     
@@ -131,28 +152,52 @@ def childAppList(){
         state.appName1 = state.appName1 + " " + child.label
       
        }
-     log.warn "Installed Apps = $state.appName1"
+   
+
+     log.info "Installed Apps = $state.appName1"
+    
+     if(!state.appName1.contains("Average All")){
+       section (""){
+		app(name: "averageParent", appName: "Average All", namespace: "Cobra", title: "<b>Install Average All</b>", multiple: true)
+            }
+     }    
+
     if(!state.appName1.contains("Message Central")){
-        log.warn "Message Central Parent already installed"
         section (""){
         app(name: "mcParent", appName: "Message Central", namespace: "Cobra", title: "<b>Install Message Central</b>", multiple: true)
         } 
     }
-     if(!state.appName1.contains("Average All")){
-        log.warn "Average All Parent already installed"
-      section (""){
-		app(name: "averageParent", appName: "Average All", namespace: "Cobra", title: "<b>Install Average All</b>", multiple: true)
-            }
-     }
+
     if(!state.appName1.contains("Modes Plus")){
-        log.warn "Modes Plus Parent already installed"
-      section (""){
+        section (""){
 		app(name: "modesPlusParent", appName: "Modes Plus", namespace: "Cobra", title: "<b>Install Modes Plus</b>", multiple: true)
             }
      }
-    
-    
-    
+     if(!state.appName1.contains("One To Many")){
+        section (""){
+		app(name: "oneToManyParent", appName: "One To Many", namespace: "Cobra", title: "<b>Install One To Many</b>", multiple: true)
+            }
+     }
+    if(!state.appName1.contains("Presence Central")){
+        section (""){
+		app(name: "presenceCentralsParent", appName: "Presence Central", namespace: "Cobra", title: "<b>Install Presence Central</b>", multiple: true)
+            }
+     }
+     if(!state.appName1.contains("Scheduled Switch")){
+        section (""){
+		app(name: "scheduledSwitchParent", appName: "Scheduled Switch", namespace: "Cobra", title: "<b>Install Scheduled Switch</b>", multiple: true)
+            }
+     }
+    if(!state.appName1.contains("Temperature Controlled Switch")){
+        section (""){
+		app(name: "tempControlledSwitchParent", appName: "Temperature Controlled Switch", namespace: "Cobra", title: "<b>Install Temperature Controlled Switch</b>", multiple: true)
+            }
+     }
+    if(!state.appName1.contains("Weather Switch")){
+        section (""){
+		app(name: "weatherSwitchParent", appName: "Weather Switch", namespace: "Cobra", title: "<b>Install Weather Switch</b>", multiple: true)
+            }
+     }    
     
     
 }
@@ -279,7 +324,7 @@ def updateCheck(){
 
 def setVersion(){
 		state.version = "1.0.0"	 
-		state.InternalName = "Cobraparent" 
+		state.InternalName = "CobraParent" 
     	state.ExternalName = "Cobra Apps Container"
 }
 

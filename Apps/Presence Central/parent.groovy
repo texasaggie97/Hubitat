@@ -33,10 +33,11 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 20/08/2018
+ *  Last Update: 17/10/2018
  *
  *  Changes:
  *
+ *  V2.3.0 - Added to Cobra Apps as a child
  *  V2.2.1 - Added new update code
  *  V2.2.0 - Code cleanup & forced hitting 'done' before further config at install
  *  V2.1.0 - debug
@@ -52,6 +53,9 @@
     author: "Andrew Parker",
     description: "Parent App for Presence Automation.",
    category: "Fun & Social",
+     
+   parent: "Cobra:Cobra Apps",  // ******** Comment this out if not using the 'Cobra Apps' container  ***************
+     
     iconUrl: "",
     iconX2Url: "",
     iconX3Url: "",)
@@ -72,9 +76,7 @@ if(state.appInstalled == 'COMPLETE'){
   section ("Add An Event"){
 		app(name: "switchPresenceAutomation", appName: "Presence_Central_Child", namespace: "Cobra", title: "Create New Presence Automation", multiple: true)
             }
-  section("App name") {
-        label title: "Enter a name for parent app (optional)", required: false
-            }    
+ 
 	}
   }
 }
@@ -236,7 +238,7 @@ def updateCheck(){
 
 
 def setVersion(){
-		state.version = "2.2.1"	 
+		state.version = "2.3.0"	 
 		state.InternalName = "PCparent"
     	state.ExternalName = "Presence Central Parent"
 }

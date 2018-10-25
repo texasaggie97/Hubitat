@@ -33,14 +33,14 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 01/10/2018
+ *  Last Update: 25/10/2018
  *
  *  Changes:
  *
  * 
  *
  *  
- *  
+ *  V1.1.0 - Added to 'Cobra Apps' 
  *  V1.0.1 - Revised auto update checking and added a manual update check button
  *  V1.0.0 - POC
  *
@@ -54,6 +54,9 @@ definition(
     author: "Andrew Parker",
     description: "Parent App for 'Check Open Contacts' childapps ",
     category: "Convenience",
+    
+     parent: "Cobra:Cobra Apps",  // ******** Comment this out if not using the 'Cobra Apps' container  ***************
+    
     iconUrl: "",
     iconX2Url: "",
     iconX3Url: ""
@@ -104,10 +107,7 @@ if(state.appInstalled == 'COMPLETE'){
   section (""){
 		app(name: "anyOpenApp", appName: "Check Open Contacts Child", namespace: "Cobra", title: "<b>Add a new 'Open Contact' message</b>", multiple: true)
             }
-    section (" "){}
-  section("App name") {
-        label title: "Enter a name for parent app (optional)", required: false
-            }    
+
 	}
   }
 }
@@ -117,7 +117,7 @@ if(state.appInstalled == 'COMPLETE'){
 def installCheck(){         
    state.appInstalled = app.getInstallationState() 
   if(state.appInstalled != 'COMPLETE'){
-section{paragraph "Please hit 'Done' to install '${app.label}' parent app "}
+section{paragraph "Please hit 'Done' to install Check Open Contacts"}
   }
     else{
  //       log.info "Parent Installed OK"
@@ -228,7 +228,7 @@ def updateCheck(){
 
 
 def setVersion(){
-		state.version = "1.0.1"	 
+		state.version = "1.1.0"	 
 		state.InternalName = "CheckContactsParent"  
 }
 

@@ -1,22 +1,22 @@
 /**
- *  ****************  Message Central..  ****************
- *
  *  Design Usage:
- *  This is the 'Parent' app for message automation..
+ *  This is the 'Parent' app for all 'Cobra' apps
  *
  *
- *  Copyright 2017 Andrew Parker.
+ *  Copyright 2018 Andrew Parker
  *  
  *  This SmartApp is free!
+ *
  *  Donations to support development efforts are accepted via: 
  *
  *  Paypal at: https://www.paypal.me/smartcobra
  *  
  *
- *  I'm very happy for you to use this app without a donation, but if you find it useful then it would be nice to get a 'shout out' on the forum! -  @Cobra
+ *  I'm very happy for you to use this app without a donation, but if you find it useful
+ *  then it would be nice to get a 'shout out' on the forum! -  @Cobra
  *  Have an idea to make this app better?  - Please let me know :)
  *
- *  Website: http://securendpoint.com/smartthings
+ *  
  *
  *-------------------------------------------------------------------------------------------------------------------
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
@@ -37,38 +37,37 @@
  *
  *  Changes:
  *
- *  V2.2.0 - Added to Cobra Apps as a child
- *  V2.1.1 - Revised auto update and added manual check for update button
- *  V2.1.0 - Code cleanup and remote version checking
- *  V2.0.0 - Port to Hubitat (disabled missed messages child)
- *  V1.1.0 - Added second child to remind of missed alerts
- *  V1.0.2 - Added icons
- *  V1.0.1 - Header & Debug
+ * 
+ *
  *  V1.0.0 - POC
  *
  */
 
- 
- definition(
-    name: "Message Central",
+
+
+definition(
+    name:"Cobra Apps",
     namespace: "Cobra",
     author: "Andrew Parker",
-    description: "Message Automation.",
-     
-     
-     parent: "Cobra:Cobra Apps",  // ******** Comment this out if not using the 'Cobra Apps' container  ***************
-     
-   category: "Fun & Social",
+    description: "Parent container for all Cobra Apps ",
+    category: "Convenience",
     iconUrl: "",
     iconX2Url: "",
-    iconX3Url: "")
+    iconX3Url: ""
+    )
+
+
+
+
+
+
 
 preferences {
-    
-    page name: "mainPage", title: "", install: true, uninstall: true
-    
-   
-}
+	
+     page name: "mainPage", title: "", install: true, uninstall: true
+     
+} 
+
 
 def installed() {
     log.debug "Installed with settings: ${settings}"
@@ -77,50 +76,120 @@ def installed() {
 
 def updated() {
     log.debug "Updated with settings: ${settings}"
-    
+    unsubscribe()
     initialize()
 }
 
 def initialize() {
-    version()
-    
-    log.debug "there are ${childApps.size()} child smartapps"
+	version()
+    installCheck()
+    log.info "There are ${childApps.size()} child apps"
     childApps.each {child ->
-        log.debug "child app: ${child.label}"
+    log.info "Child app: ${child.label}"
     }
-    
-   
     
 }
 
+
 def mainPage() {
     dynamicPage(name: "mainPage") {
-installCheck()
+      
+       
 if(state.appInstalled == 'COMPLETE'){
 			display()
+    if(state.appName1){
+    state.para1 = "<b>Installed Apps:</b>"
+        
+        if(state.appName1.contains("Average All")) {state.para1 = state.para1 + "<BR>Average All"}
+        if(state.appName1.contains("Message Central")){state.para1 = state.para1 + "<BR>Message Central"}
+    	if(state.appName1.contains("Modes Plus")) {state.para1 = state.para1 + "<BR>Modes Plus"}
+        if(state.appName1.contains( "One To Many")) {state.para1 = state.para1 + "<BR>One To Many"} 
+    	if(state.appName1.contains("Presence Central")) {state.para1 = state.para1 + "<BR>Presence Central"}  
+    	if(state.appName1.contains("Weather Switch")) {state.para1 = state.para1 + "<BR>Weather Switch"}  
+    	
+   
     
-     section (""){
-            app(name: "switchMessageAutomation", appName: "Message_Central_Child", namespace: "Cobra", title: "Create New Triggered Message", multiple: true)
-            }  
+    section(){paragraph state.para1}}
+                                
+   
+                               
+ 
+    section(" "){""}
     
-		}
-    }
+    section(){paragraph "If you remove the Cobra Apps container, you will remove ALL configured apps & child apps from your system"}
+			childAppList()
+    
+    
+    
+
+  
+	}
+  }
 }
-    
-    
+
+
+
 def installCheck(){         
    state.appInstalled = app.getInstallationState() 
   if(state.appInstalled != 'COMPLETE'){
-section{paragraph "Please hit 'Done' to install Message Central"}
+section{paragraph "Please hit 'Done' to install '${app.label}' parent app "}
   }
     else{
  //       log.info "Parent Installed OK"
     }
 	}
 
+
+
+def childAppList(){
+    state.appName1 = ""
+    childApps.each {child -> child.label
+        state.appName1 = state.appName1 + " " + child.label
+      
+       }
+   
+
+     log.info "Installed Apps = $state.appName1"
+    
+     if(!state.appName1.contains("Average All")){
+       section (""){
+		app(name: "averageParent", appName: "Average All", namespace: "Cobra", title: "<b>Install Average All</b>", multiple: true)
+            }
+     }    
+
+    if(!state.appName1.contains("Message Central")){
+        section (""){
+        app(name: "mcParent", appName: "Message Central", namespace: "Cobra", title: "<b>Install Message Central</b>", multiple: true)
+        } 
+    }
+
+    if(!state.appName1.contains("Modes Plus")){
+        section (""){
+		app(name: "modesPlusParent", appName: "Modes Plus", namespace: "Cobra", title: "<b>Install Modes Plus</b>", multiple: true)
+            }
+     }
+     if(!state.appName1.contains("One To Many")){
+        section (""){
+		app(name: "oneToManyParent", appName: "One To Many", namespace: "Cobra", title: "<b>Install One To Many</b>", multiple: true)
+            }
+     }
+    if(!state.appName1.contains("Presence Central")){
+        section (""){
+		app(name: "presenceCentralsParent", appName: "Presence Central", namespace: "Cobra", title: "<b>Install Presence Central</b>", multiple: true)
+            }
+     }
+    
+    if(!state.appName1.contains("Weather Switch")){
+        section (""){
+		app(name: "weatherSwitchParent", appName: "Weather Switch", namespace: "Cobra", title: "<b>Install Weather Switch</b>", multiple: true)
+            }
+     }    
+    
+    
+}
+
 def version(){
     resetBtnName()
-	unschedule()
 	schedule("0 0 9 ? * FRI *", updateCheck) //  Check for updates at 9am every Friday
 	updateCheck()  
     checkButtons()
@@ -138,10 +207,8 @@ def display(){
     
     if(state.status != "Current"){
 	section{ 
-
-	paragraph "<b>Update Info: $state.UpdateInfo ***</b>"
-    }
-         
+	paragraph "<b>Update Information:</b> <BR>$state.UpdateInfo <BR>$state.updateURI"
+     }
     }         
 }
 
@@ -160,6 +227,11 @@ def appButtonHandler(btn){
   		state.btnName = state.newBtn
         runIn(2, resetBtnName)
     }
+    if(state.btnCall == "updateBtn1"){
+    state.btnName1 = "Click Here" 
+    httpGet("https://github.com/CobraVmax/Hubitat/tree/master/Apps' target='_blank")
+    }
+    
 }   
 def resetBtnName(){
     log.info "Resetting Button"
@@ -171,6 +243,14 @@ def resetBtnName(){
     }
 }    
     
+def pushOver(inMsg){
+    if(updateNotification == true){  
+     newMessage = inMsg
+  LOGDEBUG(" Message = $newMessage ")  
+     state.msg1 = '[L]' + newMessage
+	speaker.speak(state.msg1)
+    }
+}
 
 
 
@@ -184,6 +264,9 @@ def updateCheck(){
  //  log.warn " Version Checking - Response Data: ${respUD.data}"   // Troubleshooting Debug Code 
        		def copyrightRead = (respUD.data.copyright)
        		state.Copyright = copyrightRead
+            def updateUri = (respUD.data.versions.UpdateInfo.GithubFiles.(state.InternalName))
+            state.updateURI = updateUri   
+            
             def newVerRaw = (respUD.data.versions.Application.(state.InternalName))
             def newVer = (respUD.data.versions.Application.(state.InternalName).replace(".", ""))
        		def currentVer = state.version.replace(".", "")
@@ -200,6 +283,8 @@ def updateCheck(){
         	log.warn "** There is a newer version of this app available  (Version: $newVerRaw) **"
         	log.warn "** $state.UpdateInfo **"
              state.newBtn = state.status
+            def updateMsg = "There is a new version of '$state.ExternalName' available (Version: $newVerRaw)"
+
        		} 
 		else{ 
       		state.status = "Current"
@@ -212,6 +297,7 @@ def updateCheck(){
     		}
     if(state.status != "Current"){
 		state.newBtn = state.status
+        
     }
     else{
         state.newBtn = "No Update Available"
@@ -219,8 +305,16 @@ def updateCheck(){
         
         
 }
+
+
+
 def setVersion(){
-		state.version = "2.2.0"	 
-		state.InternalName = "MCparent"  
+		state.version = "1.0.0"	 
+		state.InternalName = "CobraParent" 
+    	state.ExternalName = "Cobra Apps Container"
 }
+
+
+
+
 

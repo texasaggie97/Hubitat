@@ -33,13 +33,13 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 08/10/2018
+ *  Last Update: 17/10/2018
  *
  *  Changes:
  *
  * 
  *
- *  
+ *  V1.1.0 - Added to Cobra Apps as a child
  *  V1.0.2 - Revised auto update checking and added a manual update check button
  *  V1.0.1 - added revised first page
  *  V1.0.0 - POC
@@ -53,6 +53,9 @@ definition(
     namespace: "Cobra",
     author: "Andrew Parker",
     description: "Parent App for Average All ChildApps ",
+    
+     parent: "Cobra:Cobra Apps",  // ******** Comment this out if not using the 'Cobra Apps' container  ***************
+    
     category: "Convenience",
     iconUrl: "",
     iconX2Url: "",
@@ -104,10 +107,8 @@ if(state.appInstalled == 'COMPLETE'){
   section (""){
 		app(name: "averageApp", appName: "Average All Child", namespace: "Cobra", title: "<b>Add a new 'Average' automation</b>", multiple: true)
             }
-    section (" "){}
-  section("App name") {
-        label title: "Enter a name for parent app (optional)", required: false
-            }    
+
+ 
 	}
   }
 }
@@ -117,7 +118,7 @@ if(state.appInstalled == 'COMPLETE'){
 def installCheck(){         
    state.appInstalled = app.getInstallationState() 
   if(state.appInstalled != 'COMPLETE'){
-section{paragraph "Please hit 'Done' to install '${app.label}' parent app "}
+section{paragraph "Please hit 'Done' to install Average All"}
   }
     else{
  //       log.info "Parent Installed OK"
@@ -245,8 +246,9 @@ def updateCheck(){
 
 
 def setVersion(){
-		state.version = "1.0.2"	 
-		state.InternalName = "AverageAllparent"  
+		state.version = "1.1.0"	 
+		state.InternalName = "AverageAllparent" 
+    	state.ExternalName = "Average All Parent"
 }
 
 

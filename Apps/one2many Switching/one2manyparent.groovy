@@ -33,12 +33,12 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 08/10/2018
+ *  Last Update: 17/10/2018
  *
  *  Changes:
  *
  * 
- *
+ *  V1.1.0 - Added to Cobra Apps as a child
  *  V1.0.1 - added revised update checking
  *  V1.0.0 - POC
  *
@@ -52,6 +52,9 @@ definition(
     author: "Andrew Parker",
     description: "This is the 'Parent' app for One To Many Switching",
     category: "Convenience",
+
+    parent: "Cobra:Cobra Apps",  // ******** Comment this out if not using the 'Cobra Apps' container  *************** 
+    
     iconUrl: "",
     iconX2Url: "",
     iconX3Url: ""
@@ -104,9 +107,7 @@ if(state.appInstalled == 'COMPLETE'){
 		app(name: "newApp", appName: "One To Many Child", namespace: "Cobra", title: "Add a new event automation child", multiple: true)
       }
     section (" "){}
-  section("App name") {
-        label title: "Enter a name for parent app (optional)", required: false
-            }    
+ 
   
 }
   
@@ -117,7 +118,7 @@ if(state.appInstalled == 'COMPLETE'){
 def installCheck(){         
    state.appInstalled = app.getInstallationState() 
   if(state.appInstalled != 'COMPLETE'){
-section{paragraph "Please hit 'Done' to install '${app.label}' parent app "}
+section{paragraph "Please hit 'Done' to install One To Many"}
   }
     else{
  //       log.info "Parent Installed OK"
@@ -247,7 +248,7 @@ def updateCheck(){
  
 // App Version   *********************************************************************************
 def setVersion(){
-    state.version = "1.0.1"
+    state.version = "1.1.0"
     state.InternalName = "OneToManyparent"
 	state.ExternalName = "One to Many Parent"
 }

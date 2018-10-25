@@ -33,12 +33,12 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 31/07/2018
+ *  Last Update: 25/10/2018
  *
  *  Changes:
  *
  * 
- *
+ *  V1.1.0 - Added to Cobra Apps
  *  V1.0.1 - Code cleanup & revised version checking
  *  V1.0.0 - POC
  *
@@ -52,6 +52,9 @@ definition(
     author: "Andrew Parker",
     description: "This is the 'Parent' app for Schedluled Switch",
     category: "Convenience",
+    
+    parent: "Cobra:Cobra Apps",  // ************* Comment this out if not using the 'Cobra Apps' container  *******************    
+    
     iconUrl: "",
     iconX2Url: "",
     iconX3Url: ""
@@ -94,76 +97,151 @@ def initialize() {
  
 def mainPage() {
     dynamicPage(name: "mainPage") {
-      
+      installCheck()
+        
 		section {    
-			paragraph title: "Scheduled Switch",
-			"This parent app is a container for all schedule switch child apps"
-			}
-      display()
+	if(state.appInstalled == 'COMPLETE'){
+			display()
       section (){app(name: "newApp", appName: "Schedule Switch Child", namespace: "Cobra", title: "Schedule a new switch event", multiple: true)}
-      section() {label title: "Enter a name for parent app (optional)", required: false}
+    }
+        }
  } 
 }
 
 
 
-
+def installCheck(){         
+   state.appInstalled = app.getInstallationState() 
+  if(state.appInstalled != 'COMPLETE'){
+section{paragraph "Please hit 'Done' to install Scheduled Switch"}
+  }
+    else{
+ //       log.info "Parent Installed OK"
+    }
+	}
 
 def version(){
-    updatecheck()
-    if (state.Type == "Application"){schedule("0 0 9 ? * FRI *", updatecheck)}
-    if (state.Type == "Driver"){schedule("0 0 8 ? * FRI *", updatecheck)}
+    resetBtnName()
+	schedule("0 0 9 ? * FRI *", updateCheck) //  Check for updates at 9am every Friday
+	updateCheck()  
+    checkButtons()
 }
 
 def display(){
-    section{paragraph "Version: $state.version -  $state.Copyright"}
-	if(state.Status != "Current"){
-       section{ 
-       paragraph "$state.Status"
-       paragraph "$state.updateInfo"
+  
+	if(state.status){
+	section{paragraph "<img src='http://update.hubitat.uk/icons/cobra3.png''</img> Version: $state.version <br><font face='Lucida Handwriting'>$state.Copyright </font>"}
+       
+        }
+    if(state.status != "<b>** This app is no longer supported by $state.author  **</b>"){
+     section(){ input "updateBtn", "button", title: "$state.btnName"}
     }
+    
+    if(state.status != "Current"){
+	section{ 
+	paragraph "<b>Update Information:</b> <BR>$state.UpdateInfo <BR>$state.updateURI"
+     }
+    }         
+}
+
+def checkButtons(){
+    log.info "Running checkButtons"
+    appButtonHandler("updateBtn")
+}
+
+
+def appButtonHandler(btn){
+    state.btnCall = btn
+    if(state.btnCall == "updateBtn"){
+        log.info "Checking for updates now..."
+        updateCheck()
+        pause(3000)
+  		state.btnName = state.newBtn
+        runIn(2, resetBtnName)
+    }
+    if(state.btnCall == "updateBtn1"){
+    state.btnName1 = "Click Here" 
+    httpGet("https://github.com/CobraVmax/Hubitat/tree/master/Apps' target='_blank")
+    }
+    
+}   
+def resetBtnName(){
+    log.info "Resetting Button"
+    if(state.status != "Current"){
+	state.btnName = state.newBtn
+    }
+    else{
+ state.btnName = "Check For Update" 
+    }
+}    
+    
+def pushOver(inMsg){
+    if(updateNotification == true){  
+     newMessage = inMsg
+  LOGDEBUG(" Message = $newMessage ")  
+     state.msg1 = '[L]' + newMessage
+	speaker.speak(state.msg1)
     }
 }
 
 
-def updatecheck(){
-    setAppVersion()
-    def paramsUD = [uri: "http://update.hubitat.uk/cobra.json"]
-       try {
+
+
+
+def updateCheck(){
+    setVersion()
+	def paramsUD = [uri: "http://update.hubitat.uk/cobra.json"]
+       	try {
         httpGet(paramsUD) { respUD ->
-//  log.info " Version Checking - Response Data: ${respUD.data}"   // Debug Code 
-       def copyNow = (respUD.data.copyright)
-       state.Copyright = copyNow
-            def newver = (respUD.data.versions.(state.Type).(state.InternalName))
-            def cobraVer = (respUD.data.versions.(state.Type).(state.InternalName).replace(".", ""))
-       def cobraOld = state.version.replace(".", "")
-       state.updateInfo = (respUD.data.versions.UpdateInfo.(state.Type).(state.InternalName)) 
-            if(cobraVer == "NLS"){
-            state.Status = "<b>** This $state.Type is no longer supported by Cobra  **</b>"       
-            log.warn "** This $state.Type is no longer supported by Cobra **"      
-      }           
-      		else if(cobraOld < cobraVer){
-        	state.Status = "<b>New Version Available (Version: $newver)</b>"
-        	log.warn "** There is a newer version of this $state.Type available  (Version: $newver) **"
-        	log.warn "** $state.updateInfo **"
-       } 
-            else{ 
-      		state.Status = "Current"
-      		log.info "$state.Type is the current version"
-       }
-       
-       }
-        } 
+ //  log.warn " Version Checking - Response Data: ${respUD.data}"   // Troubleshooting Debug Code 
+       		def copyrightRead = (respUD.data.copyright)
+       		state.Copyright = copyrightRead
+            def updateUri = (respUD.data.versions.UpdateInfo.GithubFiles.(state.InternalName))
+            state.updateURI = updateUri   
+            
+            def newVerRaw = (respUD.data.versions.Application.(state.InternalName))
+            def newVer = (respUD.data.versions.Application.(state.InternalName).replace(".", ""))
+       		def currentVer = state.version.replace(".", "")
+      		state.UpdateInfo = (respUD.data.versions.UpdateInfo.Application.(state.InternalName))
+                state.author = (respUD.data.author)
+           
+		if(newVer == "NLS"){
+            state.status = "<b>** This app is no longer supported by $state.author  **</b>"  
+             log.warn "** This app is no longer supported by $state.author **" 
+            
+      		}           
+		else if(currentVer < newVer){
+        	state.status = "<b>New Version Available (Version: $newVerRaw)</b>"
+        	log.warn "** There is a newer version of this app available  (Version: $newVerRaw) **"
+        	log.warn "** $state.UpdateInfo **"
+             state.newBtn = state.status
+            def updateMsg = "There is a new version of '$state.ExternalName' available (Version: $newVerRaw)"
+
+       		} 
+		else{ 
+      		state.status = "Current"
+       		log.info "You are using the current version of this app"
+       		}
+      					}
+        	} 
         catch (e) {
-        log.error "Something went wrong: $e"
+        	log.error "Something went wrong: CHECK THE JSON FILE AND IT'S URI -  $e"
+    		}
+    if(state.status != "Current"){
+		state.newBtn = state.status
+        
     }
-}        
+    else{
+        state.newBtn = "No Update Available"
+    }
+        
+        
+}
 
 
-def setAppVersion(){
-     state.version = "1.0.1"
+def setVersion(){
+     state.version = "1.1.0"
      state.InternalName = "SchedSwitchparent"
-     state.Type = "Application"
- //  state.Type = "Driver"
+     state.ExternalName = "Scheduled Switch Parent"
 
 }

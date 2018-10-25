@@ -1,22 +1,22 @@
 /**
- *  ****************  Message Central..  ****************
- *
  *  Design Usage:
- *  This is the 'Parent' app for message automation..
+ *  This is the 'Parent' app for One to many switching
  *
  *
- *  Copyright 2017 Andrew Parker.
+ *  Copyright 2018 Andrew Parker
  *  
  *  This SmartApp is free!
+ *
  *  Donations to support development efforts are accepted via: 
  *
  *  Paypal at: https://www.paypal.me/smartcobra
  *  
  *
- *  I'm very happy for you to use this app without a donation, but if you find it useful then it would be nice to get a 'shout out' on the forum! -  @Cobra
+ *  I'm very happy for you to use this app without a donation, but if you find it useful
+ *  then it would be nice to get a 'shout out' on the forum! -  @Cobra
  *  Have an idea to make this app better?  - Please let me know :)
  *
- *  Website: http://securendpoint.com/smartthings
+ *  
  *
  *-------------------------------------------------------------------------------------------------------------------
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
@@ -33,42 +33,42 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 17/10/2018
+ *  Last Update: 08/10/2018
  *
  *  Changes:
  *
- *  V2.2.0 - Added to Cobra Apps as a child
- *  V2.1.1 - Revised auto update and added manual check for update button
- *  V2.1.0 - Code cleanup and remote version checking
- *  V2.0.0 - Port to Hubitat (disabled missed messages child)
- *  V1.1.0 - Added second child to remind of missed alerts
- *  V1.0.2 - Added icons
- *  V1.0.1 - Header & Debug
+ * 
+ *
+ *  V1.0.1 - added revised update checking
  *  V1.0.0 - POC
  *
  */
 
- 
- definition(
-    name: "Message Central",
+
+
+definition(
+    name:"One To Many",
     namespace: "Cobra",
     author: "Andrew Parker",
-    description: "Message Automation.",
-     
-     
-     parent: "Cobra:Cobra Apps",  // ******** Comment this out if not using the 'Cobra Apps' container  ***************
-     
-   category: "Fun & Social",
+    description: "This is the 'Parent' app for One To Many Switching",
+    category: "Convenience",
     iconUrl: "",
     iconX2Url: "",
-    iconX3Url: "")
+    iconX3Url: ""
+    )
+
+
+
+
+
+
 
 preferences {
-    
-    page name: "mainPage", title: "", install: true, uninstall: true
-    
-   
-}
+	
+     page name: "mainPage", title: "", install: true, uninstall: true // ,submitOnChange: true 
+     
+} 
+
 
 def installed() {
     log.debug "Installed with settings: ${settings}"
@@ -77,50 +77,56 @@ def installed() {
 
 def updated() {
     log.debug "Updated with settings: ${settings}"
-    
+    unsubscribe()
     initialize()
 }
 
 def initialize() {
-    version()
-    
-    log.debug "there are ${childApps.size()} child smartapps"
-    childApps.each {child ->
-        log.debug "child app: ${child.label}"
-    }
-    
-   
-    
-}
 
+    version()
+    log.info "There are ${childApps.size()} child smartapps"
+    childApps.each {child ->
+    log.info "Child app: ${child.label}"
+    }
+}
+ 
+ 
+ 
 def mainPage() {
     dynamicPage(name: "mainPage") {
-installCheck()
+         installCheck()
+        
 if(state.appInstalled == 'COMPLETE'){
-			display()
-    
-     section (""){
-            app(name: "switchMessageAutomation", appName: "Message_Central_Child", namespace: "Cobra", title: "Create New Triggered Message", multiple: true)
-            }  
-    
-		}
-    }
+			display()    
+           
+       
+      section ("Add An Event"){
+		app(name: "newApp", appName: "One To Many Child", namespace: "Cobra", title: "Add a new event automation child", multiple: true)
+      }
+    section (" "){}
+  section("App name") {
+        label title: "Enter a name for parent app (optional)", required: false
+            }    
+  
 }
-    
-    
+  
+ } // DynamicPage 
+  
+  } // Mainpage
+
 def installCheck(){         
    state.appInstalled = app.getInstallationState() 
   if(state.appInstalled != 'COMPLETE'){
-section{paragraph "Please hit 'Done' to install Message Central"}
+section{paragraph "Please hit 'Done' to install '${app.label}' parent app "}
   }
     else{
  //       log.info "Parent Installed OK"
     }
 	}
 
+
 def version(){
     resetBtnName()
-	unschedule()
 	schedule("0 0 9 ? * FRI *", updateCheck) //  Check for updates at 9am every Friday
 	updateCheck()  
     checkButtons()
@@ -138,10 +144,8 @@ def display(){
     
     if(state.status != "Current"){
 	section{ 
-
-	paragraph "<b>Update Info: $state.UpdateInfo ***</b>"
-    }
-         
+	paragraph "<b>Update Information:</b> <BR>$state.UpdateInfo <BR>$state.updateURI"
+     }
     }         
 }
 
@@ -160,6 +164,11 @@ def appButtonHandler(btn){
   		state.btnName = state.newBtn
         runIn(2, resetBtnName)
     }
+    if(state.btnCall == "updateBtn1"){
+    state.btnName1 = "Click Here" 
+    httpGet("https://github.com/CobraVmax/Hubitat/tree/master/Apps' target='_blank")
+    }
+    
 }   
 def resetBtnName(){
     log.info "Resetting Button"
@@ -171,6 +180,14 @@ def resetBtnName(){
     }
 }    
     
+def pushOver(inMsg){
+    if(updateNotification == true){  
+     newMessage = inMsg
+  LOGDEBUG(" Message = $newMessage ")  
+     state.msg1 = '[L]' + newMessage
+	speaker.speak(state.msg1)
+    }
+}
 
 
 
@@ -181,9 +198,12 @@ def updateCheck(){
 	def paramsUD = [uri: "http://update.hubitat.uk/cobra.json"]
        	try {
         httpGet(paramsUD) { respUD ->
- //  log.warn " Version Checking - Response Data: ${respUD.data}"   // Troubleshooting Debug Code 
+//   log.warn " Version Checking - Response Data: ${respUD.data}"   // Troubleshooting Debug Code 
        		def copyrightRead = (respUD.data.copyright)
        		state.Copyright = copyrightRead
+            def updateUri = (respUD.data.versions.UpdateInfo.GithubFiles.(state.InternalName))
+            state.updateURI = updateUri   
+            
             def newVerRaw = (respUD.data.versions.Application.(state.InternalName))
             def newVer = (respUD.data.versions.Application.(state.InternalName).replace(".", ""))
        		def currentVer = state.version.replace(".", "")
@@ -200,6 +220,8 @@ def updateCheck(){
         	log.warn "** There is a newer version of this app available  (Version: $newVerRaw) **"
         	log.warn "** $state.UpdateInfo **"
              state.newBtn = state.status
+            def updateMsg = "There is a new version of '$state.ExternalName' available (Version: $newVerRaw)"
+
        		} 
 		else{ 
       		state.status = "Current"
@@ -212,6 +234,7 @@ def updateCheck(){
     		}
     if(state.status != "Current"){
 		state.newBtn = state.status
+        
     }
     else{
         state.newBtn = "No Update Available"
@@ -219,8 +242,12 @@ def updateCheck(){
         
         
 }
-def setVersion(){
-		state.version = "2.2.0"	 
-		state.InternalName = "MCparent"  
-}
 
+
+ 
+// App Version   *********************************************************************************
+def setVersion(){
+    state.version = "1.0.1"
+    state.InternalName = "OneToManyparent"
+	state.ExternalName = "One to Many Parent"
+}
