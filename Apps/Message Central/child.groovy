@@ -33,10 +33,12 @@
  *-------------------------------------------------------------------------------------------------------------------
  *
  *
- *  Last Update: 22/10/2018
+ *  Last Update: 25/10/2018
  *
  *  Changes:
  *
+ *
+ *  V12.7.1 - Edited variables help page to show new variables available
  *  V12.7.0 - Added app pause switch
  *  V12.6.0 - Added a bunch of new variables so you can report on light & switch state
  *  V12.5.1 - Change the way %rain% is spoken - If 0% then: 'Rain is not expected today" - If n% then 'There is a n% chance of rain today
@@ -418,7 +420,16 @@ def pageHelpVariables(){
 	AvailableVariables += " %opencontact% 	- 		Replaced with a <b>list</b> of configured contacts if they are open\n\n"
     AvailableVariables += " %opencount% 	- 		Replaced with the <b>number</b> of configured contacts that are open\n\n"
     AvailableVariables += " %closedcontact% - 		Replaced with a <b>list</b> of configured contacts if they are closed\n\n"
-    AvailableVariables += " %closedcount% 	- 		Replaced with the <b>number</b> of configured contacts that are closed\n\n"
+    AvailableVariables += " %closedcount% 	-   		Replaced with the <b>number</b> of configured contacts that are closed\n\n"
+      
+    AvailableVariables += " %lightsOn% 	-   			Replaced with the <b>list</b> of configured lights that are on\n\n"  
+    AvailableVariables += " %lightsOncount% - 		Replaced with the <b>number</b> of configured lights that are on\n\n" 
+    AvailableVariables += " %lightsOff% 	- 			Replaced with the <b>list</b> of configured lights that are off\n\n"  
+    AvailableVariables += " %lightsOffcount% - 		Replaced with the <b>number</b> of configured lights that are off\n\n"  
+    AvailableVariables += " %switchesOn% 	- 		Replaced with the <b>list</b> of configured switches that are on\n\n"  
+    AvailableVariables += " %switchesOncount% - 		Replaced with the <b>number</b> of configured switches that are on\n\n"   
+    AvailableVariables += " %switchesOff% 	- 		Replaced with the <b>list</b> of configured switches that are off\n\n"  
+    AvailableVariables += " %switchesOffcount% - 		Replaced with the <b>number</b> of configured switches that are off\n\n"    
 	AvailableVariables += " %device% 		- 		Replaced with the name of the triggering device\n\n"
 	AvailableVariables +=  " %event% 		- 		Replaced with what triggered the action (e.g. On/Off, Wet/Dry) \n\n" 
     AvailableVariables +=  " %mode% 		- 		Replaced with the current hub location mode \n\n" 
@@ -4200,7 +4211,7 @@ def updateCheck(){
 
 
 def setVersion(){
-		state.version = "12.7.0"	 
+		state.version = "12.7.1"	 
 		state.InternalName = "MCchild" 
     	state.ExternalName = "Message Central Child"
 }
