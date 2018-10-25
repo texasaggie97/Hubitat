@@ -5,8 +5,7 @@
  *
  *  Copyright 2018 Andrew Parker
  *  
- *  This SmartApp is free!
- *
+ *  This app is free!
  *  Donations to support development efforts are accepted via: 
  *
  *  Paypal at: https://www.paypal.me/smartcobra
@@ -33,7 +32,7 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 18/10/2018
+ *  Last Update: 25/10/2018
  *
  *  Changes:
  *
@@ -97,13 +96,15 @@ def mainPage() {
        
 if(state.appInstalled == 'COMPLETE'){
 			display()
+ chooseApps()
     if(state.appName1){
     state.para1 = "<b>Installed Apps:</b>"
         
         if(state.appName1.contains("Average All")) {state.para1 = state.para1 + "<BR>Average All"}
+        if(state.appName1.contains("Check Open Contacts")) {state.para1 = state.para1 + "<BR>Check Open Contacts"}
         if(state.appName1.contains("Message Central")){state.para1 = state.para1 + "<BR>Message Central"}
     	if(state.appName1.contains("Modes Plus")) {state.para1 = state.para1 + "<BR>Modes Plus"}
-        if(state.appName1.contains( "One To Many")) {state.para1 = state.para1 + "<BR>One To Many"} 
+        if(state.appName1.contains("One To Many")) {state.para1 = state.para1 + "<BR>One To Many"} 
     	if(state.appName1.contains("Presence Central")) {state.para1 = state.para1 + "<BR>Presence Central"}  
         if(state.appName1.contains("Scheduled Switch")) {state.para1 = state.para1 + "<BR>Scheduled Switch"}  
         if(state.appName1.contains("Temperature Controlled Switch")) {state.para1 = state.para1 + "<BR>Temperature Controlled Switch"}  
@@ -113,21 +114,16 @@ if(state.appInstalled == 'COMPLETE'){
     
     section(){paragraph state.para1}}
                                 
-   
-                               
+     
+                              
  
-   // section(" "){""}
+ //   section (" "){}
     
     section(){
         paragraph "If you remove the Cobra Apps container, you will remove ALL configured apps & child apps from your system"
-        paragraph  "You can only install apps here once you have already installed the code for that app (Both parent and child)"
+        paragraph  "You can only install apps here once you have already installed the latest code for that app (both parent and child)"
              }
-			childAppList()
-    
-    
-    
-
-  
+    	childAppList()
 	}
   }
 }
@@ -140,7 +136,8 @@ def installCheck(){
 section{paragraph "Please hit 'Done' to install '${app.label}' parent app "}
   }
     else{
- //       log.info "Parent Installed OK"
+       log.info "Parent Installed OK"
+        
     }
 	}
 
@@ -150,57 +147,99 @@ def childAppList(){
     state.appName1 = ""
     childApps.each {child -> child.label
         state.appName1 = state.appName1 + " " + child.label
-      
-       }
-   
-
-     log.info "Installed Apps = $state.appName1"
-    
-     if(!state.appName1.contains("Average All")){
+}
+    if(state.appList){
+     if(!state.appName1.contains("Average All") && state.appList.contains("Average All")){
        section (""){
 		app(name: "averageParent", appName: "Average All", namespace: "Cobra", title: "<b>Install Average All</b>", multiple: true)
             }
      }    
 
-    if(!state.appName1.contains("Message Central")){
+         if(!state.appName1.contains("Check Open Contacts") && state.appList.contains("Check Open Contacts")){
+       section (""){
+		app(name: "checkContactsParent", appName: "Check Open Contacts", namespace: "Cobra", title: "<b>Install Check Open Contacts</b>", multiple: true)
+            }
+     }    
+        
+    if(!state.appName1.contains("Message Central") && state.appList.contains("Message Central")){
         section (""){
         app(name: "mcParent", appName: "Message Central", namespace: "Cobra", title: "<b>Install Message Central</b>", multiple: true)
         } 
     }
 
-    if(!state.appName1.contains("Modes Plus")){
+    if(!state.appName1.contains("Modes Plus") && state.appList.contains("Modes Plus")){
         section (""){
 		app(name: "modesPlusParent", appName: "Modes Plus", namespace: "Cobra", title: "<b>Install Modes Plus</b>", multiple: true)
             }
      }
-     if(!state.appName1.contains("One To Many")){
+     if(!state.appName1.contains("One To Many") && state.appList.contains("One To Many")){
         section (""){
 		app(name: "oneToManyParent", appName: "One To Many", namespace: "Cobra", title: "<b>Install One To Many</b>", multiple: true)
             }
      }
-    if(!state.appName1.contains("Presence Central")){
+    if(!state.appName1.contains("Presence Central") && state.appList.contains("Presence Central")){
         section (""){
 		app(name: "presenceCentralsParent", appName: "Presence Central", namespace: "Cobra", title: "<b>Install Presence Central</b>", multiple: true)
             }
      }
-     if(!state.appName1.contains("Scheduled Switch")){
+     if(!state.appName1.contains("Scheduled Switch") && state.appList.contains("Scheduled Switch")){
         section (""){
 		app(name: "scheduledSwitchParent", appName: "Scheduled Switch", namespace: "Cobra", title: "<b>Install Scheduled Switch</b>", multiple: true)
             }
      }
-    if(!state.appName1.contains("Temperature Controlled Switch")){
+    if(!state.appName1.contains("Temperature Controlled Switch") && state.appList.contains("Temperature Controlled Switch")){
         section (""){
 		app(name: "tempControlledSwitchParent", appName: "Temperature Controlled Switch", namespace: "Cobra", title: "<b>Install Temperature Controlled Switch</b>", multiple: true)
             }
      }
-    if(!state.appName1.contains("Weather Switch")){
+    if(!state.appName1.contains("Weather Switch") && state.appList.contains("Weather Switch")){
         section (""){
 		app(name: "weatherSwitchParent", appName: "Weather Switch", namespace: "Cobra", title: "<b>Install Weather Switch</b>", multiple: true)
             }
      }    
-    
+    }    
     
 }
+
+
+
+
+def chooseApps(){
+    section (){
+        input "includedApps", "enum", title: "Select Apps To Include", required: false, multiple: true, submitOnChange: true, options: checkInput()
+        }
+    state.appList = includedApps 
+    
+    if(!includedApps){
+    
+       section(){paragraph "You MUST choose at least one app from the list above"}
+     }
+}
+
+
+def checkInput(){
+    listInput = [
+        "Average All",
+        "Check Open Contacts",
+        "Message Central",
+        "Modes Plus",
+        "One To Many",
+        "Presence Central",
+        "Scheduled Switch",
+        "Temperature Controlled Switch",
+        "Weather Switch"
+]  
+    
+    return listInput
+}
+   
+
+    
+    
+    
+
+
+
 
 def version(){
     resetBtnName()
@@ -223,7 +262,8 @@ def display(){
 	section{ 
 	paragraph "<b>Update Information:</b> <BR>$state.UpdateInfo <BR>$state.updateURI"
      }
-    }         
+    }   
+   
 }
 
 def checkButtons(){
