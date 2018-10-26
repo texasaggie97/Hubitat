@@ -37,7 +37,7 @@
  *
  *  Changes:
  *
- *  V12.9.0 - Added multiple speaker volume slots for 'quiet time'
+ *  V12.9.0 - Added multiple speaker slots for 'quiet time'
  *  V12.8.0 - Added multiple speaker volume slots 'normal time'
  *  V12.7.1 - Edited variables help page to show new variables available
  *  V12.7.0 - Added app pause switch
@@ -730,7 +730,7 @@ def restrictionInputs(){
    		input "toTime2", "time", title: "Quiet Time End", required: false  
         
         input "speakerNoq", "enum", title: "How Many Volume Slots Do You Need", submitOnChange: true, defaultValue: "0", options: [ "2","3","4","5"]
-        if(speakerNoQ != null){
+        if(speakerNoq != null){
             state.speakerNumberq = speakerNoq
         }
          if(state.speakerNumberq == null){
@@ -3362,12 +3362,12 @@ def between2 = timeOfDayIsBetween(toDateTime(fromTime2), toDateTime(toTime2), ne
  
  if(state.multiVolumeSlotsq == false){
       speaker.setLevel(state.volume)
-     log.warn "Multi Volume Not used - setting volume of all speakers to $state.volume"
+    LOGDEBUG("Multi Volume Not used - setting volume of all speakers to $state.volume")
 
   }
     
    else if(state.multiVolumeSlotsq == true){
-     log.warn "Multi Volume used - setting volume of each speaker"  
+     LOGDEBUG("Multi Volume used - setting volume of each speaker")  
 		if(state.speakerNumberq == "2"){ 
         speakerN1q.setLevel(state.voiceVolumeAq)
     	speakerN2q.setLevel(state.voiceVolumeBq)
@@ -3409,7 +3409,7 @@ LOGDEBUG("Quiet Time = No - Setting Normal time volume ")
     
   if(state.multiVolumeSlots == false){
       speaker.setLevel(state.volume)
-     log.warn "Multi Volume Not used - setting volume of all speakers to $state.volume"
+     LOGDEBUG("Multi Volume Not used - setting volume of all speakers to $state.volume")
   }
     
    else if(state.multiVolumeSlots == true){
@@ -3441,23 +3441,17 @@ LOGDEBUG("Quiet Time = No - Setting Normal time volume ")
        
     } 
     
- 
-// speaker.setLevel(state.volume)
- 
+
 	}
 }
 else if (timecheck == null){
    if(state.multiVolumeSlots == false){
        state.volume = state.volumeAll
       speaker.setLevel(state.volume)
-    log.warn "No 'quiet time' settings...Multi Volume Not used - setting volume of all speakers to $state.volume - state.volume = $state.volumeAll"
+    LOGDEBUG("No 'quiet time' settings...Multi Volume Not used - setting volume of all speakers to $state.volume - state.volume = $state.volumeAll")
      speaker.setLevel(state.volume)  
        
-   //   if(speakerN1){speakerN1.setLevel(state.volume)}
-   //   if(speakerN2){speakerN2.setLevel(state.volume)}
-   //   if(speakerN3){speakerN3.setLevel(state.volume)}
-  //    if(speakerN4){speakerN4.setLevel(state.volume)}
-  //    if(speakerN5){speakerN5.setLevel(state.volume)}
+
       
   }
    else if(state.multiVolumeSlots == true){
