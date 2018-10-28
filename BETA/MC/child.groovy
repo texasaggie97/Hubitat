@@ -33,12 +33,14 @@
  *-------------------------------------------------------------------------------------------------------------------
  *
  *
- *  Last Update: 26/10/2018
+ *  Last Update: 28/10/2018
  *
  *  Changes:
  *
+ *
+ *  V13.0.0 - Added configurable actions on 'restriction' switch 
  *  V12.9.0 - Added multiple speaker slots for 'quiet time'
- *  V12.8.0 - Added multiple speaker volume slots 'normal time'
+ *  V12.8.0 - Added multiple speaker volume slots for 'normal time'
  *  V12.7.1 - Edited variables help page to show new variables available
  *  V12.7.0 - Added app pause switch
  *  V12.6.0 - Added a bunch of new variables so you can report on light & switch state
@@ -189,7 +191,7 @@ def initialize() {
       
 // Subscriptions    
 
-subscribe(enableSwitch, "switch", switchEnable)
+    if(enableSwitch){subscribe(enableSwitch, "switch", switchEnable)}
 subscribe(location, "mode", modeHandler)
 
 if(trigger == 'Time'){
@@ -279,7 +281,7 @@ subscribe(restrictPresenceSensor1, "presence", restrictPresence1SensorHandler)
 }    
 
     if(weather1){
-  //      subscribe(weather1, "alert", weatherAlert)
+        subscribe(weather1, "alert", weatherAlert)
     	subscribe(weather1, "weatherSummary", weatherSummaryHandler)
 		subscribe(weather1, "weather", weatherNow) 
 		subscribe(weather1, "forecastHigh", weatherForecastHigh) 
@@ -296,7 +298,7 @@ subscribe(restrictPresenceSensor1, "presence", restrictPresence1SensorHandler)
     if(weather2){ subscribe(weather2, "alert", weatherAlert)}
     if(lights){subscribe(lights, "switch",lightsOnOff)}
     if(switches){subscribe(switches, "switch",switchesOnOff)}
-    
+    if(enableSwitchMode == null){enableSwitchMode = false}
 }
 
 
@@ -436,7 +438,7 @@ def pageHelpVariables(){
     AvailableVariables +=  " %mode% 		- 		Replaced with the current hub location mode \n\n" 
       
     AvailableVariables += " Weather Variables (Available if your weather device supports them as attributes)\n\n" 
-  //  AvailableVariables +=  " %alert% 		- 		Replaced with weather alert  \n\n" 
+    AvailableVariables +=  " %alert% 		- 		Replaced with weather alert  \n\n" 
     AvailableVariables +=  " %wsum% 		- 		Replaced with weather summary  \n\n" 
     AvailableVariables +=  " %high%   		- 		Replaced with 'Forecast High' \n\n" 
     AvailableVariables +=  " %low%   		- 		Replaced with 'Forecast Low \n\n" 
@@ -528,7 +530,9 @@ def namePage() {
 
 // defaults
 def speakerInputs(){	
-	input "enableSwitch", "capability.switch", title: "Select switch Enable/Disable this message (Optional)", required: false, multiple: false 
+	input "enableSwitch", "capability.switch", title: "Select switch Enable/Disable this message (Optional)", required: false, multiple: false, submitOnChange: true 
+     if(enableSwitch){ input "enableSwitchMode", "bool", title: "Allow actions only when this switch is..", required: true, defaultValue: false, submitOnChange: true}
+    
     input "messageAction", "enum", title: "Select Message Type", required: false, submitOnChange: true,  options: [ "Voice Message (MusicPlayer)", "Voice Message (SpeechSynth)",  "SMS Message", "PushOver Message", "Join Message", "Play an Mp3 (No variables can be used)"]
     
 
@@ -1367,13 +1371,13 @@ def switchesOnoff(evt){
 
 
 def weatherSummaryHandler(evt){
- state.weatherSummary = evt.value
+ state.weatherSummary1 = evt.value.toString() 
  LOGDEBUG("Running weatherSummaryHandler.. ")
-  LOGDEBUG("state.weatherSummary = $state.weatherSummary")  
+  LOGDEBUG("state.weatherSummary1 = $state.weatherSummary1")  
 }
 
 def weatherNow(evt){
- state.weatherNow = evt.value
+ state.weatherNow = evt.value.toString()
  LOGDEBUG("Running weatherNow.. ")
   LOGDEBUG("state.weatherNow = $state.weatherNow")  
 }
@@ -2254,6 +2258,43 @@ LOGDEBUG("AppGo = $state.appgo")
 }
 
 def switchEnable(evt){
+state.enableInput = evt.value
+    
+    if(enableSwitchMode == true && state.enableInput == 'off'){
+state.appgo = false
+        LOGDEBUG("Cannot change mode - App disabled by switch")  
+    }
+     if(enableSwitchMode == true && state.enableInput == 'on'){
+state.appgo = true
+        LOGDEBUG("Switch restriction is OK.. Continue...") 
+    }    
+     if(enableSwitchMode == false && state.enableInput == 'off'){
+state.appgo = true
+        LOGDEBUG("Switch restriction is OK.. Continue...")  
+    }
+     if(enableSwitchMode == false && state.enableInput == 'on'){
+state.appgo = false
+        LOGDEBUG("Cannot change mode - App disabled by switch")  
+    }    
+      
+    
+LOGDEBUG("Allow by switch is $state.enablecurrS1")
+        
+  
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
 state.sEnable = evt.value
 LOGDEBUG("$enableSwitch = $state.sEnable")
 if(state.sEnable == 'on'){
@@ -3659,7 +3700,7 @@ private compileMsg(msg) {
     if (msgComp.toUpperCase().contains("%GROUP2%")) {msgComp = msgComp.toUpperCase().replace('%GROUP2%', getPost() )}
     if (msgComp.toUpperCase().contains("%GROUP3%")) {msgComp = msgComp.toUpperCase().replace('%GROUP3%', getWakeUp() )}
     if (msgComp.toUpperCase().contains("%GROUP4%")) {msgComp = msgComp.toUpperCase().replace('%GROUP4%', getGroup4() )}
-//	if (msgComp.toUpperCase().contains("%ALERT%")) {msgComp = msgComp.toUpperCase().replace('%ALERT%', state.weatherAlert )}
+ 	if (msgComp.toUpperCase().contains("%ALERT%")) {msgComp = msgComp.toUpperCase().replace('%ALERT%', state.weatherAlert )}
     if (msgComp.toUpperCase().contains("%WNOW%")) {msgComp = msgComp.toUpperCase().replace('%WNOW%', state.weatherNow)}
     if (msgComp.toUpperCase().contains("%RAIN%")) {msgComp = msgComp.toUpperCase().replace('%RAIN%', state.rainFall )}
     if (msgComp.toUpperCase().contains("%VIS%")) {msgComp = msgComp.toUpperCase().replace('%VIS%', state.weatherVisibility )}
@@ -3671,7 +3712,7 @@ private compileMsg(msg) {
     if (msgComp.toUpperCase().contains("%HUM%")) {msgComp = msgComp.toUpperCase().replace('%HUM%', state.weatherHumidity )}
     if (msgComp.toUpperCase().contains("%LOW%")) {msgComp = msgComp.toUpperCase().replace('%LOW%', state.weatherForecastLow )}
     if (msgComp.toUpperCase().contains("%HIGH%")) {msgComp = msgComp.toUpperCase().replace('%HIGH%', state.weatherForecastHigh )} 
-    if (msgComp.toUpperCase().contains("%WSUM%")) {msgComp = msgComp.toUpperCase().replace('%WSUM%', state.weatherSummary )} 
+    if (msgComp.toUpperCase().contains("%WSUM%")) {msgComp = msgComp.toUpperCase().replace('%WSUM%', state.weatherSummary1 )} 
     if (msgComp.toUpperCase().contains("%TIME%")) {msgComp = msgComp.toUpperCase().replace('%TIME%', getTime(false,true))}  
     if (msgComp.toUpperCase().contains("%DAY%")) {msgComp = msgComp.toUpperCase().replace('%DAY%', getDay() )}  
 	if (msgComp.toUpperCase().contains("%DATE%")) {msgComp = msgComp.toUpperCase().replace('%DATE%', getdate() )}  
@@ -4346,7 +4387,7 @@ def display(){
     }
     
     section(){
-        log.info "app.label = $app.label"
+   //     log.info "app.label = $app.label"
     input "pause1", "bool", title: "Pause This App", required: true, submitOnChange: true, defaultValue: false  
      }
     pauseOrNot()   
@@ -4404,25 +4445,27 @@ def pushOverNow(inMsg){
 }
 
 def pauseOrNot(){
-//    log.info " Calling 'pauseOrNot'..."
+LOGDEBUG(" Calling 'pauseOrNot'...")
     state.pauseNow = pause1
         if(state.pauseNow == true){
             state.pauseApp = true
+            if(app.label){
             if(app.label.contains('red')){
                 log.warn "Paused"}
             else{app.updateLabel(app.label + ("<font color = 'red'> (Paused) </font>" ))
               log.warn "App Paused - state.pauseApp = $state.pauseApp "   
                 }
     
-       
+            }
         }
     
      if(state.pauseNow == false){
          state.pauseApp = false
+         if(app.label){
      if(app.label.contains('red')){ app.updateLabel(app.label.minus("<font color = 'red'> (Paused) </font>" ))
-         log.info "App Released - state.pauseApp = $state.pauseApp "                          
+     LOGDEBUG("App Released - state.pauseApp = $state.pauseApp ")                          
                                   }
-	
+         }
   }    
     
 }
@@ -4481,7 +4524,7 @@ def updateCheck(){
 
 
 def setVersion(){
-		state.version = "12.9.0"	 
+		state.version = "13.0.0"	 
 		state.InternalName = "MCchild" 
     	state.ExternalName = "Message Central Child"
 }
