@@ -619,7 +619,7 @@ def display(){
     }
     
     section(){
-        log.info "app.label = $app.label"
+   //     log.info "app.label = $app.label"
     input "pause1", "bool", title: "Pause This App", required: true, submitOnChange: true, defaultValue: false  
      }
     pauseOrNot()   
@@ -677,25 +677,27 @@ def pushOverNow(inMsg){
 }
 
 def pauseOrNot(){
-//    log.info " Calling 'pauseOrNot'..."
+LOGDEBUG(" Calling 'pauseOrNot'...")
     state.pauseNow = pause1
         if(state.pauseNow == true){
             state.pauseApp = true
+            if(app.label){
             if(app.label.contains('red')){
                 log.warn "Paused"}
             else{app.updateLabel(app.label + ("<font color = 'red'> (Paused) </font>" ))
               log.warn "App Paused - state.pauseApp = $state.pauseApp "   
                 }
     
-       
+            }
         }
     
      if(state.pauseNow == false){
          state.pauseApp = false
+         if(app.label){
      if(app.label.contains('red')){ app.updateLabel(app.label.minus("<font color = 'red'> (Paused) </font>" ))
-         log.info "App Released - state.pauseApp = $state.pauseApp "                          
+     LOGDEBUG("App Released - state.pauseApp = $state.pauseApp ")                          
                                   }
-	
+         }
   }    
     
 }
