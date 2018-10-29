@@ -1,22 +1,19 @@
 /**
- *  Design Usage:
- *  This is the 'Parent' app for 'Check Open Contacts' 
+ *  ****************  Schedule A Switch Event  ****************
  *
- *
- *  Copyright 2018 Andrew Parker
+ *  Copyright 2017 Andrew Parker
  *  
  *  This SmartApp is free!
- *
  *  Donations to support development efforts are accepted via: 
  *
  *  Paypal at: https://www.paypal.me/smartcobra
  *  
  *
- *  I'm very happy for you to use this app without a donation, but if you find it useful
- *  then it would be nice to get a 'shout out' on the forum! -  @Cobra
+ *  I'm happy for you to use this without a donation (but, if you find it useful then it would be nice to get a 'shout out' on the forum!) -  @Cobra
+ *
  *  Have an idea to make this app better?  - Please let me know :)
  *
- *  
+ *  Website: http://securendpoint.com/smartthings
  *
  *-------------------------------------------------------------------------------------------------------------------
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
@@ -29,9 +26,9 @@
  *  for the specific language governing permissions and limitations under the License.
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  If modifying this project, please keep the above header intact and add your comments/credits below - Thank you! -  @Cobra
+ *  If modifying this project, please keep the above header intact and add your comments/credits below -  @Cobra
  *
- *-------------------------------------------------------------------------------------------------------------------
+ *
  *
  *  Last Update: 29/10/2018
  *
@@ -39,90 +36,135 @@
  *
  * 
  *
+ *
  *  
- *  V1.1.0 - Added to 'Cobra Apps' 
- *  V1.0.1 - Revised auto update checking and added a manual update check button
  *  V1.0.0 - POC
  *
  */
-
-
-
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
 definition(
-    name:"Check Open Contacts",
+    name: "Daily Switch Event Child",
     namespace: "Cobra",
     author: "Andrew Parker",
-    description: "Parent App for 'Check Open Contacts' childapps ",
+    description: "Schedule a time to turn on a switch then schedule a time to turn it off again",
     category: "Convenience",
     
-     parent: "Cobra:Cobra Apps",  // ******** Comment this out if not using the 'Cobra Apps' container  ***************
+  parent: "Cobra:Daily Switch Event",
     
     iconUrl: "",
-    iconX2Url: "",
-    iconX3Url: ""
+	iconX2Url: "",
+    iconX3Url: "",
     )
 
-
-
-
-
-
-
 preferences {
-	
-     page name: "mainPage", title: "", install: true, uninstall: true
-     
-} 
+	display()
 
+    section("") {
+		input (name: "startTime", title: "Start time (On)", type: "time",  required: true)
+	
+    input name: "action1", type: "bool", title: "Turn switch Off? ", required: true, defaultValue: false, submitOnChange: true  
+    if(action1 == true){
+    
+		input (name: "stopTime", title: "Stop time (Off)", type: "time",  required: false)
+    }
+    }    
+        
+    section("") {
+        input "days", "enum", title: "Select Days of the Week", required: false, multiple: true, options: ["Monday": "Monday", "Tuesday": "Tuesday", "Wednesday": "Wednesday", "Thursday": "Thursday", "Friday": "Friday", "Saturday": "Saturday", "Sunday": "Sunday"]
+    }
+	
+	 section(){
+		input "switch1",  "capability.switch", title: "Control switch(es)", multiple: true, required: false
+	}    
+   
+    
+    
+    
+}
 
 def installed() {
-    log.debug "Installed with settings: ${settings}"
-    initialize()
+	log.debug "Installed with settings: ${settings}"
+	initialize()
 }
 
 def updated() {
-    log.debug "Updated with settings: ${settings}"
-    unsubscribe()
-    initialize()
+	log.debug "Updated with settings: ${settings}"
+	unsubscribe()
+	initialize()
 }
 
-def initialize() {
-	version()
+def initialize() {	 
+ version()
+     schedule(startTime, checkNow1)
+    if(action1 == true){schedule(stopTime, checkNow2)}
+     }
+
+
+
+def checkNow1 (evt) {
    
-    log.info "There are ${childApps.size()} child apps"
-    childApps.each {child ->
-    log.info "Child app: ${child.label}"
+log.info "Operation is scheduled for $startTime"
+    
+    if(days){
+     def df = new java.text.SimpleDateFormat("EEEE")
+   df.setTimeZone(location.timeZone)
+    def day = df.format(new Date())
+    //Does the input 'days', contain today?
+    def dayCheck = days.contains(day)
+    if (dayCheck) {
+    
+log.info "Scheduled for operation today"
+log.info "Switching on..."
+        switch1.on() 
+       
+               
+    			  }
+    else {
+ log.debug "Not scheduled for today!"
+		 } 
     }
     
-}
-
-
-def mainPage() {
-    dynamicPage(name: "mainPage") {
-      installCheck()
-        
-if(state.appInstalled == 'COMPLETE'){
-			display()
-
-  section (""){
-		app(name: "anyOpenApp", appName: "Check Open Contacts Child", namespace: "Cobra", title: "<b>Add a new 'Open Contact' message</b>", multiple: true)
-            }
-
-	}
-  }
-}
-
-
-
-def installCheck(){         
-   state.appInstalled = app.getInstallationState() 
-  if(state.appInstalled != 'COMPLETE'){
-section{paragraph "Please hit 'Done' to install Check Open Contacts"}
-  }
-    else{
- //       log.info "Parent Installed OK"
+    if(!days){
+        switch1.on() 
     }
-	}
+        
+}
+
+def checkNow2 (evt) {
+	
+log.info "Operation is scheduled for $stopTime"
+    if(days){
+ def df = new java.text.SimpleDateFormat("EEEE")
+   df.setTimeZone(location.timeZone)
+    def day = df.format(new Date())
+    //Does the input 'days', contain today?
+    def dayCheck = days.contains(day)
+    if (dayCheck) {
+    
+log.info "Scheduled for operation today"
+    	
+log.debug "Switching off..."        
+        switch1.off()
+               
+    			  }
+    else {
+ log.debug "Not scheduled for today!"
+		 } 
+    }
+     if(!days){
+        switch1.off() 
+    }
+ 				  
+}
+
 
 def version(){
     resetBtnName()
@@ -137,6 +179,8 @@ def display(){
 	section{paragraph "<img src='http://update.hubitat.uk/icons/cobra3.png''</img> Version: $state.version <br><font face='Lucida Handwriting'>$state.Copyright </font>"}
        
         }
+   
+
     if(state.status != "<b>** This app is no longer supported by $state.author  **</b>"){
      section(){ input "updateBtn", "button", title: "$state.btnName"}
     }
@@ -145,7 +189,11 @@ def display(){
 	section{ 
 	paragraph "<b>Update Info:</b> <BR>$state.UpdateInfo <BR>$state.updateURI"
      }
-    }         
+    }
+	section(" ") {
+      input "updateNotification", "bool", title: "Send a 'Pushover' message when an update is available", required: true, defaultValue: false, submitOnChange: true 
+      if(updateNotification == true){ input "speaker", "capability.speechSynthesis", title: "PushOver Device", required: true, multiple: true}
+    }
 }
 
 def checkButtons(){
@@ -179,7 +227,7 @@ def resetBtnName(){
     }
 }    
     
-def pushOver(inMsg){
+def pushOverUpdate(inMsg){
     if(updateNotification == true){  
      newMessage = inMsg
   LOGDEBUG(" Message = $newMessage ")  
@@ -220,7 +268,7 @@ def updateCheck(){
         	log.warn "** $state.UpdateInfo **"
              state.newBtn = state.status
             def updateMsg = "There is a new version of '$state.ExternalName' available (Version: $newVerRaw)"
-   //         pushOver(updateMsg)
+            pushOverUpdate(updateMsg)
        		} 
 		else{ 
       		state.status = "Current"
@@ -244,12 +292,11 @@ def updateCheck(){
 
 
 
+
+
+
 def setVersion(){
-		state.version = "1.1.0"	 
-		state.InternalName = "CheckContactsParent"  
+		state.version = "1.0.0"	 
+		state.InternalName = "DailySwitchEventChild"
+    		state.ExternalName = "Daily Switch Event Child"
 }
-
-
-
-
-
