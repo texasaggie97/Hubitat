@@ -32,12 +32,12 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 25/10/2018
+ *  Last Update: 29/10/2018
  *
  *  Changes:
  *
- * 
- *
+ *  V1.2.0 - Added 'Daily Switch Event'
+ *  V1.1.0 - Added "Contact Controlled Lights and Switches" 
  *  V1.0.0 - POC
  *
  */
@@ -102,6 +102,8 @@ if(state.appInstalled == 'COMPLETE'){
         
         if(state.appName1.contains("Average All")) {state.para1 = state.para1 + "<BR>Average All"}
         if(state.appName1.contains("Check Open Contacts")) {state.para1 = state.para1 + "<BR>Check Open Contacts"}
+        if(state.appName1.contains("Contact Controlled Lights and Switches")) {state.para1 = state.para1 + "<BR>Contact Controlled Lights and Switchess"}
+        if(state.appName1.contains("Daily Switch Event")){state.para1 = state.para1 + "<BR>Daily Switch Event"}
         if(state.appName1.contains("Message Central")){state.para1 = state.para1 + "<BR>Message Central"}
     	if(state.appName1.contains("Modes Plus")) {state.para1 = state.para1 + "<BR>Modes Plus"}
         if(state.appName1.contains("One To Many")) {state.para1 = state.para1 + "<BR>One To Many"} 
@@ -159,13 +161,27 @@ def childAppList(){
        section (""){
 		app(name: "checkContactsParent", appName: "Check Open Contacts", namespace: "Cobra", title: "<b>Install Check Open Contacts</b>", multiple: true)
             }
-     }    
+     }
         
-    if(!state.appName1.contains("Message Central") && state.appList.contains("Message Central")){
+        
+         if(!state.appName1.contains("Contact Controlled Lights and Switches") && state.appList.contains("Contact Controlled Lights and Switches")){
+       section (""){
+		app(name: "contactLightSwitchesParent", appName: "Contact Controlled Lights and Switches", namespace: "Cobra", title: "<b>Install Contact Controlled Lights and Switches</b>", multiple: true)
+            }
+     }        
+        
+    if(!state.appName1.contains("Daily Switch Event") && state.appList.contains("Daily Switch Event")){
+        section (""){
+        app(name: "dailySwitchEvent", appName: "Daily Switch Event", namespace: "Cobra", title: "<b>Install Daily Switch Event</b>", multiple: true)
+        } 
+    }
+        
+     if(!state.appName1.contains("Message Central") && state.appList.contains("Message Central")){
         section (""){
         app(name: "mcParent", appName: "Message Central", namespace: "Cobra", title: "<b>Install Message Central</b>", multiple: true)
         } 
     }
+    
 
     if(!state.appName1.contains("Modes Plus") && state.appList.contains("Modes Plus")){
         section (""){
@@ -221,6 +237,8 @@ def checkInput(){
     listInput = [
         "Average All",
         "Check Open Contacts",
+        "Contact Controlled Lights and Switches",
+        "Daily Switch Event",
         "Message Central",
         "Modes Plus",
         "One To Many",
@@ -363,7 +381,7 @@ def updateCheck(){
 
 
 def setVersion(){
-		state.version = "1.0.0"	 
+		state.version = "1.2.0"	 
 		state.InternalName = "CobraParent" 
     	state.ExternalName = "Cobra Apps Container"
 }
