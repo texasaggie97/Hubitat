@@ -1,5 +1,5 @@
 /**
- *  ****************  Contact Controlled Switch  ****************
+ *  ****************  Contact Controlled Switches & Lights  ****************
  *
  *  Copyright 2018 Andrew Parker
  *  
@@ -30,7 +30,7 @@
  *
  *
  *
- *  Last Update: 27/10/2018
+ *  Last Update: 29/10/2018
  *
  *  Changes:
  *
