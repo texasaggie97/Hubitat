@@ -1,22 +1,19 @@
 /**
- *  Design Usage:
- *  This is the 'Parent' app for 'Contact Controlled Lights and Switches' 
- *
+ *  ****************  Contact Controlled Switch  ****************
  *
  *  Copyright 2018 Andrew Parker
  *  
- *  This App is free!
- *
+ *  This SmartApp is free!
  *  Donations to support development efforts are accepted via: 
  *
  *  Paypal at: https://www.paypal.me/smartcobra
  *  
  *
- *  I'm very happy for you to use this app without a donation, but if you find it useful
- *  then it would be nice to get a 'shout out' on the forum! -  @Cobra
+ *  I'm happy for you to use this without a donation (but, if you find it useful then it would be nice to get a 'shout out' on the forum!) -  @Cobra
+ *
  *  Have an idea to make this app better?  - Please let me know :)
  *
- *  
+ *  Website: http://securendpoint.com/smartthings
  *
  *-------------------------------------------------------------------------------------------------------------------
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
@@ -29,104 +26,134 @@
  *  for the specific language governing permissions and limitations under the License.
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  If modifying this project, please keep the above header intact and add your comments/credits below - Thank you! -  @Cobra
+ *  If modifying this project, please keep the above header intact and add your comments/credits below -  @Cobra
  *
- *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 29/10/2018
+ *
+ *  Last Update: 27/10/2018
  *
  *  Changes:
  *
  * 
  *
+ *
  *  
- *  V1.1.0 - Added to 'Cobra Apps' 
- *  V1.0.1 - Revised auto update checking and added a manual update check button
  *  V1.0.0 - POC
  *
  */
-
-
-
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
 definition(
-    name:"Contact Controlled Lights and Switches",
+    name: "Contact Lights and Switches Child",
     namespace: "Cobra",
     author: "Andrew Parker",
-    description: "Parent App for 'Contact Controlled Lights and Switches' childapps ",
+    description: "Contact Lights and Switches Child",
     category: "Convenience",
-    
-    parent: "Cobra:Cobra Apps",  // ******** Comment this out if not using the 'Cobra Apps' container  ***************
+  parent: "Cobra:Contact Controlled Lights and Switches",  
+
     
     iconUrl: "",
-    iconX2Url: "",
-    iconX3Url: ""
+	iconX2Url: "",
+    iconX3Url: "",
     )
 
-
-
-
-
-
-
 preferences {
-	
-     page name: "mainPage", title: "", install: true, uninstall: true
-     
-} 
+	display() 
 
+    section("") {
+   input "childTypeSelect", "enum", required: true, title: "What to trigger", submitOnChange: true,  options: ["Light", "Switch"] 
+     state.modeType = childTypeSelect                                                                                                                     
+ }  
+    if(state.modeType){  
+        section(){
+		input "contact1", "capability.contactSensor", title: "Door/Window Contact", required: true, multiple: true
+	}
+     
+        
+        
+    if(state.modeType == 'Switch'){ 
+        
+	 section("Turn on this switch"){
+		input "switch1",  "capability.switch", multiple: true, required: false
+        input "contactMode1", "bool", title: "Switch off as well", required: true, defaultValue: false, submitOnChange: true 
+        if(contactMode1 == true){ input (name: "delay1", type: "number", title: "Off Delay (Minutes)", required: true, defaultValue: '0') } 
+       	}    
+    
+  
+    } 
+        
+     if(state.modeType == "Light"){      
+      section(){  
+     input (name: "switch2", type: "capability.switchLevel", title: "Control these lights", multiple: true, required: true)
+        input (name: "dimLevel1", type: "number", title: "Dim Level", required: true) 
+         input "contactMode1", "bool", title: "Switch off as well", required: true, defaultValue: false, submitOnChange: true
+          if(contactMode1 == true){ input (name: "delay1", type: "number", title: "Off Delay (Minutes)", required: true, defaultValue: '0') } 
+     } 
+         
+         
+     }
+    }    
+}
 
 def installed() {
-    log.debug "Installed with settings: ${settings}"
-    initialize()
+	log.debug "Installed with settings: ${settings}"
+	initialize()
 }
 
 def updated() {
-    log.debug "Updated with settings: ${settings}"
-    unsubscribe()
-    initialize()
+	log.debug "Updated with settings: ${settings}"
+	unsubscribe()
+	initialize()
 }
 
-def initialize() {
-	version()
-   
-    log.info "There are ${childApps.size()} child apps"
-    childApps.each {child ->
-    log.info "Child app: ${child.label}"
-    }
+def initialize() {	 
+ version()
     
+      subscribe(contact1, "contact", contactHandler)
 }
 
 
-def mainPage() {
-    dynamicPage(name: "mainPage") {
-      installCheck()
-        
-if(state.appInstalled == 'COMPLETE'){
-			display()
-
-  section (""){
-		app(name: "contactChild", appName: "Contact Lights and Switches Child", namespace: "Cobra", title: "<b>Add a new automation</b>", multiple: true)
-            }
-
+def contactHandler (evt) {
+state.contact = evt.value
+state.mydelay = 60 * delay1 
+state.mylevel1 = dimLevel1
+state.contactMode = contactMode1
+    
+   log.info "$contact1 = $state.contact"
+   
+ if(state.contact == 'open'){
+ log.info "Switching on..."
+     if(switch1){switch1.on()}
+     if(switch2){switch2.setLevel (state.mylevel1)}
 	}
-  }
+   
+    if(state.contact == 'closed' && state.contactMode == true){   
+		log.info " switching off in $state.mydelay seconds"
+		runIn(state.mydelay, offNow)
 }
-
-
-
-def installCheck(){         
-   state.appInstalled = app.getInstallationState() 
-  if(state.appInstalled != 'COMPLETE'){
-section{paragraph "Please hit 'Done' to install Contact Controlled Lights and Switches"}
-  }
-    else{
- //       log.info "Parent Installed OK"
+	else if(state.contact == 'closed' && state.contactMode == false){   
+     log.info "No off configured"
     }
-	}
+}
+    
+  
+   
+def offNow(){
+log.info "Switching off... "
+    if(switch1){switch1.off()}
+    if(switch2){switch2.off()}   
+ }  
+   
 
 def version(){
     resetBtnName()
-	unschedule()
 	schedule("0 0 9 ? * FRI *", updateCheck) //  Check for updates at 9am every Friday
 	updateCheck()  
     checkButtons()
@@ -144,11 +171,10 @@ def display(){
     
     if(state.status != "Current"){
 	section{ 
-
-	paragraph "<b>Update Info: $state.UpdateInfo ***</b>"
-    }
-         
-    }         
+	paragraph "<b>Update Information:</b> <BR>$state.UpdateInfo <BR>$state.updateURI"
+     }
+    }   
+   
 }
 
 def checkButtons(){
@@ -166,6 +192,11 @@ def appButtonHandler(btn){
   		state.btnName = state.newBtn
         runIn(2, resetBtnName)
     }
+    if(state.btnCall == "updateBtn1"){
+    state.btnName1 = "Click Here" 
+    httpGet("https://github.com/CobraVmax/Hubitat/tree/master/Apps' target='_blank")
+    }
+    
 }   
 def resetBtnName(){
     log.info "Resetting Button"
@@ -177,6 +208,14 @@ def resetBtnName(){
     }
 }    
     
+def pushOver(inMsg){
+    if(updateNotification == true){  
+     newMessage = inMsg
+  LOGDEBUG(" Message = $newMessage ")  
+     state.msg1 = '[L]' + newMessage
+	speaker.speak(state.msg1)
+    }
+}
 
 
 
@@ -190,6 +229,9 @@ def updateCheck(){
  //  log.warn " Version Checking - Response Data: ${respUD.data}"   // Troubleshooting Debug Code 
        		def copyrightRead = (respUD.data.copyright)
        		state.Copyright = copyrightRead
+            def updateUri = (respUD.data.versions.UpdateInfo.GithubFiles.(state.InternalName))
+            state.updateURI = updateUri   
+            
             def newVerRaw = (respUD.data.versions.Application.(state.InternalName))
             def newVer = (respUD.data.versions.Application.(state.InternalName).replace(".", ""))
        		def currentVer = state.version.replace(".", "")
@@ -206,6 +248,8 @@ def updateCheck(){
         	log.warn "** There is a newer version of this app available  (Version: $newVerRaw) **"
         	log.warn "** $state.UpdateInfo **"
              state.newBtn = state.status
+            def updateMsg = "There is a new version of '$state.ExternalName' available (Version: $newVerRaw)"
+
        		} 
 		else{ 
       		state.status = "Current"
@@ -218,6 +262,7 @@ def updateCheck(){
     		}
     if(state.status != "Current"){
 		state.newBtn = state.status
+        
     }
     else{
         state.newBtn = "No Update Available"
@@ -228,11 +273,24 @@ def updateCheck(){
 
 
 def setVersion(){
-		state.version = "1.1.0"	 
-		state.InternalName = "ContactLightSwitchesParent"  
+		state.version = "1.0.0"	 
+		state.InternalName = "ContactLightSwitchesChild"  
 }
 
 
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+   
