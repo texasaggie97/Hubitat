@@ -172,7 +172,7 @@ def childAppList(){
         
     if(!state.appName1.contains("Daily Switch Event") && state.appList.contains("Daily Switch Event")){
         section (""){
-        app(name: "dailySwitchEvent", appName: "Message Central", namespace: "Cobra", title: "<b>Install Daily Switch Event</b>", multiple: true)
+        app(name: "dailySwitchEvent", appName: "Daily Switch Event", namespace: "Cobra", title: "<b>Install Daily Switch Event</b>", multiple: true)
         } 
     }
         
