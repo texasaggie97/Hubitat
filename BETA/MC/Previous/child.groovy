@@ -33,12 +33,11 @@
  *-------------------------------------------------------------------------------------------------------------------
  *
  *
- *  Last Update: 30/10/2018
+ *  Last Update: 28/10/2018
  *
  *  Changes:
  *
  *
- *  V13.0.1 - Debug and added preconfigured defaults settings
  *  V13.0.0 - Added configurable actions on 'restriction' switch 
  *  V12.9.0 - Added multiple speaker slots for 'quiet time'
  *  V12.8.0 - Added multiple speaker volume slots for 'normal time'
@@ -158,14 +157,16 @@ def updated() {
 }
 
 def initialize() {
-	logCheck()
-    setDefaults()
-    version()
-   
+//    state.oldAlert = null  // for testing
+    if(pause1 == null){
+        pause1 = false
+        state.pauseApp = false              
+                      }
+    log.info "pause1 = $pause1"
 	  log.info "Initialised with settings: ${settings}"
       
-      
-      
+      logCheck()
+      version()
      
       switchRunCheck()
       state.timer1 = true
@@ -297,7 +298,7 @@ subscribe(restrictPresenceSensor1, "presence", restrictPresence1SensorHandler)
     if(weather2){ subscribe(weather2, "alert", weatherAlert)}
     if(lights){subscribe(lights, "switch",lightsOnOff)}
     if(switches){subscribe(switches, "switch",switchesOnOff)}
-    if(enableSwitchMode == null){enableSwitchMode = true}
+    if(enableSwitchMode == null){enableSwitchMode = false}
 }
 
 
@@ -530,7 +531,7 @@ def namePage() {
 // defaults
 def speakerInputs(){	
 	input "enableSwitch", "capability.switch", title: "Select switch Enable/Disable this message (Optional)", required: false, multiple: false, submitOnChange: true 
-     if(enableSwitch){ input "enableSwitchMode", "bool", title: "Allow actions only when this switch is..", required: true, defaultValue: true, submitOnChange: true}
+     if(enableSwitch){ input "enableSwitchMode", "bool", title: "Allow actions only when this switch is..", required: true, defaultValue: false, submitOnChange: true}
     
     input "messageAction", "enum", title: "Select Message Type", required: false, submitOnChange: true,  options: [ "Voice Message (MusicPlayer)", "Voice Message (SpeechSynth)",  "SMS Message", "PushOver Message", "Join Message", "Play an Mp3 (No variables can be used)"]
     
@@ -4365,21 +4366,16 @@ private getGroup4(msgPostitem) {
 
 
 def version(){
-    
+    resetBtnName()
 	schedule("0 0 9 ? * FRI *", updateCheck) //  Check for updates at 9am every Friday
-//	updateCheck()  
-    
-   
+	updateCheck()  
+    checkButtons()
+    pauseOrNot()
     
 }
 
 def display(){
-    checkButtons()
-    resetBtnName()
-//  	updateCheck()
-	setDefaults()
-  	pauseOrNot()
-    
+  
 	if(state.status){
 	section{paragraph "<img src='http://update.hubitat.uk/icons/cobra3.png''</img> Version: $state.version <br><font face='Lucida Handwriting'>$state.Copyright </font>"}
        
@@ -4394,7 +4390,7 @@ def display(){
    //     log.info "app.label = $app.label"
     input "pause1", "bool", title: "Pause This App", required: true, submitOnChange: true, defaultValue: false  
      }
-       
+    pauseOrNot()   
     if(state.status != "Current"){
 	section{ 
 	paragraph "<b>Update Info:</b> <BR>$state.UpdateInfo <BR>$state.updateURI"
@@ -4457,7 +4453,7 @@ LOGDEBUG(" Calling 'pauseOrNot'...")
             if(app.label.contains('red')){
                 log.warn "Paused"}
             else{app.updateLabel(app.label + ("<font color = 'red'> (Paused) </font>" ))
-              LOGDEBUG("App Paused - state.pauseApp = $state.pauseApp ")   
+              log.warn "App Paused - state.pauseApp = $state.pauseApp "   
                 }
     
             }
@@ -4528,32 +4524,7 @@ def updateCheck(){
 
 
 def setVersion(){
-		state.version = "13.0.1"	 
+		state.version = "13.0.0"	 
 		state.InternalName = "MCchild" 
     	state.ExternalName = "Message Central Child"
 }
-
-def setDefaults(){
-  log.info "Initialising defaults..." 
-   
-    if(pause1 == null){pause1 = false}
-    if(state.pauseApp == null){state.pauseApp = false}                 
-    if(state.multiVolumeSlots == null){state.multiVolumeSlots = false}    
-    if(state.multiVolumeSlotsq == null){state.multiVolumeSlotsq = false}
-
-    // additional debug logging
-    // log.debug "state.pauseApp = $state.pauseApp - pause1 = $pause1 - state.multiVolumeSlots = $state.multiVolumeSlots - state.multiVolumeSlotsq = $state.multiVolumeSlotsq" 
-    
-}
-
-
-
-
-
-
-
-
-
-
-
-

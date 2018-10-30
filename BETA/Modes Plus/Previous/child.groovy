@@ -37,7 +37,7 @@
  *
  *  Changes:
  *
- *  V1.6.1 - Debug & configure initial settings in a different way 
+ *  
  *  V1.6.0 - Added configurable actions on restriction switch
  *  V1.5.0 - Added 'Pause' switch to temporarily disable the app
  *  V1.4.0 - Added 'illuminance' trigger
@@ -80,7 +80,7 @@ section("") {
        display()
         
  section("") {
-   input "newMode1", "mode", title: "Which Mode do you want to enter?", submitOnChange:true, required: true, multiple: false
+   input "newMode1", "mode", title: "Which Mode do you want to enter?",  required: true, multiple: false, submitOnChange:true
      if(newMode1){
     input "triggerMode", "enum", required: true, title: "Select Trigger ", submitOnChange: true,  options: ["Button", "Illuminance", "Presence - Arrival", "Presence - Departure", "Sunrise", "Sunset", "Switch", "Time"]
          
@@ -158,8 +158,8 @@ section("") {
           
           
     section() {
-     input(name: "enableswitch1", type: "capability.switch", title: "Select switch to restrict actions", required: false, multiple: false, submitOnChange: true)
-        if(enableswitch1){ input "enableSwitchMode", "bool", title: "On = Allow actions only when this switch is on <br> Off = Allow actions only when this switch is off", required: true, defaultValue: true, submitOnChange: true}
+     input(name: "enableswitch1", type: "capability.switch", title: "Allow actions when this switch is on/off", required: false, multiple: false, submitOnChange: true)
+        if(enableswitch1){ input "enableSwitchMode", "bool", title: "Allow actions only when this switch is..", required: true, defaultValue: false, submitOnChange: true}
             
            
         
@@ -246,10 +246,10 @@ def initialize() {
     if (restrictPresenceSensor){subscribe(restrictPresenceSensor, "presence", restrictPresenceSensorHandler)}
 	if (restrictPresenceSensor1){subscribe(restrictPresenceSensor1, "presence", restrictPresence1SensorHandler)}
     if(enableswitch1){subscribe(enableswitch1, "switch", enableSwitch1Handler)}
-    if(enableSwitchMode == null){enableSwitchMode = true}
+    if(enableSwitchMode == null){enableSwitchMode = false}
     state.appGo = true
     log.info "Initialised with settings: ${settings}"
-    state.enablecurrS1 = 'on'
+    
  //   state.sunGoNow = false // test code
     
 } 
@@ -262,7 +262,7 @@ def checkRestrictions(){
     checkPresence1()
     checkMode()
     checkSun()
-    LOGDEBUG("Checking restrictions...state.timeOK == $state.timeOK - state.dayCheck == $state.dayCheck - state.enablecurrS1 == $state.enablecurrS1 - state.presenceRestriction == $state.presenceRestriction -  state.presenceRestriction1 == $state.presenceRestriction1 -  state.modeCheck == $state.modeCheck")
+//    LOGDEBUG("Checking restrictions...state.timeOK == $state.timeOK - state.dayCheck == $state.dayCheck - state.enablecurrS1 == $state.enablecurrS1 - state.presenceRestriction == $state.presenceRestriction -  state.presenceRestriction1 == $state.presenceRestriction1 -  state.modeCheck == $state.modeCheck")
     if(state.timeOK == true && state.dayCheck == true && state.enablecurrS1 == 'on' && state.presenceRestriction == true && state.presenceRestriction1 == true && state.modeCheck == true && state.sunGoNow == true){
         state.appGo = true
         LOGDEBUG("Restrictions ok.. continue...")
@@ -607,10 +607,7 @@ def version(){
 }
 
 def display(){
-    checkButtons()
-    resetBtnName()
-	setDefaults()
-  	pauseOrNot()
+  
 	if(state.status){
 	section{paragraph "<img src='http://update.hubitat.uk/icons/cobra3.png''</img> Version: $state.version <br><font face='Lucida Handwriting'>$state.Copyright </font>"}
        
@@ -625,7 +622,7 @@ def display(){
    //     log.info "app.label = $app.label"
     input "pause1", "bool", title: "Pause This App", required: true, submitOnChange: true, defaultValue: false  
      }
- 
+    pauseOrNot()   
     if(state.status != "Current"){
 	section{ 
 	paragraph "<b>Update Info:</b> <BR>$state.UpdateInfo <BR>$state.updateURI"
@@ -758,20 +755,11 @@ def updateCheck(){
 
 
 def setVersion(){
-		state.version = "1.6.1"	 
+		state.version = "1.6.0"	 
 		state.InternalName = "ModesPlusChild"
     	state.ExternalName = "Modes Plus Child"
 }
 
-def setDefaults(){
-  log.info "Initialising defaults..." 
-   
-    if(pause1 == null){pause1 = false}
-    if(state.pauseApp == null){state.pauseApp = false}                 
-   
-    // additional debug logging
-     log.debug "state.pauseApp = $state.pauseApp - pause1 = $pause1 " 
-    
-}
+
 
 
