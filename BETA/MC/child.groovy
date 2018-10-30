@@ -3335,7 +3335,7 @@ checkPresence()
 LOGDEBUG("Calling.. CheckPresence1")
 checkPresence1()
 
-LOGDEBUG("state.appgo = $state.appgo - state.timeOK = $state.timeOK - state.dayCheck = $state.dayCheck - state.timer1 = $state.timer1 - state.timer2 = $state.timer2 - state.volume = $state.volume state.presenceRestriction = $state.presenceRestriction")
+LOGDEBUG("state.appgo = $state.appgo - state.timeOK = $state.timeOK - state.dayCheck = $state.dayCheck - state.timer1 = $state.timer1 - state.timer2 = $state.timer2 - state.volumeAll = $state.volumeAll - state.volume = $state.volume -state.presenceRestriction = $state.presenceRestriction")
 if(state.timeOK == true && state.dayCheck == true && state.presenceRestriction == true && state.presenceRestriction1 == true){
 
 LOGDEBUG( " Continue... Check delay...")
@@ -3392,8 +3392,9 @@ LOGDEBUG("$enableSwitch is off so cannot continue")
 }
 
 def checkVolume(){
-    LOGDEBUG("Calling.. CheckVolume - state.multiVolumeSlots = $state.multiVolumeSlots")
-    
+    LOGDEBUG("Calling.. CheckVolume")
+    setDefaults()
+    LOGDEBUG("state.multiVolumeSlots = $state.multiVolumeSlots")
 def timecheck = fromTime2
 if (timecheck != null){
 def between2 = timeOfDayIsBetween(toDateTime(fromTime2), toDateTime(toTime2), new Date(), location.timeZone)
