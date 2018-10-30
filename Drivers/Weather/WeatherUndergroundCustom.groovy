@@ -18,6 +18,7 @@
  *
  *  Last Update 17/08/2018
  *
+ *  V2.8.1 - Debug Poll command
  *  V2.8.0 - Added switchable 'forecastIcon' to show current or forcast icon
  *  V2.7.0 - Added 'forecastIcon' for use with Sharptools
  *  V2.6.0 - Updated remote version checking
@@ -56,7 +57,7 @@ metadata {
        
 
         
-        command "Poll"
+        command "poll"
         command "ForcePoll"
  //     command "ResetPollCount"
         
@@ -159,7 +160,7 @@ def pollSchedule()
 def parse(String description) {
 }
 
-def Poll()
+def poll()
 {
     if(now() - state.lastPoll > (pollIntervalLimit * 60000))
         ForcePoll()
@@ -478,7 +479,7 @@ def checkInfo(){
 
 
 def setVersion(){
-     state.version = "2.8.0"
+     state.version = "2.8.1"
      state.InternalName = "WUWeather"
      state.Type = "Driver"
    
