@@ -2242,10 +2242,14 @@ if(switchstate == 'on'){
 state.appgo = true
 LOGDEBUG("$enableSwitch - Switch State = $switchstate - Appgo = $state.appgo")
 }
-else if(switchstate == 'off'){
+if(switchstate == 'off'){
 state.appgo = false
 LOGDEBUG("$enableSwitch - Switch State = $switchstate - Appgo = $state.appgo")
 }
+if(switchstate == null){
+state.appgo = true
+LOGDEBUG("$enableSwitch - Switch State = $switchstate - Appgo = $state.appgo")
+}  
 }
 
 
@@ -2279,20 +2283,6 @@ state.appgo = false
     
 LOGDEBUG("Allow by switch is $state.enablecurrS1")
         
-  
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
     
 state.sEnable = evt.value
 LOGDEBUG("$enableSwitch = $state.sEnable")
@@ -3183,7 +3173,8 @@ def resetTimerPower() {
 // PushOver Message Actions =============================
 def pushOver(msgType, inMsg){
        modeCheck()
-    if(state.modeCheck == true && state.appgo == true){  
+    checkTime()
+    if(state.modeCheck == true && state.appgo == true  && state.timeOK == true){  
     if(state.timer1 == true){
         if(state.selection == "Weather Alert"){state.fullPhrase = inMsg}
         if(state.selection != "Weather Alert"){
@@ -3323,6 +3314,7 @@ def talkSwitch(){
     if(state.pauseApp == true){log.warn "Unable to continue - App paused"}
     if(state.pauseApp == false){log.info "Continue - App NOT paused"     
    modeCheck()
+                             
     if(state.modeCheck == true){ 
 LOGDEBUG("Calling.. talkSwitch")
 if(state.appgo == true){
@@ -3411,29 +3403,43 @@ def between2 = timeOfDayIsBetween(toDateTime(fromTime2), toDateTime(toTime2), ne
      LOGDEBUG("Multi Volume used - setting volume of each speaker")  
 		if(state.speakerNumberq == "2"){ 
         speakerN1q.setLevel(state.voiceVolumeAq)
+        LOGDEBUG("Speaker 1: setting volume to $state.voiceVolumeAq")     
     	speakerN2q.setLevel(state.voiceVolumeBq)
+        LOGDEBUG("Speaker 2: setting volume to $state.voiceVolumeBq")      
 		}
        
 		if(state.speakerNumberq == "3"){ 
         speakerN1q.setLevel(state.voiceVolumeAq)
+        LOGDEBUG("Speaker 1: setting volume to $state.voiceVolumeAq")  
     	speakerN2q.setLevel(state.voiceVolumeBq)
-        speakerN3q.setLevel(state.voiceVolumeCq)    
+        LOGDEBUG("Speaker 2: setting volume to $state.voiceVolumeBq")      
+        speakerN3q.setLevel(state.voiceVolumeCq)  
+        LOGDEBUG("Speaker 3: setting volume to $state.voiceVolumeCq")      
 		}
     
         if(state.speakerNumberq == "4"){ 
         speakerN1q.setLevel(state.voiceVolumeAq)
+            LOGDEBUG("Speaker 1: setting volume to $state.voiceVolumeAq")  
     	speakerN2q.setLevel(state.voiceVolumeBq)
+            LOGDEBUG("Speaker 2: setting volume to $state.voiceVolumeBq")  
         speakerN3q.setLevel(state.voiceVolumeCq) 
-        speakerN4q.setLevel(state.voiceVolumeDq)   
+            LOGDEBUG("Speaker 3: setting volume to $state.voiceVolumeCq")  
+        speakerN4q.setLevel(state.voiceVolumeDq) 
+            LOGDEBUG("Speaker 4: setting volume to $state.voiceVolumeDq")  
 		}
         
         if(state.speakerNumberq == "5"){ 
         speakerN1q.setLevel(state.voiceVolumeAq)
+            LOGDEBUG("Speaker 1: setting volume to $state.voiceVolumeAq")  
     	speakerN2q.setLevel(state.voiceVolumeBq)
+            LOGDEBUG("Speaker 2: setting volume to $state.voiceVolumeBq")  
         speakerN3q.setLevel(state.voiceVolumeCq) 
+            LOGDEBUG("Speaker 3: setting volume to $state.voiceVolumeCq")  
         speakerN4q.setLevel(state.voiceVolumeDq) 
-        speakerN5q.setLevel(state.voiceVolumeEq)     
-		}
+            LOGDEBUG("Speaker 4: setting volume to $state.voiceVolumeDq")  
+        speakerN5q.setLevel(state.voiceVolumeEq)   
+            LOGDEBUG("Speaker 5: setting volume to $state.voiceVolumeEq")  
+		} 
        
     } 
     
@@ -3456,28 +3462,42 @@ LOGDEBUG("Quiet Time = No - Setting Normal time volume ")
    else if(state.multiVolumeSlots == true){
 		if(state.speakerNumber == "2"){ 
         speakerN1.setLevel(state.voiceVolumeA)
+            LOGDEBUG("Speaker 1: setting volume to $state.voiceVolumeA")  
     	speakerN2.setLevel(state.voiceVolumeB)
+            LOGDEBUG("Speaker 2: setting volume to $state.voiceVolumeB") 
 		}
        
 		if(state.speakerNumber == "3"){ 
         speakerN1.setLevel(state.voiceVolumeA)
+            LOGDEBUG("Speaker 1: setting volume to $state.voiceVolumeA") 
     	speakerN2.setLevel(state.voiceVolumeB)
+            LOGDEBUG("Speaker 2: setting volume to $state.voiceVolumeB") 
         speakerN3.setLevel(state.voiceVolumeC)    
+            LOGDEBUG("Speaker 3: setting volume to $state.voiceVolumeC") 
 		}
     
         if(state.speakerNumber == "4"){ 
         speakerN1.setLevel(state.voiceVolumeA)
+            LOGDEBUG("Speaker 1: setting volume to $state.voiceVolumeA") 
     	speakerN2.setLevel(state.voiceVolumeB)
+            LOGDEBUG("Speaker 2: setting volume to $state.voiceVolumeB") 
         speakerN3.setLevel(state.voiceVolumeC) 
+            LOGDEBUG("Speaker 3: setting volume to $state.voiceVolumeC") 
         speakerN4.setLevel(state.voiceVolumeD)   
+            LOGDEBUG("Speaker 4: setting volume to $state.voiceVolumeD") 
 		}
         
         if(state.speakerNumber == "5"){ 
         speakerN1.setLevel(state.voiceVolumeA)
+            LOGDEBUG("Speaker 1: setting volume to $state.voiceVolumeA") 
     	speakerN2.setLevel(state.voiceVolumeB)
+            LOGDEBUG("Speaker 2: setting volume to $state.voiceVolumeB") 
         speakerN3.setLevel(state.voiceVolumeC) 
+            LOGDEBUG("Speaker 3: setting volume to $state.voiceVolumeC") 
         speakerN4.setLevel(state.voiceVolumeD) 
+            LOGDEBUG("Speaker 4: setting volume to $state.voiceVolumeD") 
         speakerN5.setLevel(state.voiceVolumeE)     
+            LOGDEBUG("Speaker 5: setting volume to $state.voiceVolumeE") 
 		}
        
     } 
@@ -4375,11 +4395,8 @@ def version(){
 }
 
 def display(){
-    checkButtons()
-    resetBtnName()
-//  	updateCheck()
-	setDefaults()
-  	pauseOrNot()
+    setDefaults()
+  	
     
 	if(state.status){
 	section{paragraph "<img src='http://update.hubitat.uk/icons/cobra3.png''</img> Version: $state.version <br><font face='Lucida Handwriting'>$state.Copyright </font>"}
@@ -4536,14 +4553,18 @@ def setVersion(){
 
 def setDefaults(){
   log.info "Initialising defaults..." 
-   
+  	checkButtons()
+    resetBtnName()
+    pauseOrNot()
+    
+    
     if(pause1 == null){pause1 = false}
     if(state.pauseApp == null){state.pauseApp = false}                 
     if(state.multiVolumeSlots == null){state.multiVolumeSlots = false}    
     if(state.multiVolumeSlotsq == null){state.multiVolumeSlotsq = false}
 
     // additional debug logging
-    // log.debug "state.pauseApp = $state.pauseApp - pause1 = $pause1 - state.multiVolumeSlots = $state.multiVolumeSlots - state.multiVolumeSlotsq = $state.multiVolumeSlotsq" 
+ //    log.debug "state.pauseApp = $state.pauseApp - pause1 = $pause1 - state.multiVolumeSlots = $state.multiVolumeSlots - state.multiVolumeSlotsq = $state.multiVolumeSlotsq" 
     
 }
 
