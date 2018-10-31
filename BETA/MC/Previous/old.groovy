@@ -33,13 +33,11 @@
  *-------------------------------------------------------------------------------------------------------------------
  *
  *
- *  Last Update: 30/10/2018
+ *  Last Update: 28/10/2018
  *
  *  Changes:
  *
- *  V13.1.1 - Debug 'poll' before weather summary
- *	V13.1.0 - Reworked all the restrictions to cleanup the code and reduce duplication of methods
- *  V13.0.1 - Debug and added preconfigured defaults settings
+ *
  *  V13.0.0 - Added configurable actions on 'restriction' switch 
  *  V12.9.0 - Added multiple speaker slots for 'quiet time'
  *  V12.8.0 - Added multiple speaker volume slots for 'normal time'
@@ -159,14 +157,16 @@ def updated() {
 }
 
 def initialize() {
-	logCheck()
-    setDefaults()
-    version()
-   
+//    state.oldAlert = null  // for testing
+    if(pause1 == null){
+        pause1 = false
+        state.pauseApp = false              
+                      }
+    log.info "pause1 = $pause1"
 	  log.info "Initialised with settings: ${settings}"
       
-      
-      
+      logCheck()
+      version()
      
       switchRunCheck()
       state.timer1 = true
@@ -298,7 +298,7 @@ subscribe(restrictPresenceSensor1, "presence", restrictPresence1SensorHandler)
     if(weather2){ subscribe(weather2, "alert", weatherAlert)}
     if(lights){subscribe(lights, "switch",lightsOnOff)}
     if(switches){subscribe(switches, "switch",switchesOnOff)}
-    if(enableSwitchMode == null){enableSwitchMode = true}
+    if(enableSwitchMode == null){enableSwitchMode = false}
 }
 
 
@@ -531,7 +531,7 @@ def namePage() {
 // defaults
 def speakerInputs(){	
 	input "enableSwitch", "capability.switch", title: "Select switch Enable/Disable this message (Optional)", required: false, multiple: false, submitOnChange: true 
-     if(enableSwitch){ input "enableSwitchMode", "bool", title: "Allow actions only when this switch is..", required: true, defaultValue: true, submitOnChange: true}
+     if(enableSwitch){ input "enableSwitchMode", "bool", title: "Allow actions only when this switch is..", required: true, defaultValue: false, submitOnChange: true}
     
     input "messageAction", "enum", title: "Select Message Type", required: false, submitOnChange: true,  options: [ "Voice Message (MusicPlayer)", "Voice Message (SpeechSynth)",  "SMS Message", "PushOver Message", "Join Message", "Play an Mp3 (No variables can be used)"]
     
@@ -1371,13 +1371,7 @@ def switchesOnoff(evt){
 
 
 def weatherSummaryHandler(evt){
-
- state.weatherSummary1 = evt.value
-    if(state.weatherSummary1 == null){
-        LOGDEBUG("No weather summary receieved from device")
-     state.weatherSummary1 = " No weather summary receieved from device"  
-    }
-    
+ state.weatherSummary1 = evt.value.toString() 
  LOGDEBUG("Running weatherSummaryHandler.. ")
   LOGDEBUG("state.weatherSummary1 = $state.weatherSummary1")  
 }
@@ -1387,7 +1381,6 @@ def weatherNow(evt){
  LOGDEBUG("Running weatherNow.. ")
   LOGDEBUG("state.weatherNow = $state.weatherNow")  
 }
-
 def weatherAlert(evt){
         if(state.pauseApp == true){log.warn "Unable to continue - App paused"}
     if(state.pauseApp == false){log.info "Continue - App NOT paused" 
@@ -1528,18 +1521,32 @@ def weatherChanceOfRain(evt){
 def mp3EventHandler(){
     if(state.pauseApp == true){log.warn "Unable to continue - App paused"}
     if(state.pauseApp == false){log.info "Continue - App NOT paused" 
-	checkAllow()
-	if(state.allAllow == true && state.mp3Timer == true){
-	LOGDEBUG( " Continue... Check delay...")
-	def delayBefore = mp3Delay
-	runIn(delayBefore, mp3Now)
-		}
+
+if(state.appgo == true){
+LOGDEBUG("Calling.. CheckTime")
+checkTime()
+LOGDEBUG("Calling.. CheckDay")
+checkDay()
+LOGDEBUG("Calling.. CheckPresence")
+checkPresence()
+LOGDEBUG("Calling.. CheckPresence1")
+checkPresence1()
+
+LOGDEBUG("state.appgo = $state.appgo - state.timeOK = $state.timeOK - state.dayCheck = $state.dayCheck - state.mp3Timer = $state.mp3Timer -  state.presenceRestriction = $state.presenceRestriction - state.presenceRestriction1 = $state.presenceRestriction1")
+if(state.timeOK == true && state.dayCheck == true && state.presenceRestriction == true && state.presenceRestriction1 == true && state.mp3Timer == true){
+
+LOGDEBUG( " Continue... Check delay...")
+
+def delayBefore = mp3Delay
+runIn(delayBefore, mp3Now)
+	}
     }
+}
 }
 
 
-
 def mp3Now(){
+LOGDEBUG("Calling.. mp3Now")
 
 def soundURI = pathURI + "/" + sound 
 LOGDEBUG("soundURI = $soundURI " )
@@ -1556,7 +1563,6 @@ state.mp3Timer = false
 state.timeDelay = 60 * state.msgDelay
 LOGDEBUG("Waiting for $state.timeDelay seconds before resetting timer to allow further messages")
 runIn(state.timeDelay, resetMp3Timer)
-  
 }
 
 def resetMp3Timer() {
@@ -2237,14 +2243,10 @@ if(switchstate == 'on'){
 state.appgo = true
 LOGDEBUG("$enableSwitch - Switch State = $switchstate - Appgo = $state.appgo")
 }
-if(switchstate == 'off'){
+else if(switchstate == 'off'){
 state.appgo = false
 LOGDEBUG("$enableSwitch - Switch State = $switchstate - Appgo = $state.appgo")
 }
-if(switchstate == null){
-state.appgo = true
-LOGDEBUG("$enableSwitch - Switch State = $switchstate - Appgo = $state.appgo")
-}  
 }
 
 
@@ -2278,6 +2280,20 @@ state.appgo = false
     
 LOGDEBUG("Allow by switch is $state.enablecurrS1")
         
+  
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     
 state.sEnable = evt.value
 LOGDEBUG("$enableSwitch = $state.sEnable")
@@ -2296,10 +2312,14 @@ LOGDEBUG("AppGo = $state.appgo")
 def timeTalkNow(evt){
     if(state.pauseApp == true){log.warn "Unable to continue - App paused"}
     if(state.pauseApp == false){log.info "Continue - App NOT paused"    
-checkAllow()
+// checkTimeMissedNow()
+checkPresence()
+checkPresence1()
+checkDay()
+state.timeOK = true
 
 LOGDEBUG("state.appgo = $state.appgo - state.dayCheck = $state.dayCheck - state.volume = $state.volume - runTime = $runTime")
-if(state.allAllow == true ){
+if(state.appgo == true && state.dayCheck == true && state.presenceRestriction == true && state.presenceRestriction1 == true){
 LOGDEBUG("Time trigger -  Activating now! ")
     
     if(state.msgType == "Play an Mp3 (No variables can be used)"){
@@ -2377,10 +2397,12 @@ LOGDEBUG( "$contact1 = $evt.value")
 def timeTalkNow1(evt){
     if(state.pauseApp == true){log.warn "Unable to continue - App paused"}
     if(state.pauseApp == false){log.info "Continue - App NOT paused"     
-checkAllow()
+checkDay()
+checkPresence()
+checkPresence1()
 
 LOGDEBUG("state.appgo = $state.appgo - state.dayCheck = $state.dayCheck - state.volume = $state.volume - runTime = $runTime")
-if(state.allAllow == true  && state.contact1SW == 'open' ){
+if(state.appgo == true && state.dayCheck == true && state.presenceRestriction == true && state.presenceRestriction1 == true && state.contact1SW == 'open' ){
 LOGDEBUG("Time trigger -  Activating now! ")
 LOGDEBUG("Calling.. CompileMsg")
   def msg = messageTime
@@ -2425,6 +2447,15 @@ LOGDEBUG("Time - Join Message - Sending Message: $msg")
 	}        
 }   
 
+else if(state.appgo == false){
+LOGDEBUG( "$enableSwitch is off so cannot continue")
+}
+else if(state.dayCheck == false){
+LOGDEBUG( "Cannot continue - Daycheck failed")
+}
+else if(state.presenceRestriction ==  false){
+LOGDEBUG( "Cannot continue - Presence failed")
+}
 
 else if(state.contact1SW != 'open'){
 LOGDEBUG( "Cannot continue - $contact1 is Closed")
@@ -3080,11 +3111,18 @@ def checkAgain2() {
 
 
 def speakNow(){
-	checkAllow()
-    if(state.allAllow == true){  
+	modeCheck()
+    if(state.modeCheck == true){  
 		LOGDEBUG("Power - speakNow...")
+		checkPresence()
+		checkPresence1()
 		state.msg1 = message1
-	    if ( state.timer1 == true){
+		LOGDEBUG("Calling.. CompileMsg")
+		
+
+	    if ( state.timer1 == true && state.presenceRestriction == true && state.presenceRestriction1 == true){
+            
+           
             if(state.msgType != "Play an Mp3 (No variables can be used)"){compileMsg(state.msg1)}
             
 		    if(state.msgType == "Voice Message (MusicPlayer)"){
@@ -3145,8 +3183,8 @@ def resetTimerPower() {
 
 // PushOver Message Actions =============================
 def pushOver(msgType, inMsg){
-    checkAllow()
-    if(state.allAllow == true){  
+       modeCheck()
+    if(state.modeCheck == true && state.appgo == true){  
     if(state.timer1 == true){
         if(state.selection == "Weather Alert"){state.fullPhrase = inMsg}
         if(state.selection != "Weather Alert"){
@@ -3210,8 +3248,12 @@ def pushOver(msgType, inMsg){
   }
      state.timer1 = false
             startTimer1()
-  }
  }
+}
+    else{
+        LOGDEBUG("One or more conditions not met - Unable to continue")
+    }
+    
 }
 
 
@@ -3219,10 +3261,18 @@ def pushOver(msgType, inMsg){
 
 def speechSynthNow(inMsg){
     LOGDEBUG("Calling.. speechSynthNow")
-    checkAllow()
-    if(state.allAllow == true){ 
-      
-           if(state.timer1 == true){
+    modeCheck()
+    if(state.modeCheck == true && state.appgo == true){ 
+        LOGDEBUG("Calling.. CheckTime")
+		checkTime()
+        LOGDEBUG("Calling.. CheckDay")
+        checkDay()
+        LOGDEBUG("Calling.. CheckPresence")
+        checkPresence()
+        LOGDEBUG("Calling.. CheckPresence1")
+        checkPresence1()
+        if(state.timeOK == true && state.dayCheck == true && state.presenceRestriction == true && state.presenceRestriction1 == true){
+            if(state.timer1 == true){
 	            def newMessage = inMsg
          if(state.selection == "Weather Alert"){state.msg1 = inMsg}
         if(state.selection != "Weather Alert"){
@@ -3235,7 +3285,12 @@ def speechSynthNow(inMsg){
 				state.timer1 = false
 				startTimer1()
  			}
-		} 
+		} else {
+	        LOGDEBUG("Speech Synth - One or more conditions not met - Unable to continue")
+    	}
+    } else{
+		LOGDEBUG("Speech Synth - One or more conditions not met - Unable to continue")
+    }
 }
 
 
@@ -3244,15 +3299,21 @@ def speechSynthNow(inMsg){
 
 
 def joinMsg(inMsg){
-     checkAllow()
-    if(state.allAllow == true){  
+       modeCheck()
+    if(state.modeCheck == true){  
     if(state.timer1 == true){
+// compileMsg(inMsg)
     newMessage = state.fullPhrase
-  LOGDEBUG(" Join message = $newMessage ")  
+  LOGDEBUG(" converted message = $newMessage ")  
+     
+  
      state.msg1 = newMessage
 	speaker.speak(state.msg1)
     }
  }
+     else{
+        LOGDEBUG("Not in correct 'mode' to continue")
+    }
 }    
     
 
@@ -3262,9 +3323,22 @@ def joinMsg(inMsg){
 def talkSwitch(){
     if(state.pauseApp == true){log.warn "Unable to continue - App paused"}
     if(state.pauseApp == false){log.info "Continue - App NOT paused"     
- 	checkAllow()
+   modeCheck()
+    if(state.modeCheck == true){ 
+LOGDEBUG("Calling.. talkSwitch")
+if(state.appgo == true){
+LOGDEBUG("Calling.. CheckTime")
+checkTime()
+LOGDEBUG("Calling.. CheckDay")
+checkDay()
+LOGDEBUG("Calling.. CheckPresence")
+checkPresence()
+LOGDEBUG("Calling.. CheckPresence1")
+checkPresence1()
 
-if(state.allAllow == true){
+LOGDEBUG("state.appgo = $state.appgo - state.timeOK = $state.timeOK - state.dayCheck = $state.dayCheck - state.timer1 = $state.timer1 - state.timer2 = $state.timer2 - state.volume = $state.volume state.presenceRestriction = $state.presenceRestriction")
+if(state.timeOK == true && state.dayCheck == true && state.presenceRestriction == true && state.presenceRestriction1 == true){
+
 LOGDEBUG( " Continue... Check delay...")
 
 if(state.msgNow == 'oneNow' && state.timer1 == true && state.msg1 != null){
@@ -3273,26 +3347,54 @@ LOGDEBUG("Calling.. CompileMsg")
     if(state.selection != 'Weather Alert'){compileMsg(state.msg1)}    
 
 LOGDEBUG("All OK! - Playing message 1: '$state.fullPhrase'")
+    
+
      speaker.playTextAndRestore(state.fullPhrase)
-		startTimer1()
+
+startTimer1()
 }
     
 if(state.msgNow == 'twoNow'  && state.msg2 != null && state.timer2 == true){
 LOGDEBUG("Calling.. CompileMsg")
 compileMsg(state.msg2)
 LOGDEBUG("All OK! - Playing message 2: '$state.fullPhrase'")
+    
+
      speaker.playTextAndRestore(state.fullPhrase)
-		startTimer2()
-			}
-		}
-	}
+
+    
+startTimer2()
 }
 
 
+else if(state.timeOK == false){
+LOGDEBUG("Not enabled for this time so cannot continue")
+}
+else if(state.presenceRestriction ==  false || state.presenceRestriction1 ==  false){
+LOGDEBUG( "Cannot continue - Presence failed")
+}
+
+else if(state.msgNow == 'oneNow' && state.msg1 == null){
+LOGDEBUG( "Message 1 is empty so nothing to say")
+}
+else if(state.msgNow == 'twoNow' && state.msg2 == null){
+LOGDEBUG( "Message 2 is empty so nothing to say")
+}
+}
+}
+else if(state.appgo == false){
+LOGDEBUG("$enableSwitch is off so cannot continue")
+}
+}
+     else{
+        LOGDEBUG("Not in correct 'mode' to continue")
+    }
+}
+}
+
 def checkVolume(){
-    LOGDEBUG("Calling.. CheckVolume")
-    setDefaults()
-    LOGDEBUG("state.multiVolumeSlots = $state.multiVolumeSlots")
+    LOGDEBUG("Calling.. CheckVolume - state.multiVolumeSlots = $state.multiVolumeSlots")
+    
 def timecheck = fromTime2
 if (timecheck != null){
 def between2 = timeOfDayIsBetween(toDateTime(fromTime2), toDateTime(toTime2), new Date(), location.timeZone)
@@ -3309,43 +3411,29 @@ def between2 = timeOfDayIsBetween(toDateTime(fromTime2), toDateTime(toTime2), ne
      LOGDEBUG("Multi Volume used - setting volume of each speaker")  
 		if(state.speakerNumberq == "2"){ 
         speakerN1q.setLevel(state.voiceVolumeAq)
-        LOGDEBUG("Speaker 1: setting volume to $state.voiceVolumeAq")     
     	speakerN2q.setLevel(state.voiceVolumeBq)
-        LOGDEBUG("Speaker 2: setting volume to $state.voiceVolumeBq")      
 		}
        
 		if(state.speakerNumberq == "3"){ 
         speakerN1q.setLevel(state.voiceVolumeAq)
-        LOGDEBUG("Speaker 1: setting volume to $state.voiceVolumeAq")  
     	speakerN2q.setLevel(state.voiceVolumeBq)
-        LOGDEBUG("Speaker 2: setting volume to $state.voiceVolumeBq")      
-        speakerN3q.setLevel(state.voiceVolumeCq)  
-        LOGDEBUG("Speaker 3: setting volume to $state.voiceVolumeCq")      
+        speakerN3q.setLevel(state.voiceVolumeCq)    
 		}
     
         if(state.speakerNumberq == "4"){ 
         speakerN1q.setLevel(state.voiceVolumeAq)
-            LOGDEBUG("Speaker 1: setting volume to $state.voiceVolumeAq")  
     	speakerN2q.setLevel(state.voiceVolumeBq)
-            LOGDEBUG("Speaker 2: setting volume to $state.voiceVolumeBq")  
         speakerN3q.setLevel(state.voiceVolumeCq) 
-            LOGDEBUG("Speaker 3: setting volume to $state.voiceVolumeCq")  
-        speakerN4q.setLevel(state.voiceVolumeDq) 
-            LOGDEBUG("Speaker 4: setting volume to $state.voiceVolumeDq")  
+        speakerN4q.setLevel(state.voiceVolumeDq)   
 		}
         
         if(state.speakerNumberq == "5"){ 
         speakerN1q.setLevel(state.voiceVolumeAq)
-            LOGDEBUG("Speaker 1: setting volume to $state.voiceVolumeAq")  
     	speakerN2q.setLevel(state.voiceVolumeBq)
-            LOGDEBUG("Speaker 2: setting volume to $state.voiceVolumeBq")  
         speakerN3q.setLevel(state.voiceVolumeCq) 
-            LOGDEBUG("Speaker 3: setting volume to $state.voiceVolumeCq")  
         speakerN4q.setLevel(state.voiceVolumeDq) 
-            LOGDEBUG("Speaker 4: setting volume to $state.voiceVolumeDq")  
-        speakerN5q.setLevel(state.voiceVolumeEq)   
-            LOGDEBUG("Speaker 5: setting volume to $state.voiceVolumeEq")  
-		} 
+        speakerN5q.setLevel(state.voiceVolumeEq)     
+		}
        
     } 
     
@@ -3368,42 +3456,28 @@ LOGDEBUG("Quiet Time = No - Setting Normal time volume ")
    else if(state.multiVolumeSlots == true){
 		if(state.speakerNumber == "2"){ 
         speakerN1.setLevel(state.voiceVolumeA)
-            LOGDEBUG("Speaker 1: setting volume to $state.voiceVolumeA")  
     	speakerN2.setLevel(state.voiceVolumeB)
-            LOGDEBUG("Speaker 2: setting volume to $state.voiceVolumeB") 
 		}
        
 		if(state.speakerNumber == "3"){ 
         speakerN1.setLevel(state.voiceVolumeA)
-            LOGDEBUG("Speaker 1: setting volume to $state.voiceVolumeA") 
     	speakerN2.setLevel(state.voiceVolumeB)
-            LOGDEBUG("Speaker 2: setting volume to $state.voiceVolumeB") 
         speakerN3.setLevel(state.voiceVolumeC)    
-            LOGDEBUG("Speaker 3: setting volume to $state.voiceVolumeC") 
 		}
     
         if(state.speakerNumber == "4"){ 
         speakerN1.setLevel(state.voiceVolumeA)
-            LOGDEBUG("Speaker 1: setting volume to $state.voiceVolumeA") 
     	speakerN2.setLevel(state.voiceVolumeB)
-            LOGDEBUG("Speaker 2: setting volume to $state.voiceVolumeB") 
         speakerN3.setLevel(state.voiceVolumeC) 
-            LOGDEBUG("Speaker 3: setting volume to $state.voiceVolumeC") 
         speakerN4.setLevel(state.voiceVolumeD)   
-            LOGDEBUG("Speaker 4: setting volume to $state.voiceVolumeD") 
 		}
         
         if(state.speakerNumber == "5"){ 
         speakerN1.setLevel(state.voiceVolumeA)
-            LOGDEBUG("Speaker 1: setting volume to $state.voiceVolumeA") 
     	speakerN2.setLevel(state.voiceVolumeB)
-            LOGDEBUG("Speaker 2: setting volume to $state.voiceVolumeB") 
         speakerN3.setLevel(state.voiceVolumeC) 
-            LOGDEBUG("Speaker 3: setting volume to $state.voiceVolumeC") 
         speakerN4.setLevel(state.voiceVolumeD) 
-            LOGDEBUG("Speaker 4: setting volume to $state.voiceVolumeD") 
         speakerN5.setLevel(state.voiceVolumeE)     
-            LOGDEBUG("Speaker 5: setting volume to $state.voiceVolumeE") 
 		}
        
     } 
@@ -3460,7 +3534,15 @@ else if (timecheck == null){
 def sendMessage(msg) {
     LOGDEBUG("Calling.. sendMessage")
     compileMsg(msg)
-    if(state.allAllow == true){
+    if(state.appgo == true){
+        LOGDEBUG("Calling.. CheckTime")
+        checkTime()
+        LOGDEBUG("Calling.. CheckDay")
+        checkDay()
+        LOGDEBUG("Calling.. CheckPresence")
+        checkPresence()
+        LOGDEBUG("Calling.. CheckPresence1")
+        checkPresence1()
         def mydelay = triggerDelay
         LOGDEBUG("Waiting $mydelay seconds before sending")
         runIn(mydelay, pushNow)
@@ -3475,7 +3557,8 @@ def sendMessage(msg) {
 
 def pushNow(){
 
-if(state.allAllow == true && state.timer1 == true){
+LOGDEBUG("state.appgo = $state.appgo - state.timeOK = $state.timeOK - state.dayCheck = $state.dayCheck - state.timer1 = $state.timer1")
+if(state.timeOK == true && state.dayCheck == true && state.presenceRestriction == true && state.presenceRestriction1 == true && state.timer1 == true){
 
 log.trace "SendMessage - $state.fullPhrase"
         if (sms1) {
@@ -3597,14 +3680,17 @@ state.timer2 = true
 LOGDEBUG("Timer 2 reset - Messages allowed")
 }
 
-
+def waitabit(){
+  LOGDEBUG("WAIT...")  
+    
+}
 
 
 private compileMsg(msg) {
 	LOGDEBUG("compileMsg - msg = ${msg}")
     if(pollorNot){
         weather1.poll()
-        pause(5000)
+        runIn(10, waitabit)
 		LOGDEBUG("Waiting a short while for the weather device to catch up")  
     }
     def msgComp = ""
@@ -4276,61 +4362,20 @@ private getGroup4(msgPostitem) {
 	return msgPost1
 }
 
-def checkAllow(){
-    LOGDEBUG("Running Check Allow...")
-    	LOGDEBUG("Calling.. ModeCheck")
-    	modeCheck()
-    	LOGDEBUG("Calling.. CheckTime")
-		checkTime()
-        LOGDEBUG("Calling.. CheckDay")
-        checkDay()
-        LOGDEBUG("Calling.. CheckPresence")
-        checkPresence()
-        LOGDEBUG("Calling.. CheckPresence1")
-        checkPresence1()
-    	LOGDEBUG("Calling.. SwitchRunCheck")
-    	switchRunCheck()
- 
-if(state.modeCheck == false){
-LOGDEBUG("Not in correct 'mode' to continue")
-    }    
-if(state.timeOK == false){
-LOGDEBUG("Not enabled for this time so cannot continue")
-}
-if(state.dayCheck == false){    
-LOGDEBUG("Not the correct day to continue")
-}    
-if(state.presenceRestriction ==  false || state.presenceRestriction1 ==  false){
-LOGDEBUG( "Cannot continue - Presence failed")
-}
-if(state.appgo == false){
-LOGDEBUG("$enableSwitch is off so cannot continue")
-}
-
-	if(state.appgo == true && state.dayCheck == true && state.presenceRestriction == true && state.presenceRestriction1 == true && state.modeCheck == true && state.timeOK == true){
-		 state.allAllow = true 
-   }
-		else{
- 		state.allAllow = false
-		log.info "One or more restrictions apply - Unable to continue"
- log.debug "state.appgo = $state.appgo, state.dayCheck = $state.dayCheck, state.presenceRestriction = $state.presenceRestriction, state.presenceRestriction1 = $state.presenceRestriction1, state.modeCheck = $state.modeCheck, state.timeOK = $state.timeOK"
-   }
-}
 
 
 
 def version(){
+    resetBtnName()
 	schedule("0 0 9 ? * FRI *", updateCheck) //  Check for updates at 9am every Friday
-//	updateCheck()  
-    
-   
+	updateCheck()  
+    checkButtons()
+    pauseOrNot()
     
 }
 
 def display(){
-    setDefaults()
-  	
-    
+  
 	if(state.status){
 	section{paragraph "<img src='http://update.hubitat.uk/icons/cobra3.png''</img> Version: $state.version <br><font face='Lucida Handwriting'>$state.Copyright </font>"}
        
@@ -4345,7 +4390,7 @@ def display(){
    //     log.info "app.label = $app.label"
     input "pause1", "bool", title: "Pause This App", required: true, submitOnChange: true, defaultValue: false  
      }
-       
+    pauseOrNot()   
     if(state.status != "Current"){
 	section{ 
 	paragraph "<b>Update Info:</b> <BR>$state.UpdateInfo <BR>$state.updateURI"
@@ -4408,7 +4453,7 @@ LOGDEBUG(" Calling 'pauseOrNot'...")
             if(app.label.contains('red')){
                 log.warn "Paused"}
             else{app.updateLabel(app.label + ("<font color = 'red'> (Paused) </font>" ))
-              LOGDEBUG("App Paused - state.pauseApp = $state.pauseApp ")   
+              log.warn "App Paused - state.pauseApp = $state.pauseApp "   
                 }
     
             }
@@ -4479,36 +4524,7 @@ def updateCheck(){
 
 
 def setVersion(){
-		state.version = "13.1.1"	 
+		state.version = "13.0.0"	 
 		state.InternalName = "MCchild" 
     	state.ExternalName = "Message Central Child"
 }
-
-def setDefaults(){
-  log.info "Initialising defaults..." 
-  	checkButtons()
-    resetBtnName()
-    pauseOrNot()
-    
-    
-    if(pause1 == null){pause1 = false}
-    if(state.pauseApp == null){state.pauseApp = false}                 
-    if(state.multiVolumeSlots == null){state.multiVolumeSlots = false}    
-    if(state.multiVolumeSlotsq == null){state.multiVolumeSlotsq = false}
-
-    // additional debug logging
- //    log.debug "state.pauseApp = $state.pauseApp - pause1 = $pause1 - state.multiVolumeSlots = $state.multiVolumeSlots - state.multiVolumeSlotsq = $state.multiVolumeSlotsq" 
-    
-}
-
-
-
-
-
-
-
-
-
-
-
-

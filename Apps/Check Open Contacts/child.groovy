@@ -33,10 +33,12 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 08/10/2018
+ *  Last Update: 31/10/2018
  *
  *  Changes:
  *
+ *  V2.1.0 - Revised update checking
+ *  V2.0.2 - Removed default value from 'no open contacts' setting
  *  V2.0.1 - Added optional pushover notification for update
  *  V2.0.0 - Added 'Thermostat' (heat, cool) trigger
  *  V1.9.0 - Added 'Nest' heating & cooling trigger
@@ -128,7 +130,7 @@ display()
         input "toTime", "time", title: "To", required: false
          input "delay1", "number", title: "Delay before message (Seconds - enter 0 for no delay)", description: "Seconds", required: true
          input "message1", "text", title: "Message to speak before list of open devices",  defaultValue: "The following windows or doors are open:", required: true
-         input "message2", "text", title: "Message to speak if there are NO open devices",  defaultValue: "There are no open windows or doors", required: false
+         input "message2", "text", title: "Message to speak if there are NO open devices", required: false
          input "msgDelay", "number", title: "Number of minutes between messages - enter 0 for no delay", description: "Minutes", required: true
           }
     }
@@ -137,7 +139,7 @@ display()
         
          if(switchMode1 == true){
           input "switch3", "capability.switch", title: "Select Switch(s) to control", required: false, multiple: true 
-          input "switchMode2", "bool", title: "Switch Mode: On = Turn switch ON when one or more contacts are open - Off = Turn switch On when there are NO open contacts", required: true, defaultValue: false, submitOnChange:true   
+          input "switchMode2", "bool", title: "Switch Mode: <br> On = Turn switch ON when one or more contacts are open <br> Off = Turn switch On when there are NO open contacts", required: true, defaultValue: false, submitOnChange:true   
          }
   }
 	
@@ -161,13 +163,15 @@ def updated() {
 }
 
 def initialize() {
+	logCheck()
+    setDefaults()
+    version()
+   
 	  log.info "Initialised with settings: ${settings}"
-       version()
-      logCheck()
-state.timer = 'yes'
-state.currS1 = "on"	
+      
+
     
-    if(volume2 == null){volume2 = 0}
+   
     
     subscribe(switch1, "switch", switchHandler)
     if(triggerMode == "Switch"){subscribe(switch2, "switch.on", evtHandler)}
@@ -436,14 +440,17 @@ def LOGDEBUG(txt){
 
 
 def version(){
-    resetBtnName()
 	schedule("0 0 9 ? * FRI *", updateCheck) //  Check for updates at 9am every Friday
-	updateCheck()  
-    checkButtons()
+//	updateCheck()  
+    
+   
+    
 }
 
 def display(){
-  
+    setDefaults()
+  	
+    
 	if(state.status){
 	section{paragraph "<img src='http://update.hubitat.uk/icons/cobra3.png''</img> Version: $state.version <br><font face='Lucida Handwriting'>$state.Copyright </font>"}
        
@@ -454,6 +461,11 @@ def display(){
      section(){ input "updateBtn", "button", title: "$state.btnName"}
     }
     
+    section(){
+   //     log.info "app.label = $app.label"
+    input "pause1", "bool", title: "Pause This App", required: true, submitOnChange: true, defaultValue: false  
+     }
+       
     if(state.status != "Current"){
 	section{ 
 	paragraph "<b>Update Info:</b> <BR>$state.UpdateInfo <BR>$state.updateURI"
@@ -463,10 +475,12 @@ def display(){
       input "updateNotification", "bool", title: "Send a 'Pushover' message when an update is available", required: true, defaultValue: false, submitOnChange: true 
       if(updateNotification == true){ input "speaker", "capability.speechSynthesis", title: "PushOver Device", required: true, multiple: true}
     }
+    
+
 }
 
 def checkButtons(){
-    log.info "Running checkButtons"
+    LOGDEBUG("Running checkButtons")
     appButtonHandler("updateBtn")
 }
 
@@ -474,7 +488,7 @@ def checkButtons(){
 def appButtonHandler(btn){
     state.btnCall = btn
     if(state.btnCall == "updateBtn"){
-        log.info "Checking for updates now..."
+       log.info "Checking for updates now..."
         updateCheck()
         pause(3000)
   		state.btnName = state.newBtn
@@ -487,7 +501,7 @@ def appButtonHandler(btn){
     
 }   
 def resetBtnName(){
-    log.info "Resetting Button"
+//    log.info "Resetting Update Button Name"
     if(state.status != "Current"){
 	state.btnName = state.newBtn
     }
@@ -496,17 +510,40 @@ def resetBtnName(){
     }
 }    
     
-def pushOverUpdate(inMsg){
+def pushOverNow(inMsg){
     if(updateNotification == true){  
      newMessage = inMsg
-  LOGDEBUG(" Message = $newMessage ")  
+  log.info "Message = $newMessage " 
      state.msg1 = '[L]' + newMessage
 	speaker.speak(state.msg1)
     }
 }
 
-
-
+def pauseOrNot(){
+LOGDEBUG(" Calling 'pauseOrNot'...")
+    state.pauseNow = pause1
+        if(state.pauseNow == true){
+            state.pauseApp = true
+            if(app.label){
+            if(app.label.contains('red')){
+                log.warn "Paused"}
+            else{app.updateLabel(app.label + ("<font color = 'red'> (Paused) </font>" ))
+              LOGDEBUG("App Paused - state.pauseApp = $state.pauseApp ")   
+                }
+    
+            }
+        }
+    
+     if(state.pauseNow == false){
+         state.pauseApp = false
+         if(app.label){
+     if(app.label.contains('red')){ app.updateLabel(app.label.minus("<font color = 'red'> (Paused) </font>" ))
+     LOGDEBUG("App Released - state.pauseApp = $state.pauseApp ")                          
+                                  }
+         }
+  }    
+    
+}
 
 
 def updateCheck(){
@@ -537,7 +574,7 @@ def updateCheck(){
         	log.warn "** $state.UpdateInfo **"
              state.newBtn = state.status
             def updateMsg = "There is a new version of '$state.ExternalName' available (Version: $newVerRaw)"
-            pushOverUpdate(updateMsg)
+            pushOverNow(updateMsg)
        		} 
 		else{ 
       		state.status = "Current"
@@ -561,13 +598,30 @@ def updateCheck(){
 
 
 
-
-
-
 def setVersion(){
-		state.version = "2.0.1"	 
+		state.version = "2.1.0"	 
 		state.InternalName = "CheckContactsChild"
-    		state.ExternalName = "Check Contacts Child"
+    	state.ExternalName = "Check Contacts Child"
 }
+
+
+def setDefaults(){
+  log.info "Initialising defaults..." 
+    checkButtons()
+    resetBtnName()
+    pauseOrNot()
+    if(pause1 == null){pause1 = false}
+    if(state.pauseApp == null){state.pauseApp = false}
+    if(volume2 == null){volume2 = 0}
+    state.timer = 'yes'
+    state.currS1 = "on"	
+    
+}
+
+
+
+
+
+
 
 

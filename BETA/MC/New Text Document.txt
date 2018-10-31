@@ -819,11 +819,11 @@ def restrictionInputs(){
     section("This is to restrict on 1 or 2 presence sensor(s)") {
     input "restrictPresenceSensor", "capability.presenceSensor", title: "Select presence sensor 1 to restrict action", required: false, multiple: false, submitOnChange: true
     if(restrictPresenceSensor){
-   	input "restrictPresenceAction", "bool", title: "   On = Action only when someone is 'Present'  \r\n   Off = Action only when someone is 'NOT Present'  ", required: true, defaultValue: false    
+   	input "restrictPresenceAction", "bool", title: "   On = Action only when someone is 'Present'  <br>Off = Action only when someone is 'NOT Present'  ", required: true, defaultValue: false    
 	}
      input "restrictPresenceSensor1", "capability.presenceSensor", title: "Select presence sensor 2 to restrict action", required: false, multiple: false, submitOnChange: true
     if(restrictPresenceSensor1){
-   	input "restrictPresenceAction1", "bool", title: "   On = Action only when someone is 'Present'  \r\n   Off = Action only when someone is 'NOT Present'  ", required: true, defaultValue: false    
+   	input "restrictPresenceAction1", "bool", title: "   On = Action only when someone is 'Present'  <br>Off = Action only when someone is 'NOT Present'  ", required: true, defaultValue: false    
 	}
     
     }
@@ -1389,14 +1389,21 @@ def weatherNow(evt){
 }
 
 def weatherAlert(evt){
+    state.weatherAlertRaw = evt.value
+    if(state.weatherAlertRaw == null || state.weatherAlertRaw == " "){
+     LOGDEBUG("Weather Alert is 'null'")   
+    }
+    else{
         if(state.pauseApp == true){log.warn "Unable to continue - App paused"}
     if(state.pauseApp == false){log.info "Continue - App NOT paused" 
 
     if(state.selection == 'Weather Alert'){
     if(preAlert == null){state.alertPre = " "}
     else {state.alertPre = preAlert}
- state.weatherAlertRaw = evt.value
+        
+ 
  LOGDEBUG("Running weatherAlert.. Previous Alert = $state.oldAlert - Current Alert = $state.weatherAlertRaw")
+        
     if(state.oldAlert == state.weatherAlertRaw){
      LOGDEBUG("No new weather alert.. ") 
      state.weatherAlert = state.weatherAlertRaw
@@ -1451,7 +1458,7 @@ LOGDEBUG("weatherNow - Join Message - Sending Message: $msg")
 }
 }
 }
-
+}
 def weatherForecastHigh(evt){
    state.weatherForecastHigh = evt.value
  LOGDEBUG("Running weatherForecastHigh.. ")
@@ -2218,7 +2225,7 @@ log.info "Further Logging Disabled"
 }
 def LOGDEBUG(txt){
     try {
-    	if (settings.debugMode) { log.debug("${app.label.replace(" ","_").toUpperCase()}  (Childapp Version: ${state.version}) - ${txt}") }
+    	if (settings.debugMode) { log.debug("${app.label.replace(" ","_").toLowerCase()}  (Childapp Version: ${state.version}) - ${txt}") }
     } catch(ex) {
     	log.error("LOGDEBUG unable to output requested data!")
     }
@@ -3608,49 +3615,49 @@ private compileMsg(msg) {
 		LOGDEBUG("Waiting a short while for the weather device to catch up")  
     }
     def msgComp = ""
-    msgComp = msg.toUpperCase()
+    msgComp = msg.toLowerCase()
     LOGDEBUG("msgComp = $msgComp")
-    if (msgComp.toUpperCase().contains("%GROUP1%")) {msgComp = msgComp.toUpperCase().replace('%GROUP1%', getPre() )}
-    if (msgComp.toUpperCase().contains("%GROUP2%")) {msgComp = msgComp.toUpperCase().replace('%GROUP2%', getPost() )}
-    if (msgComp.toUpperCase().contains("%GROUP3%")) {msgComp = msgComp.toUpperCase().replace('%GROUP3%', getWakeUp() )}
-    if (msgComp.toUpperCase().contains("%GROUP4%")) {msgComp = msgComp.toUpperCase().replace('%GROUP4%', getGroup4() )}
- 	if (msgComp.toUpperCase().contains("%ALERT%")) {msgComp = msgComp.toUpperCase().replace('%ALERT%', state.weatherAlert )}
-    if (msgComp.toUpperCase().contains("%WNOW%")) {msgComp = msgComp.toUpperCase().replace('%WNOW%', state.weatherNow)}
-    if (msgComp.toUpperCase().contains("%RAIN%")) {msgComp = msgComp.toUpperCase().replace('%RAIN%', state.rainFall )}
-    if (msgComp.toUpperCase().contains("%VIS%")) {msgComp = msgComp.toUpperCase().replace('%VIS%', state.weatherVisibility )}
-    if (msgComp.toUpperCase().contains("%WGUST%")) {msgComp = msgComp.toUpperCase().replace('%WGUST%', state.weatherWindGust )}
-    if (msgComp.toUpperCase().contains("%WSPEED%")) {msgComp = msgComp.toUpperCase().replace('%WSPEED%', state.weatherWindSpeed )}
-    if (msgComp.toUpperCase().contains("%WDIR%")) {msgComp = msgComp.toUpperCase().replace('%WDIR%', state.weatherWindDir )}
-    if (msgComp.toUpperCase().contains("%FEEL%")) {msgComp = msgComp.toUpperCase().replace('%FEEL%', state.weatherFeelsLike )}
-    if (msgComp.toUpperCase().contains("%TEMP%")) {msgComp = msgComp.toUpperCase().replace('%TEMP%', state.weatherTemperature )}
-    if (msgComp.toUpperCase().contains("%HUM%")) {msgComp = msgComp.toUpperCase().replace('%HUM%', state.weatherHumidity )}
-    if (msgComp.toUpperCase().contains("%LOW%")) {msgComp = msgComp.toUpperCase().replace('%LOW%', state.weatherForecastLow )}
-    if (msgComp.toUpperCase().contains("%HIGH%")) {msgComp = msgComp.toUpperCase().replace('%HIGH%', state.weatherForecastHigh )} 
-    if (msgComp.toUpperCase().contains("%WSUM%")) {msgComp = msgComp.toUpperCase().replace('%WSUM%', state.weatherSummary1 )} 
-    if (msgComp.toUpperCase().contains("%TIME%")) {msgComp = msgComp.toUpperCase().replace('%TIME%', getTime(false,true))}  
-    if (msgComp.toUpperCase().contains("%DAY%")) {msgComp = msgComp.toUpperCase().replace('%DAY%', getDay() )}  
-	if (msgComp.toUpperCase().contains("%DATE%")) {msgComp = msgComp.toUpperCase().replace('%DATE%', getdate() )}  
-    if (msgComp.toUpperCase().contains("%YEAR%")) {msgComp = msgComp.toUpperCase().replace('%YEAR%', getyear() )}  
- 	if (msgComp.toUpperCase().contains("%OPENCONTACT%")) {msgComp = msgComp.toUpperCase().replace('%OPENCONTACT%', getContactReportOpen() )}  
-    if (msgComp.toUpperCase().contains("%CLOSEDCONTACT%")) {msgComp = msgComp.toUpperCase().replace('%CLOSEDCONTACT%', getContactReportClosed() )} 
-    if (msgComp.toUpperCase().contains("%MODE%")) {msgComp = msgComp.toUpperCase().replace('%MODE%', state.modeNow )}
-	if (msgComp.toUpperCase().contains("%OPENCOUNT%")) {msgComp = msgComp.toUpperCase().replace('%OPENCOUNT%', getContactOpenCount() )}  
-    if (msgComp.toUpperCase().contains("%CLOSEDCOUNT%")) {msgComp = msgComp.toUpperCase().replace('%CLOSEDCOUNT%', getContactClosedCount() )} 
-    if (msgComp.toUpperCase().contains("%LIGHTSONCOUNT%")) {msgComp = msgComp.toUpperCase().replace('%LIGHTSONCOUNT%', getLightsOnCount() )} 
-    if (msgComp.toUpperCase().contains("%LIGHTSOFFCOUNT%")) {msgComp = msgComp.toUpperCase().replace('%LIGHTSOFFCOUNT%', getLightsOffCount() )} 
-    if (msgComp.toUpperCase().contains("%LIGHTSON%")) {msgComp = msgComp.toUpperCase().replace('%LIGHTSON%', getLightsOnReport() )} 
-    if (msgComp.toUpperCase().contains("%LIGHTSOFF%")) {msgComp = msgComp.toUpperCase().replace('%LIGHTSOFF%', getLightsOffReport() )}
-    if (msgComp.toUpperCase().contains("%SWITCHESONCOUNT%")) {msgComp = msgComp.toUpperCase().replace('%SWITCHESONCOUNT%', getSwitchesOnCount() )} 
-    if (msgComp.toUpperCase().contains("%SWITCHESOFFCOUNT%")) {msgComp = msgComp.toUpperCase().replace('%SWITCHESOFFCOUNT%', getSwitchesOffCount() )} 
-    if (msgComp.toUpperCase().contains("%SWITCHESON%")) {msgComp = msgComp.toUpperCase().replace('%SWITCHESON%', getSwitchesOnReport() )} 
-    if (msgComp.toUpperCase().contains("%SWITCHESOFF%")) {msgComp = msgComp.toUpperCase().replace('%SWITCHESOFF%', getSwitchesOffReport() )}
- 	if (msgComp.toUpperCase().contains("%DEVICE%")) {msgComp = msgComp.toUpperCase().replace('%DEVICE%', getNameofDevice() )}  
-	if (msgComp.toUpperCase().contains("%EVENT%")) {msgComp = msgComp.toUpperCase().replace('%EVENT%', getWhatHappened() )}  
-    if (msgComp.toUpperCase().contains("%GREETING%")) {msgComp = msgComp.toUpperCase().replace('%GREETING%', getGreeting() )}      
-    if (msgComp.toUpperCase().contains("N/A")) {msgComp = msgComp.toUpperCase().replace('N/A', ' ' )}
-	if (msgComp.toUpperCase().contains("NO STATION DATA")) {msgComp = msgComp.toUpperCase().replace('NO STATION DATA', ' ' )}
-    if (msgComp.toUpperCase().contains(":")) {msgComp = msgComp.toUpperCase().replace(':', ' ')}
-    if (msgComp.toUpperCase().contains("!")) {msgComp = msgComp.toUpperCase().replace('!', ' ')}
+    if (msgComp.toLowerCase().contains("%GROUP1%")) {msgComp = msgComp.toLowerCase().replace('%GROUP1%', getPre() )}
+    if (msgComp.toLowerCase().contains("%GROUP2%")) {msgComp = msgComp.toLowerCase().replace('%GROUP2%', getPost() )}
+    if (msgComp.toLowerCase().contains("%GROUP3%")) {msgComp = msgComp.toLowerCase().replace('%GROUP3%', getWakeUp() )}
+    if (msgComp.toLowerCase().contains("%GROUP4%")) {msgComp = msgComp.toLowerCase().replace('%GROUP4%', getGroup4() )}
+ 	if (msgComp.toLowerCase().contains("%ALERT%")) {msgComp = msgComp.toLowerCase().replace('%ALERT%', state.weatherAlert )}
+    if (msgComp.toLowerCase().contains("%WNOW%")) {msgComp = msgComp.toLowerCase().replace('%WNOW%', state.weatherNow)}
+    if (msgComp.toLowerCase().contains("%RAIN%")) {msgComp = msgComp.toLowerCase().replace('%RAIN%', state.rainFall )}
+    if (msgComp.toLowerCase().contains("%VIS%")) {msgComp = msgComp.toLowerCase().replace('%VIS%', state.weatherVisibility )}
+    if (msgComp.toLowerCase().contains("%WGUST%")) {msgComp = msgComp.toLowerCase().replace('%WGUST%', state.weatherWindGust )}
+    if (msgComp.toLowerCase().contains("%WSPEED%")) {msgComp = msgComp.toLowerCase().replace('%WSPEED%', state.weatherWindSpeed )}
+    if (msgComp.toLowerCase().contains("%WDIR%")) {msgComp = msgComp.toLowerCase().replace('%WDIR%', state.weatherWindDir )}
+    if (msgComp.toLowerCase().contains("%FEEL%")) {msgComp = msgComp.toLowerCase().replace('%FEEL%', state.weatherFeelsLike )}
+    if (msgComp.toLowerCase().contains("%TEMP%")) {msgComp = msgComp.toLowerCase().replace('%TEMP%', state.weatherTemperature )}
+    if (msgComp.toLowerCase().contains("%HUM%")) {msgComp = msgComp.toLowerCase().replace('%HUM%', state.weatherHumidity )}
+    if (msgComp.toLowerCase().contains("%LOW%")) {msgComp = msgComp.toLowerCase().replace('%LOW%', state.weatherForecastLow )}
+    if (msgComp.toLowerCase().contains("%HIGH%")) {msgComp = msgComp.toLowerCase().replace('%HIGH%', state.weatherForecastHigh )} 
+    if (msgComp.toLowerCase().contains("%WSUM%")) {msgComp = msgComp.toLowerCase().replace('%WSUM%', state.weatherSummary1 )} 
+    if (msgComp.toLowerCase().contains("%TIME%")) {msgComp = msgComp.toLowerCase().replace('%TIME%', getTime(false,true))}  
+    if (msgComp.toLowerCase().contains("%DAY%")) {msgComp = msgComp.toLowerCase().replace('%DAY%', getDay() )}  
+	if (msgComp.toLowerCase().contains("%DATE%")) {msgComp = msgComp.toLowerCase().replace('%DATE%', getdate() )}  
+    if (msgComp.toLowerCase().contains("%YEAR%")) {msgComp = msgComp.toLowerCase().replace('%YEAR%', getyear() )}  
+ 	if (msgComp.toLowerCase().contains("%OPENCONTACT%")) {msgComp = msgComp.toLowerCase().replace('%OPENCONTACT%', getContactReportOpen() )}  
+    if (msgComp.toLowerCase().contains("%CLOSEDCONTACT%")) {msgComp = msgComp.toLowerCase().replace('%CLOSEDCONTACT%', getContactReportClosed() )} 
+    if (msgComp.toLowerCase().contains("%MODE%")) {msgComp = msgComp.toLowerCase().replace('%MODE%', state.modeNow )}
+	if (msgComp.toLowerCase().contains("%OPENCOUNT%")) {msgComp = msgComp.toLowerCase().replace('%OPENCOUNT%', getContactOpenCount() )}  
+    if (msgComp.toLowerCase().contains("%CLOSEDCOUNT%")) {msgComp = msgComp.toLowerCase().replace('%CLOSEDCOUNT%', getContactClosedCount() )} 
+    if (msgComp.toLowerCase().contains("%LIGHTSONCOUNT%")) {msgComp = msgComp.toLowerCase().replace('%LIGHTSONCOUNT%', getLightsOnCount() )} 
+    if (msgComp.toLowerCase().contains("%LIGHTSOFFCOUNT%")) {msgComp = msgComp.toLowerCase().replace('%LIGHTSOFFCOUNT%', getLightsOffCount() )} 
+    if (msgComp.toLowerCase().contains("%LIGHTSON%")) {msgComp = msgComp.toLowerCase().replace('%LIGHTSON%', getLightsOnReport() )} 
+    if (msgComp.toLowerCase().contains("%LIGHTSOFF%")) {msgComp = msgComp.toLowerCase().replace('%LIGHTSOFF%', getLightsOffReport() )}
+    if (msgComp.toLowerCase().contains("%SWITCHESONCOUNT%")) {msgComp = msgComp.toLowerCase().replace('%SWITCHESONCOUNT%', getSwitchesOnCount() )} 
+    if (msgComp.toLowerCase().contains("%SWITCHESOFFCOUNT%")) {msgComp = msgComp.toLowerCase().replace('%SWITCHESOFFCOUNT%', getSwitchesOffCount() )} 
+    if (msgComp.toLowerCase().contains("%SWITCHESON%")) {msgComp = msgComp.toLowerCase().replace('%SWITCHESON%', getSwitchesOnReport() )} 
+    if (msgComp.toLowerCase().contains("%SWITCHESOFF%")) {msgComp = msgComp.toLowerCase().replace('%SWITCHESOFF%', getSwitchesOffReport() )}
+ 	if (msgComp.toLowerCase().contains("%DEVICE%")) {msgComp = msgComp.toLowerCase().replace('%DEVICE%', getNameofDevice() )}  
+	if (msgComp.toLowerCase().contains("%EVENT%")) {msgComp = msgComp.toLowerCase().replace('%EVENT%', getWhatHappened() )}  
+    if (msgComp.toLowerCase().contains("%GREETING%")) {msgComp = msgComp.toLowerCase().replace('%GREETING%', getGreeting() )}      
+    if (msgComp.toLowerCase().contains("N/A")) {msgComp = msgComp.toLowerCase().replace('N/A', ' ' )}
+	if (msgComp.toLowerCase().contains("NO STATION DATA")) {msgComp = msgComp.toLowerCase().replace('NO STATION DATA', ' ' )}
+    if (msgComp.toLowerCase().contains(":")) {msgComp = msgComp.toLowerCase().replace(':', ' ')}
+    if (msgComp.toLowerCase().contains("!")) {msgComp = msgComp.toLowerCase().replace('!', ' ')}
     
     LOGDEBUG("1st Stage Compile (Pre weather processing) = $msgComp")
     convertWeatherMessage(msgComp)
@@ -3917,7 +3924,7 @@ private convertWeatherMessage(msgIn){
 LOGDEBUG("Running convertWeatherMessage... Converting weather message to English (If weather requested)...")
 
     def msgOut = ""
-    msgOut = msgIn.toUpperCase()
+    msgOut = msgIn.toLowerCase()
     
 // Weather Variables    
 

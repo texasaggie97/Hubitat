@@ -33,11 +33,13 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 02/10/2018
+ *  Last Update: 08/10/2018
  *
  *  Changes:
  *
- *
+ *  V2.0.1 - Added optional pushover notification for update
+ *  V2.0.0 - Added 'Thermostat' (heat, cool) trigger
+ *  V1.9.0 - Added 'Nest' heating & cooling trigger
  *  V1.8.0 - Added 'Time' trigger
  *  V1.7.0 - Added 'Button' trigger
  *  V1.6.0 - Added 'Mode' trigger 
@@ -84,7 +86,7 @@ display()
     }  
     
 		section() {
-            input "triggerMode", "enum", required: true, title: "Select Trigger Type", submitOnChange: true,  options: ["Button", "Mode Change", "Switch", "Time", "Water Sensor"] 
+            input "triggerMode", "enum", required: true, title: "Select Trigger Type", submitOnChange: true,  options: ["Button", "Mode Change", "Nest Thermostat - Heating", "Nest Thermostat - Cooling", "Standard Thermostat - Heating", "Standard Thermostat - Cooling", "Switch", "Time", "Water Sensor"] 
             if(triggerMode == "Switch"){input "switch2", "capability.switch", title: "Select Trigger Device", required: true, multiple: false}
             if(triggerMode == "Water Sensor"){input "water1", "capability.waterSensor", title: "Select Trigger Device", required: true, multiple: false}
             if(triggerMode == "Mode Change"){input "newMode1", "mode", title: "Action when changing to this mode",  required: true, multiple: false}
@@ -93,8 +95,10 @@ display()
             	input "buttonNumber", "enum", title: "Enter Button Number", required: true, options: ["1", "2", "3", "4", "5"] 
             }
             if(triggerMode == "Time"){input (name: "runTime", title: "Time to run", type: "time",  required: true)}            
-          
-            
+             if(triggerMode == "Nest Thermostat - Heating" ){input "nestDevice", "capability.thermostat", title: "Select Trigger Device",  required: true}  
+             if(triggerMode == "Nest Thermostat - Cooling"){input "nestDevice", "capability.thermostat", title: "Select Trigger Device",  required: true} 
+            if(triggerMode == "Standard Thermostat - Heating"){input "statDevice", "capability.thermostat", title: "Select Trigger Device",  required: true} 
+            if(triggerMode == "Standard Thermostat - Cooling"){input "statDevice", "capability.thermostat", title: "Select Trigger Device",  required: true} 
     }  
     
         section(){
@@ -177,6 +181,12 @@ state.currS1 = "on"
         if(buttonNumber == '5'){subscribe(button1, "pushed.5", evtHandler)}
     } 
     if(triggerMode == "Time"){schedule(runTime, evtHandler)}
+    if(triggerMode == "Nest Thermostat - Heating"){subscribe(nestDevice, "thermostatOperatingState.heating", evtHandler)}
+    if(triggerMode == "Nest Thermostat - Cooling"){subscribe(nestDevice, "thermostatOperatingState.cooling", evtHandler)}
+	if(triggerMode == "Standard Thermostat - Heating"){subscribe(statDevice, "thermostatMode.heat", evtHandler)}
+    if(triggerMode == "Standard Thermostat - Cooling"){subscribe(statDevice, "thermostatMode.cool", evtHandler)}
+    
+    
     subscribe(sensors, "contact", contactHandler)
     
    
@@ -192,7 +202,7 @@ def switchHandler(evt) {
 
 
 def evtHandler (evt){
-    LOGDEBUG("Running evtHandler...") 
+    LOGDEBUG("Running evtHandler... Event received: $evt.value") 
     checkTime()
     if(state.timeOK == true){
     
@@ -427,7 +437,6 @@ def LOGDEBUG(txt){
 
 def version(){
     resetBtnName()
-	unschedule()
 	schedule("0 0 9 ? * FRI *", updateCheck) //  Check for updates at 9am every Friday
 	updateCheck()  
     checkButtons()
@@ -439,17 +448,21 @@ def display(){
 	section{paragraph "<img src='http://update.hubitat.uk/icons/cobra3.png''</img> Version: $state.version <br><font face='Lucida Handwriting'>$state.Copyright </font>"}
        
         }
+   
+
     if(state.status != "<b>** This app is no longer supported by $state.author  **</b>"){
      section(){ input "updateBtn", "button", title: "$state.btnName"}
     }
     
     if(state.status != "Current"){
 	section{ 
-
-	paragraph "<b>Update Info: *** $state.UpdateInfo ***</b>"
+	paragraph "<b>Update Info:</b> <BR>$state.UpdateInfo <BR>$state.updateURI"
+     }
     }
-         
-    }         
+	section(" ") {
+      input "updateNotification", "bool", title: "Send a 'Pushover' message when an update is available", required: true, defaultValue: false, submitOnChange: true 
+      if(updateNotification == true){ input "speaker", "capability.speechSynthesis", title: "PushOver Device", required: true, multiple: true}
+    }
 }
 
 def checkButtons(){
@@ -467,9 +480,14 @@ def appButtonHandler(btn){
   		state.btnName = state.newBtn
         runIn(2, resetBtnName)
     }
+    if(state.btnCall == "updateBtn1"){
+    state.btnName1 = "Click Here" 
+    httpGet("https://github.com/CobraVmax/Hubitat/tree/master/Apps' target='_blank")
+    }
+    
 }   
 def resetBtnName(){
-    LOGDEBUG("Resetting Update Button Label")
+    log.info "Resetting Button"
     if(state.status != "Current"){
 	state.btnName = state.newBtn
     }
@@ -478,6 +496,14 @@ def resetBtnName(){
     }
 }    
     
+def pushOverUpdate(inMsg){
+    if(updateNotification == true){  
+     newMessage = inMsg
+  LOGDEBUG(" Message = $newMessage ")  
+     state.msg1 = '[L]' + newMessage
+	speaker.speak(state.msg1)
+    }
+}
 
 
 
@@ -491,6 +517,9 @@ def updateCheck(){
  //  log.warn " Version Checking - Response Data: ${respUD.data}"   // Troubleshooting Debug Code 
        		def copyrightRead = (respUD.data.copyright)
        		state.Copyright = copyrightRead
+            def updateUri = (respUD.data.versions.UpdateInfo.GithubFiles.(state.InternalName))
+            state.updateURI = updateUri   
+            
             def newVerRaw = (respUD.data.versions.Application.(state.InternalName))
             def newVer = (respUD.data.versions.Application.(state.InternalName).replace(".", ""))
        		def currentVer = state.version.replace(".", "")
@@ -507,6 +536,8 @@ def updateCheck(){
         	log.warn "** There is a newer version of this app available  (Version: $newVerRaw) **"
         	log.warn "** $state.UpdateInfo **"
              state.newBtn = state.status
+            def updateMsg = "There is a new version of '$state.ExternalName' available (Version: $newVerRaw)"
+            pushOverUpdate(updateMsg)
        		} 
 		else{ 
       		state.status = "Current"
@@ -519,6 +550,7 @@ def updateCheck(){
     		}
     if(state.status != "Current"){
 		state.newBtn = state.status
+        
     }
     else{
         state.newBtn = "No Update Available"
@@ -527,7 +559,15 @@ def updateCheck(){
         
 }
 
+
+
+
+
+
 def setVersion(){
-		state.version = "1.8.0"	 
-		state.InternalName = "CheckContactChild"
+		state.version = "2.0.1"	 
+		state.InternalName = "CheckContactsChild"
+    		state.ExternalName = "Check Contacts Child"
 }
+
+
