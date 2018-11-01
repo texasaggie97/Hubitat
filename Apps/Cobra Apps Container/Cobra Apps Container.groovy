@@ -36,8 +36,8 @@
  *
  *  Changes:
  *
- *
- *
+ *  V1.6.0 - Added 'Motion Controlled Switch'
+ *  V1.5.0 - Added 'Flasher'
  *  V1.4.0 - Added 'Mode Switch'
  *  V1.3.0 - Added 'Daily Window/Blind Event'
  *  V1.2.0 - Added 'Daily Switch Event'
@@ -109,9 +109,11 @@ if(state.appInstalled == 'COMPLETE'){
         if(state.appName1.contains("Contact Controlled Lights and Switches")) {state.para1 = state.para1 + "<BR>Contact Controlled Lights and Switches"}
         if(state.appName1.contains("Daily Switch Event")){state.para1 = state.para1 + "<BR>Daily Switch Event"}
         if(state.appName1.contains("Daily Window/Blind Event")){state.para1 = state.para1 + "<BR>Daily Window/Blind Event"}
+        if(state.appName1.contains("Flasher")){state.para1 = state.para1 + "<BR>Flasher"}
         if(state.appName1.contains("Message Central")){state.para1 = state.para1 + "<BR>Message Central"}
         if(state.appName1.contains("Mode Switch")) {state.para1 = state.para1 + "<BR>Mode Switch"}
         if(state.appName1.contains("Modes Plus")) {state.para1 = state.para1 + "<BR>Modes Plus"}
+        if(state.appName1.contains("Motion Controlled Switch")) {state.para1 = state.para1 + "<BR>Motion Controlled Switch"}
         if(state.appName1.contains("One To Many")) {state.para1 = state.para1 + "<BR>One To Many"} 
     	if(state.appName1.contains("Presence Central")) {state.para1 = state.para1 + "<BR>Presence Central"}  
         if(state.appName1.contains("Scheduled Switch")) {state.para1 = state.para1 + "<BR>Scheduled Switch"}  
@@ -187,7 +189,11 @@ def childAppList(){
         app(name: "dailyWindowEvent", appName: "Daily Window/Blind Event", namespace: "Cobra", title: "<b>Install Daily Window Event</b>", multiple: true)
         } 
     }
-        
+     if(!state.appName1.contains("Flasher") && state.appList.contains("Flasher")){
+        section (""){
+        app(name: "flasherParent", appName: "Flasher", namespace: "Cobra", title: "<b>Install Flasher</b>", multiple: true)
+        } 
+    }   
      if(!state.appName1.contains("Message Central") && state.appList.contains("Message Central")){
         section (""){
         app(name: "mcParent", appName: "Message Central", namespace: "Cobra", title: "<b>Install Message Central</b>", multiple: true)
@@ -202,7 +208,12 @@ def childAppList(){
         section (""){
 		app(name: "modeSwitchParent", appName: "Mode Switch", namespace: "Cobra", title: "<b>Install Mode Switch</b>", multiple: true)
             }
-     }   
+     }
+     if(!state.appName1.contains("Motion Controlled Switch") && state.appList.contains("Motion Controlled Switch")){
+        section (""){
+		app(name: "motionSwitchParent", appName: "Motion Controlled Switch", namespace: "Cobra", title: "<b>Install Motion Controlled Switch</b>", multiple: true)
+            }
+     }      
      if(!state.appName1.contains("One To Many") && state.appList.contains("One To Many")){
         section (""){
 		app(name: "oneToManyParent", appName: "One To Many", namespace: "Cobra", title: "<b>Install One To Many</b>", multiple: true)
@@ -255,9 +266,11 @@ def checkInput(){
         "Contact Controlled Lights and Switches",
         "Daily Switch Event",
         "Daily Window Event",
+        "Flasher",
         "Message Central",
         "Mode Switch",
         "Modes Plus",
+        "Motion Controlled Switch",
         "One To Many",
         "Presence Central",
         "Scheduled Switch",
@@ -398,7 +411,7 @@ def updateCheck(){
 
 
 def setVersion(){
-		state.version = "1.4.0"	 
+		state.version = "1.6.0"	 
 		state.InternalName = "CobraParent" 
     	state.ExternalName = "Cobra Apps Container"
 }
