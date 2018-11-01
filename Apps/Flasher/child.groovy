@@ -103,6 +103,10 @@ def switchOnNow(evt) {
 
 
 def flashLights() {
+    
+    if(state.pauseApp == true){log.warn "Unable to continue - App paused"}
+    if(state.pauseApp == false){log.info "Continue - App NOT paused" 
+
     def delay2 = delay1.toFloat()
     state.myDelay = (delay2 * 1000).toInteger()
     
@@ -273,8 +277,7 @@ def flashLights() {
 
     }    
 }    
-    
-  
+}  
 }
 
 
