@@ -36,10 +36,12 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 08/10/2018/2018
+ *  Last Update: 01/11/2018
  *
  *  Changes:
  *
+ *
+ *  V2.7.0 - Revised update checking and added 'pause' button
  *  V2.6.1 - Revised auto update checking and added a manual update check button
  *  V2.6.0 - Added 'restrict by current mode'
  *  V2.5.0 - code cleanup & Added remote version checking 
@@ -61,7 +63,7 @@
  *  V1.0.1 - debug
  *  V1.0.0 - POC
  *
- *  Features to come....  control a garage door?
+ *  
  *  
  */
 
@@ -98,15 +100,12 @@ def updated() {
     initialize()
 }
 def initialize() {
- log.info "Initialised with settings: ${settings}"
     logCheck()
+    setDefaults()
     version()
-    checkButtons()
-    switchRunCheck()
-    state.timer1 = true
-	state.timerDoor = true
-    state.timerlock = true
-	state.riseSetGo = true
+    log.info "Initialised with settings: ${settings}"
+
+
 
 // Basic Subscriptions 
 	subscribe(location, "hsmStatus", statusHandler)
@@ -746,7 +745,11 @@ private flashLights() {
 
 // Arrival Actions - Check OK to run
 def arrivalAction(){
-LOGDEBUG("Calling Arrival Action")
+    LOGDEBUG("Calling Arrival Action")
+    if(state.pauseApp == true){log.warn "Unable to continue - App paused"}
+    if(state.pauseApp == false){log.info "Continue - App NOT paused" 
+
+
 checkTime()
 checkDay()
 checkMode()
@@ -754,11 +757,14 @@ if (state.timeOK == true && state.dayCheck == true && state.modeCheck == true){
 decideActionArrival()
 	}
 }
-
+}
 
 // Departure Actions - Check OK to run
 def departureAction(){
 LOGDEBUG("Calling Departure Action")
+    if(state.pauseApp == true){log.warn "Unable to continue - App paused"}
+    if(state.pauseApp == false){log.info "Continue - App NOT paused" 
+
 checkTime()
 checkDay()
 checkMode()
@@ -766,7 +772,7 @@ if (state.timeOK == true && state.dayCheck == true && state.modeCheck == true){
 decideActionDeparture()
 	}
 }
-
+}
 
 
 
@@ -1638,14 +1644,17 @@ def LOGDEBUG(txt){
 
 
 def version(){
-    resetBtnName()
 	schedule("0 0 9 ? * FRI *", updateCheck) //  Check for updates at 9am every Friday
-	updateCheck()  
-    checkButtons()
+ 
+    
+   
+    
 }
 
 def display(){
-  
+    setDefaults()
+  	
+    
 	if(state.status){
 	section{paragraph "<img src='http://update.hubitat.uk/icons/cobra3.png''</img> Version: $state.version <br><font face='Lucida Handwriting'>$state.Copyright </font>"}
        
@@ -1656,6 +1665,11 @@ def display(){
      section(){ input "updateBtn", "button", title: "$state.btnName"}
     }
     
+    section(){
+   //     log.info "app.label = $app.label"
+    input "pause1", "bool", title: "Pause This App", required: true, submitOnChange: true, defaultValue: false  
+     }
+       
     if(state.status != "Current"){
 	section{ 
 	paragraph "<b>Update Info:</b> <BR>$state.UpdateInfo <BR>$state.updateURI"
@@ -1665,10 +1679,12 @@ def display(){
       input "updateNotification", "bool", title: "Send a 'Pushover' message when an update is available", required: true, defaultValue: false, submitOnChange: true 
       if(updateNotification == true){ input "speaker", "capability.speechSynthesis", title: "PushOver Device", required: true, multiple: true}
     }
+    
+
 }
 
 def checkButtons(){
-    log.info "Running checkButtons"
+    LOGDEBUG("Running checkButtons")
     appButtonHandler("updateBtn")
 }
 
@@ -1676,7 +1692,7 @@ def checkButtons(){
 def appButtonHandler(btn){
     state.btnCall = btn
     if(state.btnCall == "updateBtn"){
-        log.info "Checking for updates now..."
+       log.info "Checking for updates now..."
         updateCheck()
         pause(3000)
   		state.btnName = state.newBtn
@@ -1689,7 +1705,7 @@ def appButtonHandler(btn){
     
 }   
 def resetBtnName(){
-    log.info "Resetting Button"
+//    log.info "Resetting Update Button Name"
     if(state.status != "Current"){
 	state.btnName = state.newBtn
     }
@@ -1698,17 +1714,40 @@ def resetBtnName(){
     }
 }    
     
-def pushOverUpdate(inMsg){
+def pushOverNow(inMsg){
     if(updateNotification == true){  
      newMessage = inMsg
-  LOGDEBUG(" Message = $newMessage ")  
+  log.info "Message = $newMessage " 
      state.msg1 = '[L]' + newMessage
 	speaker.speak(state.msg1)
     }
 }
 
-
-
+def pauseOrNot(){
+LOGDEBUG(" Calling 'pauseOrNot'...")
+    state.pauseNow = pause1
+        if(state.pauseNow == true){
+            state.pauseApp = true
+            if(app.label){
+            if(app.label.contains('red')){
+                log.warn "Paused"}
+            else{app.updateLabel(app.label + ("<font color = 'red'> (Paused) </font>" ))
+              LOGDEBUG("App Paused - state.pauseApp = $state.pauseApp ")   
+                }
+    
+            }
+        }
+    
+     if(state.pauseNow == false){
+         state.pauseApp = false
+         if(app.label){
+     if(app.label.contains('red')){ app.updateLabel(app.label.minus("<font color = 'red'> (Paused) </font>" ))
+     LOGDEBUG("App Released - state.pauseApp = $state.pauseApp ")                          
+                                  }
+         }
+  }    
+    
+}
 
 
 def updateCheck(){
@@ -1739,7 +1778,7 @@ def updateCheck(){
         	log.warn "** $state.UpdateInfo **"
              state.newBtn = state.status
             def updateMsg = "There is a new version of '$state.ExternalName' available (Version: $newVerRaw)"
-            pushOverUpdate(updateMsg)
+            pushOverNow(updateMsg)
        		} 
 		else{ 
       		state.status = "Current"
@@ -1762,8 +1801,31 @@ def updateCheck(){
 }
 
 
+
 def setVersion(){
-		state.version = "2.6.1"
+		state.version = "2.7.0"
      		state.InternalName = "PCchild"
     		state.ExternalName = "Presence Central Child"
 }
+
+def setDefaults(){
+    log.info "Initialising defaults..." 
+    checkButtons()
+    resetBtnName()
+    pauseOrNot()
+    if(pause1 == null){pause1 = false}
+    if(state.pauseApp == null){state.pauseApp = false}  
+
+
+ // add any further default settings below here               
+    state.timer1 = true
+	state.timerDoor = true
+    state.timerlock = true
+	state.riseSetGo = true
+
+
+
+}
+
+
+
