@@ -32,10 +32,14 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 29/10/2018
+ *  Last Update: 01/11/2018
  *
  *  Changes:
- *  V1.3.0 - Added 'Daily Window Event'
+ *
+ *
+ *
+ *  V1.4.0 - Added 'Mode Switch'
+ *  V1.3.0 - Added 'Daily Window/Blind Event'
  *  V1.2.0 - Added 'Daily Switch Event'
  *  V1.1.0 - Added "Contact Controlled Lights and Switches" 
  *  V1.0.0 - POC
@@ -102,12 +106,12 @@ if(state.appInstalled == 'COMPLETE'){
         
         if(state.appName1.contains("Average All")) {state.para1 = state.para1 + "<BR>Average All"}
         if(state.appName1.contains("Check Open Contacts")) {state.para1 = state.para1 + "<BR>Check Open Contacts"}
-        if(state.appName1.contains("Contact Controlled Lights and Switches")) {state.para1 = state.para1 + "<BR>Contact Controlled Lights and Switchess"}
+        if(state.appName1.contains("Contact Controlled Lights and Switches")) {state.para1 = state.para1 + "<BR>Contact Controlled Lights and Switches"}
         if(state.appName1.contains("Daily Switch Event")){state.para1 = state.para1 + "<BR>Daily Switch Event"}
-        if(state.appName1.contains("Daily Window Event")){state.para1 = state.para1 + "<BR>Daily Window Event"}
-        
+        if(state.appName1.contains("Daily Window/Blind Event")){state.para1 = state.para1 + "<BR>Daily Window/Blind Event"}
         if(state.appName1.contains("Message Central")){state.para1 = state.para1 + "<BR>Message Central"}
-    	if(state.appName1.contains("Modes Plus")) {state.para1 = state.para1 + "<BR>Modes Plus"}
+        if(state.appName1.contains("Mode Switch")) {state.para1 = state.para1 + "<BR>Mode Switch"}
+        if(state.appName1.contains("Modes Plus")) {state.para1 = state.para1 + "<BR>Modes Plus"}
         if(state.appName1.contains("One To Many")) {state.para1 = state.para1 + "<BR>One To Many"} 
     	if(state.appName1.contains("Presence Central")) {state.para1 = state.para1 + "<BR>Presence Central"}  
         if(state.appName1.contains("Scheduled Switch")) {state.para1 = state.para1 + "<BR>Scheduled Switch"}  
@@ -178,9 +182,9 @@ def childAppList(){
         } 
     }
 
-    if(!state.appName1.contains("Daily Window Event") && state.appList.contains("Daily Window Event")){
+    if(!state.appName1.contains("Daily Window/Blind Event") && state.appList.contains("Daily Window/Blind Event")){
         section (""){
-        app(name: "dailyWindowEvent", appName: "Daily Window Event", namespace: "Cobra", title: "<b>Install Daily Window Event</b>", multiple: true)
+        app(name: "dailyWindowEvent", appName: "Daily Window/Blind Event", namespace: "Cobra", title: "<b>Install Daily Window Event</b>", multiple: true)
         } 
     }
         
@@ -189,13 +193,16 @@ def childAppList(){
         app(name: "mcParent", appName: "Message Central", namespace: "Cobra", title: "<b>Install Message Central</b>", multiple: true)
         } 
     }
-    
-
     if(!state.appName1.contains("Modes Plus") && state.appList.contains("Modes Plus")){
         section (""){
 		app(name: "modesPlusParent", appName: "Modes Plus", namespace: "Cobra", title: "<b>Install Modes Plus</b>", multiple: true)
             }
      }
+     if(!state.appName1.contains("Mode Switch") && state.appList.contains("Mode Switch")){
+        section (""){
+		app(name: "modeSwitchParent", appName: "Mode Switch", namespace: "Cobra", title: "<b>Install Mode Switch</b>", multiple: true)
+            }
+     }   
      if(!state.appName1.contains("One To Many") && state.appList.contains("One To Many")){
         section (""){
 		app(name: "oneToManyParent", appName: "One To Many", namespace: "Cobra", title: "<b>Install One To Many</b>", multiple: true)
@@ -249,6 +256,7 @@ def checkInput(){
         "Daily Switch Event",
         "Daily Window Event",
         "Message Central",
+        "Mode Switch",
         "Modes Plus",
         "One To Many",
         "Presence Central",
@@ -390,7 +398,7 @@ def updateCheck(){
 
 
 def setVersion(){
-		state.version = "1.3.0"	 
+		state.version = "1.4.0"	 
 		state.InternalName = "CobraParent" 
     	state.ExternalName = "Cobra Apps Container"
 }
