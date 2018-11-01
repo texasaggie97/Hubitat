@@ -30,7 +30,7 @@
  *
  *
  *
- *  Last Update: 29/10/2018
+ *  Last Update: 01/11/2018
  *
  *  Changes:
  *
@@ -68,14 +68,15 @@ preferences {
 	display()
 
     section("") {
-		input (name: "startTime", title: "Start time (On)", type: "time",  required: true)
-	
-    input name: "action1", type: "bool", title: "Turn switch Off? ", required: true, defaultValue: false, submitOnChange: true  
-    if(action1 == true){
-    
+		input (name: "startTime", title: "Action time (On/Off)", type: "time",  required: true)
+		input name: "actionMode", type: "bool", title: "Turn on or off", required: true, defaultValue: false, submitOnChange: true  
+        if(actionMode == true){
+	    input name: "action1", type: "bool", title: "Turn switch off as well? ", required: true, defaultValue: false, submitOnChange: true  
+        }
+   		if(action1 == true){
 		input (name: "stopTime", title: "Stop time (Off)", type: "time",  required: false)
-    }
-    }    
+	    }
+	}    
         
     section("") {
         input "days", "enum", title: "Select Days of the Week", required: false, multiple: true, options: ["Monday": "Monday", "Tuesday": "Tuesday", "Wednesday": "Wednesday", "Thursday": "Thursday", "Friday": "Friday", "Saturday": "Saturday", "Sunday": "Sunday"]
@@ -85,18 +86,16 @@ preferences {
 		input "switch1",  "capability.switch", title: "Control switch(es)", multiple: true, required: false
 	}    
    
-    
+      section(){input "debugMode", "bool", title: "Enable logging", required: true, defaultValue: false }  
     
     
 }
 
 def installed() {
-	log.debug "Installed with settings: ${settings}"
 	initialize()
 }
 
 def updated() {
-	log.debug "Updated with settings: ${settings}"
 	unsubscribe()
 	initialize()
 }
@@ -105,13 +104,20 @@ def initialize() {
  version()
      schedule(startTime, checkNow1)
     if(action1 == true){schedule(stopTime, checkNow2)}
+    
+    logCheck()
+    setDefaults()
+    version()
+    log.info "Initialised with settings: ${settings}"
+
+    
      }
 
 
 
 def checkNow1 (evt) {
    
-log.info "Operation is scheduled for $startTime"
+LOGDEBUG("Operation is scheduled for $startTime")
     
     if(days){
      def df = new java.text.SimpleDateFormat("EEEE")
@@ -121,26 +127,31 @@ log.info "Operation is scheduled for $startTime"
     def dayCheck = days.contains(day)
     if (dayCheck) {
     
-log.info "Scheduled for operation today"
-log.info "Switching on..."
-        switch1.on() 
+LOGDEBUG("Scheduled for operation today")
+LOGDEBUG("Switching now...")
+        
+        if(state.modeAction == true){ switch1.on() }    
+        if(state.modeAction == false){ switch1.off() }    
+        
+
        
                
     			  }
     else {
- log.debug "Not scheduled for today!"
+LOGDEBUG("Not scheduled for today!")
 		 } 
     }
     
     if(!days){
-        switch1.on() 
+       if(state.modeAction == true){ switch1.on() }    
+       if(state.modeAction == false){ switch1.off() }    
     }
         
 }
 
 def checkNow2 (evt) {
 	
-log.info "Operation is scheduled for $stopTime"
+LOGDEBUG("Operation is scheduled for $stopTime")
     if(days){
  def df = new java.text.SimpleDateFormat("EEEE")
    df.setTimeZone(location.timeZone)
@@ -148,33 +159,56 @@ log.info "Operation is scheduled for $stopTime"
     //Does the input 'days', contain today?
     def dayCheck = days.contains(day)
     if (dayCheck) {
-    
-log.info "Scheduled for operation today"
+        
+LOGDEBUG("Scheduled for operation today")
     	
-log.debug "Switching off..."        
-        switch1.off()
-               
-    			  }
+LOGDEBUG("Switching now...")       
+        if(state.actionType == true){switch1.off()}
+    }
     else {
- log.debug "Not scheduled for today!"
+ LOGDEBUG("Not scheduled for today!")
 		 } 
+   
     }
      if(!days){
-        switch1.off() 
-    }
+         if(state.actionType == true){switch1.off()}
+     }
  				  
 }
 
+// define debug action
+def logCheck(){
+state.checkLog = debugMode
+if(state.checkLog == true){
+log.info "All Logging Enabled"
+}
+else if(state.checkLog == false){
+log.info "Further Logging Disabled"
+}
+
+}
+def LOGDEBUG(txt){
+    try {
+    	if (settings.debugMode) { log.debug("${app.label.replace(" ","_").toUpperCase()}  (App Version: ${state.version}) - ${txt}") }
+    } catch(ex) {
+    	log.error("LOGDEBUG unable to output requested data!")
+    }
+}
+
+
 
 def version(){
-    resetBtnName()
 	schedule("0 0 9 ? * FRI *", updateCheck) //  Check for updates at 9am every Friday
-	updateCheck()  
-    checkButtons()
+//	updateCheck()  
+    
+   
+    
 }
 
 def display(){
-  
+    setDefaults()
+  	
+    
 	if(state.status){
 	section{paragraph "<img src='http://update.hubitat.uk/icons/cobra3.png''</img> Version: $state.version <br><font face='Lucida Handwriting'>$state.Copyright </font>"}
        
@@ -185,6 +219,11 @@ def display(){
      section(){ input "updateBtn", "button", title: "$state.btnName"}
     }
     
+    section(){
+   //     log.info "app.label = $app.label"
+    input "pause1", "bool", title: "Pause This App", required: true, submitOnChange: true, defaultValue: false  
+     }
+       
     if(state.status != "Current"){
 	section{ 
 	paragraph "<b>Update Info:</b> <BR>$state.UpdateInfo <BR>$state.updateURI"
@@ -194,10 +233,12 @@ def display(){
       input "updateNotification", "bool", title: "Send a 'Pushover' message when an update is available", required: true, defaultValue: false, submitOnChange: true 
       if(updateNotification == true){ input "speaker", "capability.speechSynthesis", title: "PushOver Device", required: true, multiple: true}
     }
+    
+
 }
 
 def checkButtons(){
-    log.info "Running checkButtons"
+    LOGDEBUG("Running checkButtons")
     appButtonHandler("updateBtn")
 }
 
@@ -205,7 +246,7 @@ def checkButtons(){
 def appButtonHandler(btn){
     state.btnCall = btn
     if(state.btnCall == "updateBtn"){
-        log.info "Checking for updates now..."
+       log.info "Checking for updates now..."
         updateCheck()
         pause(3000)
   		state.btnName = state.newBtn
@@ -218,7 +259,7 @@ def appButtonHandler(btn){
     
 }   
 def resetBtnName(){
-    log.info "Resetting Button"
+//    log.info "Resetting Update Button Name"
     if(state.status != "Current"){
 	state.btnName = state.newBtn
     }
@@ -227,17 +268,40 @@ def resetBtnName(){
     }
 }    
     
-def pushOverUpdate(inMsg){
+def pushOverNow(inMsg){
     if(updateNotification == true){  
      newMessage = inMsg
-  LOGDEBUG(" Message = $newMessage ")  
+  log.info "Message = $newMessage " 
      state.msg1 = '[L]' + newMessage
 	speaker.speak(state.msg1)
     }
 }
 
-
-
+def pauseOrNot(){
+LOGDEBUG(" Calling 'pauseOrNot'...")
+    state.pauseNow = pause1
+        if(state.pauseNow == true){
+            state.pauseApp = true
+            if(app.label){
+            if(app.label.contains('red')){
+                log.warn "Paused"}
+            else{app.updateLabel(app.label + ("<font color = 'red'> (Paused) </font>" ))
+              LOGDEBUG("App Paused - state.pauseApp = $state.pauseApp ")   
+                }
+    
+            }
+        }
+    
+     if(state.pauseNow == false){
+         state.pauseApp = false
+         if(app.label){
+     if(app.label.contains('red')){ app.updateLabel(app.label.minus("<font color = 'red'> (Paused) </font>" ))
+     LOGDEBUG("App Released - state.pauseApp = $state.pauseApp ")                          
+                                  }
+         }
+  }    
+    
+}
 
 
 def updateCheck(){
@@ -268,7 +332,7 @@ def updateCheck(){
         	log.warn "** $state.UpdateInfo **"
              state.newBtn = state.status
             def updateMsg = "There is a new version of '$state.ExternalName' available (Version: $newVerRaw)"
-            pushOverUpdate(updateMsg)
+            pushOverNow(updateMsg)
        		} 
 		else{ 
       		state.status = "Current"
@@ -292,11 +356,26 @@ def updateCheck(){
 
 
 
-
-
-
 def setVersion(){
 		state.version = "1.0.0"	 
 		state.InternalName = "DailySwitchEventChild"
-    		state.ExternalName = "Daily Switch Event Child"
+    	state.ExternalName = "Daily Switch Event Child"
 }
+
+def setDefaults(){
+    log.info "Initialising defaults..." 
+    checkButtons()
+    resetBtnName()
+    pauseOrNot()
+    if(pause1 == null){pause1 = false}
+    if(state.pauseApp == null){state.pauseApp = false}  
+
+
+ // add any further default settings below here               
+ state.modeAction = actionMode
+ state.actionType = action1  
+
+
+}
+
+
