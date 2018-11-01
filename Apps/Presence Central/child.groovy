@@ -296,7 +296,7 @@ def presenceActions(){
 
 
 def outputActions(){
-input "presenceAction", "enum", title: "What action to take?",required: true, submitOnChange: true, options: ["Control A Switch", "Change Mode",  "Control a Lock", "Send An SMS Message", "PushOver Message", "Speak A Message", "Flash Lights", "Set Safety Monitor Mode"]
+input "presenceAction", "enum", title: "What to do?",required: true, submitOnChange: true, options: ["Control A Switch", "Change Mode",  "Control a Lock", "Send An SMS Message", "PushOver Message", "Speak A Message", "Flash Lights", "Set Safety Monitor Mode"]
 
     // Removed from 'action' options until active/re-coded  ********************************************************************************************************************************
     // , "Control a Door", 
@@ -753,7 +753,10 @@ def arrivalAction(){
 checkTime()
 checkDay()
 checkMode()
+                                
+log.warn "state.timeOK == $state.timeOK && state.dayCheck == $state.dayCheck && state.modeCheck == $state.modeCheck"                               
 if (state.timeOK == true && state.dayCheck == true && state.modeCheck == true){
+    log.warn " ok Go"
 decideActionArrival()
 	}
 }
@@ -779,6 +782,7 @@ decideActionDeparture()
 
 // Decide which action to call
 def decideActionArrival() {
+    LOGDEBUG("Deciding on correct Arrival Action - state.appgo = $state.appgo - state.riseSetGo = $state.riseSetGo")
 if(state.appgo == true && state.riseSetGo == true){
 LOGDEBUG("Deciding on correct Arrival Action")
 
@@ -901,6 +905,7 @@ LOGDEBUG( "Cannot continue because of sunset-sunrise restrictions")
 
 
 def decideActionDeparture() {
+    LOGDEBUG("Deciding on correct Departure Action - state.appgo = $state.appgo - state.riseSetGo = $state.riseSetGo")
 if(state.appgo == true && state.riseSetGo == true){
 LOGDEBUG("Deciding on correct Departure Action")
 
@@ -1068,14 +1073,14 @@ def	presentCounter2 = 0
             state.privatePresence2 = "present"
             state.privatePresence = "present"
             log.debug("Arrived - At least one sensor arrived - set group to '$state.privatePresence'")
-             arrivalAction ()
+             arrivalAction()
         }
     } else {
     	if (state.privatePresence2 != "not present") {
             state.privatePresence2 = "not present"
             state.privatePresence = "not present"
             log.debug("Departed - Last sensor left - set group to '$state.privatePresence'")
-             departureAction ()
+             departureAction()
         }
     }
 }
@@ -1100,7 +1105,7 @@ def	presentCounter3 = 0
             state.privatePresence3 = "not present"
             state.privatePresence = "not present"
             log.debug("Arrived - At least one sensor left - set group to '$state.privatePresence'")
-            departureAction ()
+            departureAction()
              
         }
     } else {
@@ -1108,7 +1113,7 @@ def	presentCounter3 = 0
             state.privatePresence3 = "present"
             state.privatePresence = "present"
             log.debug("Departed - All sensors present - set group to '$state.privatePresence'")
-            arrivalAction ()
+            arrivalAction()
         }
     }
 }
@@ -1822,7 +1827,7 @@ def setDefaults(){
 	state.timerDoor = true
     state.timerlock = true
 	state.riseSetGo = true
-
+	switchRunCheck()
 
 
 }
