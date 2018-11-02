@@ -111,7 +111,7 @@ def initialize() {
 	version()
 	pauseOrNot()
     subscribe(location, "mode", modeHandler)
-    
+    setDefaults()
 }
 
         
@@ -203,7 +203,7 @@ def LOGDEBUG(txt){
 }
 
 def display(){
-    setDefaults()
+ //   setDefaults()
   	
     
 	if(state.status){

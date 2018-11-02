@@ -133,7 +133,7 @@ def version(){
 }
 
 def display(){
-    setDefaults()
+ //   setDefaults()
   	
     
 	if(state.status){
