@@ -33,11 +33,11 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 28/10/2018
+ *  Last Update: 02/11/2018
  *
  *  Changes:
  *
- *  V1.6.1 - Debug & configure initial settings in a different way 
+ *  V1.6.1 - Debug and added preconfigured defaults settings
  *  V1.6.0 - Added configurable actions on restriction switch
  *  V1.5.0 - Added 'Pause' switch to temporarily disable the app
  *  V1.4.0 - Added 'illuminance' trigger
@@ -159,7 +159,7 @@ section("") {
           
     section() {
      input(name: "enableswitch1", type: "capability.switch", title: "Select switch to restrict actions", required: false, multiple: false, submitOnChange: true)
-        if(enableswitch1){ input "enableSwitchMode", "bool", title: "On = Allow actions only when this switch is on <br> Off = Allow actions only when this switch is off", required: true, defaultValue: true, submitOnChange: true}
+        if(enableswitch1){ input "enableSwitchMode", "bool", title: "On = Allow actions only when this switch is on <br> Off = Allow actions only when this switch is off <br>", required: true, defaultValue: false, submitOnChange: true}
             
            
         
@@ -246,7 +246,10 @@ def initialize() {
     if (restrictPresenceSensor){subscribe(restrictPresenceSensor, "presence", restrictPresenceSensorHandler)}
 	if (restrictPresenceSensor1){subscribe(restrictPresenceSensor1, "presence", restrictPresence1SensorHandler)}
     if(enableswitch1){subscribe(enableswitch1, "switch", enableSwitch1Handler)}
-    if(enableSwitchMode == null){enableSwitchMode = true}
+    if(enableSwitchMode == null){state.enableSwitchMode = false}
+    if(enableSwitchMode != null){state.enableSwitchMode = enableSwitchMode}
+    
+    
     state.appGo = true
     log.info "Initialised with settings: ${settings}"
     state.enablecurrS1 = 'on'
@@ -276,19 +279,19 @@ def checkRestrictions(){
 def enableSwitch1Handler(evt){
     state.enableInput = evt.value
     
-    if(enableSwitchMode == true && state.enableInput == 'off'){
+    if(state.enableSwitchMode == true && state.enableInput == 'off'){
 state.enablecurrS1 = 'off'
         LOGDEBUG("Cannot change mode - App disabled by switch")  
     }
-     if(enableSwitchMode == true && state.enableInput == 'on'){
+     if(state.enableSwitchMode == true && state.enableInput == 'on'){
 state.enablecurrS1 = 'on'
         LOGDEBUG("Switch restriction is OK.. Continue...") 
     }    
-     if(enableSwitchMode == false && state.enableInput == 'off'){
+     if(state.enableSwitchMode == false && state.enableInput == 'off'){
 state.enablecurrS1 = 'on'
         LOGDEBUG("Switch restriction is OK.. Continue...")  
     }
-     if(enableSwitchMode == false && state.enableInput == 'on'){
+     if(state.enableSwitchMode == false && state.enableInput == 'on'){
 state.enablecurrS1 = 'off'
         LOGDEBUG("Cannot change mode - App disabled by switch")  
     }    
@@ -607,10 +610,7 @@ def version(){
 }
 
 def display(){
-    checkButtons()
-    resetBtnName()
 	setDefaults()
-  	pauseOrNot()
 	if(state.status){
 	section{paragraph "<img src='http://update.hubitat.uk/icons/cobra3.png''</img> Version: $state.version <br><font face='Lucida Handwriting'>$state.Copyright </font>"}
        
@@ -765,7 +765,9 @@ def setVersion(){
 
 def setDefaults(){
   log.info "Initialising defaults..." 
-   
+    checkButtons()
+    resetBtnName()
+	pauseOrNot()
     if(pause1 == null){pause1 = false}
     if(state.pauseApp == null){state.pauseApp = false}                 
    
