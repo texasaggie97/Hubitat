@@ -258,12 +258,14 @@ def PollWUNow(){
              // WU No Units ********************
             
 
-            def possAlert
-            def tZone = location.timeZone.toString()
-            if(tZone.toLowerCase().contains("usa")){possAlert = (resp2.data.alerts.message)}
-            else{possAlert = (resp2.data.alerts.level_meteoalarm_description[0])}
-            if (possAlert){sendEvent(name: "alert", value: possAlert, isStateChange: true)}
-			if (!possAlert){sendEvent(name: "alert", value: " No current weather alerts for this area")}
+      
+            state.tZone = location.timeZone.toString()
+            if(state.tZone.toLowerCase().contains("usa")){state.possAlert = (resp2.data.alerts.message)}
+            else{state.possAlert = (resp2.data.alerts.level_meteoalarm_description[0])}
+            if (state.possAlert){sendEvent(name: "alert", value: state.possAlert, isStateChange: true)}
+			if (!state.possAlert){sendEvent(name: "alert", value: " No current weather alerts for this area")}
+            state.tZone = " "
+            state.possAlert = " "
             
             
             sendEvent(name: "stationID", value: resp2.data.current_observation.station_id, isStateChange: true)

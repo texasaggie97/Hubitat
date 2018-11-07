@@ -387,12 +387,13 @@ def ForcePoll()
             }
             
    
-            def possAlert
-            def tZone = location.timeZone.toString()
-            if(tZone.toLowerCase().contains("usa")){possAlert = (resp1.data.alerts.message)}
-            else{possAlert = (resp1.data.alerts.level_meteoalarm_description[0])}
-            if (possAlert){sendEvent(name: "alert", value: possAlert, isStateChange: true)}
-			if (!possAlert){sendEvent(name: "alert", value: " No current weather alerts for this area")}
+        state.tZone = location.timeZone.toString()
+        if(state.tZone.toLowerCase().contains("usa")){state.possAlert = (resp1.data.alerts.message)}
+        else{state.possAlert = (resp1.data.alerts.level_meteoalarm_description[0])}
+        if (state.possAlert){sendEvent(name: "alert", value: state.possAlert, isStateChange: true)}
+		if (!state.possAlert){sendEvent(name: "alert", value: " No current weather alerts for this area")}
+        state.tZone = " "
+        state.possAlert = " "
 
                
           state.lastPoll = now()     
