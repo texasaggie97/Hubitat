@@ -16,10 +16,8 @@
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
  *  for the specific language governing permissions and limitations under the License.
  *
- *  Last Update 07/11/2018
+ *  Last Update 17/08/2018
  *
- *
- *  V2.9.0 - Changed with way 'alerts' are handled for US/Non US timezones
  *  V2.8.1 - Debug Poll command
  *  V2.8.0 - Added switchable 'forecastIcon' to show current or forcast icon
  *  V2.7.0 - Added 'forecastIcon' for use with Sharptools
@@ -276,26 +274,26 @@ def ForcePoll()
                 		 sendEvent(name: "weatherSummaryFormat", value: "Celsius, Miles & MPH", isStateChange: true)
                          sendEvent(name: "weatherSummary", value: resp1.data.forecast.simpleforecast.forecastday[0].conditions + ". " + " Forecast High:" + resp1.data.forecast.simpleforecast.forecastday[0].high.celsius + ", Forecast Low:" 
                        + resp1.data.forecast.simpleforecast.forecastday[0].low.celsius  +  ". Humidity: " + resp1.data.current_observation.relative_humidity + " Temperature: " 
-                       + resp1.data.current_observation.temp_c  + " Wind Direction: " + resp1.data.current_observation.wind_dir + " Wind Speed: " + resp1.data.current_observation.wind_mph + " mph " 
-                       + " Gust: " + resp1.data.current_observation.wind_gust_mph + " mph Rain: "  +resp1.data.forecast.simpleforecast.forecastday[0].pop + "%" , isStateChange: true
+                       + resp1.data.current_observation.temp_c  + ". Wind Direction: " + resp1.data.current_observation.wind_dir + ". Wind Speed: " + resp1.data.current_observation.wind_mph + " mph" 
+                       + ", Gust: " + resp1.data.current_observation.wind_gust_mph + " mph. Rain: "  +resp1.data.forecast.simpleforecast.forecastday[0].pop + "%" , isStateChange: true
                       )  
             }
             
             if (WeatherSummeryFormat == "Fahrenheit, Miles & MPH"){
                 		 sendEvent(name: "weatherSummaryFormat", value: "Fahrenheit, Miles & MPH", isStateChange: true)
                          sendEvent(name: "weatherSummary", value: resp1.data.forecast.simpleforecast.forecastday[0].conditions + ". " + " Forecast High:" + resp1.data.forecast.simpleforecast.forecastday[0].high.fahrenheit + ", Forecast Low:" 
-                       + resp1.data.forecast.simpleforecast.forecastday[0].low.fahrenheit  +  " Humidity: " + resp1.data.current_observation.relative_humidity + " Temperature: " 
-                       + resp1.data.current_observation.temp_f  + " Wind Direction: " + resp1.data.current_observation.wind_dir + " Wind Speed: " + resp1.data.current_observation.wind_mph + " mph " 
-                       + " Gust: " + resp1.data.current_observation.wind_gust_mph + " mph  Rain:"  +resp1.data.forecast.simpleforecast.forecastday[0].pop + "%", isStateChange: true
+                       + resp1.data.forecast.simpleforecast.forecastday[0].low.fahrenheit  +  ". Humidity: " + resp1.data.current_observation.relative_humidity + " Temperature: " 
+                       + resp1.data.current_observation.temp_f  + ". Wind Direction: " + resp1.data.current_observation.wind_dir + ". Wind Speed: " + resp1.data.current_observation.wind_mph + " mph" 
+                       + ", Gust: " + resp1.data.current_observation.wind_gust_mph + " mph. Rain:"  +resp1.data.forecast.simpleforecast.forecastday[0].pop + "%", isStateChange: true
                       )  
             }
             
              if (WeatherSummeryFormat ==  "Celsius, Kilometres & KPH"){
                 		 sendEvent(name: "weatherSummaryFormat", value:  "Celsius, Kilometres & KPH", isStateChange: true)
                          sendEvent(name: "weatherSummary", value: resp1.data.forecast.simpleforecast.forecastday[0].conditions + ". " + " Forecast High:" + resp1.data.forecast.simpleforecast.forecastday[0].high.celsius + ", Forecast Low:" 
-                       + resp1.data.forecast.simpleforecast.forecastday[0].low.celsius  +  "  Humidity: " + resp1.data.current_observation.relative_humidity + " Temperature: " 
-                       + resp1.data.current_observation.temp_c  + "  Wind Direction: " + resp1.data.current_observation.wind_dir + "  Wind Speed: " + resp1.data.current_observation.wind_kph + " kph " 
-                       + " Gust: " + resp1.data.current_observation.wind_gust_kph + " kph Rain:"  +resp1.data.forecast.simpleforecast.forecastday[0].pop + "%", isStateChange: true
+                       + resp1.data.forecast.simpleforecast.forecastday[0].low.celsius  +  ". Humidity: " + resp1.data.current_observation.relative_humidity + " Temperature: " 
+                       + resp1.data.current_observation.temp_c  + ". Wind Direction: " + resp1.data.current_observation.wind_dir + ". Wind Speed: " + resp1.data.current_observation.wind_kph + " kph" 
+                       + ", Gust: " + resp1.data.current_observation.wind_gust_kph + " kph. Rain:"  +resp1.data.forecast.simpleforecast.forecastday[0].pop + "%", isStateChange: true
                       )  
             }
             
@@ -387,13 +385,13 @@ def ForcePoll()
             }
             
    
-            def possAlert
-            def tZone = location.timeZone.toString()
-            if(tZone.toLowerCase().contains("usa")){possAlert = (resp1.data.alerts.message)}
-            else{possAlert = (resp1.data.alerts.level_meteoalarm_description[0])}
-            if (possAlert){sendEvent(name: "alert", value: possAlert, isStateChange: true)}
-			if (!possAlert){sendEvent(name: "alert", value: " No current weather alerts for this area")}
-
+             def possAlert = (resp1.data.alerts.description)
+               if (possAlert){
+               sendEvent(name: "alert", value: resp1.data.alerts.description, isStateChange: true)  
+               }
+                if (!possAlert){
+               sendEvent(name: "alert", value: " No current weather alerts for this area")
+                }
                
           state.lastPoll = now()     
 
@@ -481,7 +479,7 @@ def checkInfo(){
 
 
 def setVersion(){
-     state.version = "2.9.0"
+     state.version = "2.8.1"
      state.InternalName = "WUWeather"
      state.Type = "Driver"
    
