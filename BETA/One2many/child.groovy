@@ -147,7 +147,7 @@ def subscribeNow() {
 	if(modes){subscribe(location, "mode", modeHandler)}
     subscribe(switch1, "switch", switchHandler)
     subscribe(dimmer1, "level", dimmerHandler1)
-    subscribe(dimmer1, "switch", dimmerHandler1)
+    subscribe(dimmer1, "switch", dimmerHandler3)
     subscribe(dimmer2, "level", dimmerHandler2)
     subscribe(dimmer2, "switch", dimmerHandler2)
 }
@@ -164,13 +164,24 @@ def dimmerHandler1(evt){
         
     if(dimmer2){
     LOGDEBUG("Control dimmer is $state.mylevel1 - Setting $dimmer2 to the same...")
+ 
+    state.mylevel1 = evt.value.toDouble()
+   	dimmer2.setLevel(state.mylevel1)
+    }   
+  }    
+}
+def dimmerHandler3(evt){
+     if(state.pauseApp == true){log.warn "Unable to continue - App paused"}
+	if(state.pauseApp == false){checkAllow()}
+	if(state.allAllow == true){
+    state.mylevel1 = evt.value
+        
+    if(dimmer2){
+    LOGDEBUG("Control dimmer is $state.mylevel1 - Setting $dimmer2 to the same...")
     
     if(state.mylevel1 == 'on'){dimmer2.on()}
     if(state.mylevel1 == 'off'){dimmer2.off()}
-    if(state.mylevel1 != 'on' && state.mylevel1 != 'off')
-    state.mylevel1 = evt.value.toDouble()
-   	dimmer2.setLevel(state.mylevel1)
-    }  
+     }  
   }    
 }
 
