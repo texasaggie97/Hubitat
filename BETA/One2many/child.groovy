@@ -37,7 +37,7 @@
  *
  *  Changes:
  *
- *  V2.0.0 - Changed to switches AND dimmers
+ *  V2.0.0 - Changed to be able to control switches AND dimmers AND Lights
  *  V1.1.0 - Added restrictions page
  *  V1.0.2 - Revised Update Checking
  *  V1.0.1 - Changed the way default settings work to prevent having to toggle switches first time
@@ -52,7 +52,7 @@ definition(
     name: "One To Many Child",
     namespace: "Cobra",
     author: "Andrew Parker",
-    description: "If you turn on/off a switch or adjust a dimmer - All others follow",
+    description: "If you turn on/off a switch or adjust a dimmer/light - All others follow",
     category: "Convenience",
         
       parent: "Cobra:One To Many",
@@ -74,17 +74,18 @@ def mainPage() {
 	preCheck()
         
         section() {
-	input "childTypeSelect", "enum", required: true, title: "What to control", submitOnChange: true,  options: ["Dimmer", "Switch"] 
+	input "childTypeSelect", "enum", required: true, title: "What to control", submitOnChange: true,  options: ["Dimmer or Light", "Switch"] 
 	state.modeType = childTypeSelect                                                                                                                     
  }  
-  	  if(state.modeType == 'Dimmer'){           
-	section("Control Dimmer"){
+  	  if(state.modeType == 'Dimmer or Light'){           
+	section("Control Dimmer or Light"){
 		input "dimmer1",  "capability.switchLevel", multiple: false, required: true
 	    }  
-    section("Follow Dimmer(s)"){
-		input "dimmer2",  "capability.switchLevel", multiple: true, required: true
+    section("Follow Dimmer(s) or Light(s)"){
+		input "dimmer2",  "capability.switchLevel", multiple: true, required: false
 		}
-   	}      
+   	}   
+   	         
         
       if(state.modeType == 'Switch'){           
 	section("Control Switch"){
@@ -160,6 +161,8 @@ def dimmerHandler1(evt){
 	if(state.pauseApp == false){checkAllow()}
 	if(state.allAllow == true){
     state.mylevel1 = evt.value
+        
+    if(dimmer2){
     LOGDEBUG("Control dimmer is $state.mylevel1 - Setting $dimmer2 to the same...")
     
     if(state.mylevel1 == 'on'){dimmer2.on()}
@@ -167,7 +170,8 @@ def dimmerHandler1(evt){
     if(state.mylevel1 != 'on' && state.mylevel1 != 'off')
     state.mylevel1 = evt.value.toDouble()
    	dimmer2.setLevel(state.mylevel1)
-    }     
+    }  
+  }    
 }
 
 
@@ -404,7 +408,7 @@ def preCheck(){
 	state.appInstalled = app.getInstallationState()  
     
     if(state.appInstalled != 'COMPLETE'){
-    section(){ paragraph "This app is designed to force one or more switches to follow a single 'control' switch "}
+    section(){ paragraph "If you turn on/off a switch or adjust a dimmer/light - All others follow"}
     }
 	if(state.appInstalled == 'COMPLETE'){
 	display()   
@@ -428,28 +432,20 @@ def LOGDEBUG(txt){
 
 
 def display(){
-	if(state.status){
-	section{paragraph "<img src='http://update.hubitat.uk/icons/cobra3.png''</img> Version: $state.version <br><font face='Lucida Handwriting'>$state.Copyright </font>"}
-	}
-    section(){
-	input "pause1", "bool", title: "Pause This App", required: true, submitOnChange: true, defaultValue: false  
-     }
+    setDefaults()
 
-    if(state.status != "<b>** This app is no longer supported by $state.author  **</b>"){
-	section(){ input "updateBtn", "button", title: "$state.btnName"}
-    }
-  
-    if(state.status != "Current"){
-	section(){paragraph "<b>Update Info:</b> <BR>$state.UpdateInfo <BR>$state.updateURI"} 
-    }
+	if(state.status){section(){paragraph "<img src='http://update.hubitat.uk/icons/cobra3.png''</img> Version: $state.version <br><font face='Lucida Handwriting'>$state.Copyright </font>"}}
+    if(state.status != "<b>** This app is no longer supported by $state.author  **</b>"){section(){input "updateBtn", "button", title: "$state.btnName"}}
+    
+	if(state.status != "Current"){section(){paragraph "<hr><b>Updated: </b><i>$state.Comment</i><br><br><i>Changes in version $state.newver</i><br>$state.UpdateInfo<hr><b>$state.updateURI</b><hr>"}}
 	section() {
-	input "updateNotification", "bool", title: "Send a 'Pushover' message when an update is available", required: true, defaultValue: false, submitOnChange: true 
-	if(updateNotification == true){ input "speakerUpdate", "capability.speechSynthesis", title: "PushOver Device", required: true, multiple: true}
+      input "updateNotification", "bool", title: "Send a 'Pushover' message when an update is available", required: true, defaultValue: false, submitOnChange: true 
+      if(updateNotification == true){ input "speakerUpdate", "capability.speechSynthesis", title: "PushOver Device", required: true, multiple: true}
     }
     
-
-    
+   section(){input "pause1", "bool", title: "Pause This App", required: true, submitOnChange: true, defaultValue: false }
 }
+
 
 def checkButtons(){
     log.info "Running checkButtons"
@@ -518,16 +514,21 @@ LOGDEBUG(" Calling 'pauseOrNot'...")
 
 def updateCheck(){
     setVersion()
-	def paramsUD = [uri: "http://update.hubitat.uk/cobra.json"]
+    def paramsUD = [uri: "http://update.hubitat.uk/json/${state.CobraAppCheck}"]
+    
        	try {
         httpGet(paramsUD) { respUD ->
- //  log.warn " Version Checking - Response Data: ${respUD.data}"   // Troubleshooting Debug Code 
+//  log.warn " Version Checking - Response Data: ${respUD.data}"   // Troubleshooting Debug Code 
        		def copyrightRead = (respUD.data.copyright)
        		state.Copyright = copyrightRead
+            def commentRead = (respUD.data.Comment)
+       		state.Comment = commentRead
+
             def updateUri = (respUD.data.versions.UpdateInfo.GithubFiles.(state.InternalName))
             state.updateURI = updateUri   
             
             def newVerRaw = (respUD.data.versions.Application.(state.InternalName))
+            state.newver = newVerRaw
             def newVer = (respUD.data.versions.Application.(state.InternalName).replace(".", ""))
        		def currentVer = state.version.replace(".", "")
       		state.UpdateInfo = (respUD.data.versions.UpdateInfo.Application.(state.InternalName))
@@ -539,12 +540,12 @@ def updateCheck(){
             
       		}           
 		else if(currentVer < newVer){
-        	state.status = "<b>New Version Available (Version: $newVerRaw)</b>"
+        	state.status = "<b>New Version Available ($newVerRaw)</b>"
         	log.warn "** There is a newer version of this app available  (Version: $newVerRaw) **"
-        	log.warn "** $state.UpdateInfo **"
+        	log.warn " Update: $state.UpdateInfo "
              state.newBtn = state.status
             def updateMsg = "There is a new version of '$state.ExternalName' available (Version: $newVerRaw)"
-		pushOverUpdate(updateMsg)
+            pushOverNow(updateMsg)
        		} 
 		else{ 
       		state.status = "Current"
@@ -557,11 +558,15 @@ def updateCheck(){
     		}
     if(state.status != "Current"){
 		state.newBtn = state.status
+        
     }
     else{
         state.newBtn = "No Update Available"
     }
+        
+        
 }
+
 
 
 def setDefaults(){
@@ -575,6 +580,7 @@ def setDefaults(){
 }
 def setVersion(){
     state.version = "2.0.0"
-     state.InternalName = "OneToManychild"
+     state.InternalName = "OneToManyChild"
      state.ExternalName = "One To Many Child"
+     state.CobraAppCheck = "one2many.json"
 }
