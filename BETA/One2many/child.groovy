@@ -37,7 +37,7 @@
  *
  *  Changes:
  *
- *  V2.0.0 - Changed to be able to control switches AND dimmers AND Lights
+ *  V1.2.0 - Changed to be able to control switches AND dimmers AND Lights
  *  V1.1.0 - Added restrictions page
  *  V1.0.2 - Revised Update Checking
  *  V1.0.1 - Changed the way default settings work to prevent having to toggle switches first time
@@ -100,51 +100,61 @@ def mainPage() {
 	}
     }
 }    
-def restrictionsPage() {
+   def restrictionsPage() {
     dynamicPage(name: "restrictionsPage") {
-        section(""){paragraph "<font size='+1'>App Restrictions</font> <br>These restrictions are optional <br>Any restriction you don't want to use, you can just leave blank"}
+        section(){paragraph "<br><font size='+1'><i><b>App Restrictions</b></i></font> <br>These restrictions are optional <br>Any restriction you don't want to use, you can just leave blank"}  // 
         section(){
-        input "enableSwitch", "capability.switch", title: "Select a switch Enable/Disable this app", required: false, multiple: false, submitOnChange: true 
+        input "enableSwitch", "capability.switch", required: false, title: "Select a switch to remotely enable or disable this app", multiple: false, submitOnChange: true 
      	if(enableSwitch){ input "enableSwitchMode", "bool", title: "Allow app to run only when this switch is..", required: true, defaultValue: false, submitOnChange: true}
-        }
-        section(){input(name:"modes", type: "mode", title: "Select Mode(s)", multiple: true, required: false)}
-       	section(){
+      }
+  section(){
+            input(name:"modes", type: "mode", title: "Allow actions when current mode is:", multiple: true, required: false)
+       	
     	input "fromTime", "time", title: "Allow actions from", required: false
     	input "toTime", "time", title: "Allow actions until", required: false
     	input "days", "enum", title: "Allow actions only on these days of the week", required: false, multiple: true, options: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+    	input "restrictPresenceSensor", "capability.presenceSensor", title: "Select Presence Sensor (1) to restrict action", required: false, multiple: false, submitOnChange: true
+    	if(restrictPresenceSensor){input "restrictPresenceAction", "bool", title: "On = Allow action only when Presence Sensor is 'Present'  <br>Off = Allow action only when Presence Sensor is 'NOT Present'  ", required: true, defaultValue: false}
+     	input "restrictPresenceSensor1", "capability.presenceSensor", title: "Select Presence Sensor (2) to restrict action", required: false, multiple: false, submitOnChange: true
+    	if(restrictPresenceSensor1){input "restrictPresenceAction1", "bool", title: "On = Allow action only when Presence Sensor is 'Present'  <br>Off = Allow action only when Presence Sensor is 'NOT Present'  ", required: true, defaultValue: false}
+       	input "sunriseSunset", "enum", title: "Sunrise/Sunset Restriction", required: false, submitOnChange: true, options: ["Sunrise","Sunset"] 
+		if(sunriseSunset == "Sunset"){	
+       	input "sunsetOffsetValue", "number", title: "Optional Sunset Offset (Minutes)", required: false
+		input "sunsetOffsetDir", "enum", title: "Before or After", required: false, options: ["Before","After"]
         	}
-        section(){
-    	input "restrictPresenceSensor", "capability.presenceSensor", title: "Select presence sensor 1 to restrict action", required: false, multiple: false, submitOnChange: true
-    	if(restrictPresenceSensor){
-   		input "restrictPresenceAction", "bool", title: "On = Allow action only when someone is 'Present'  <br>Off = Allow action only when someone is 'NOT Present'  ", required: true, defaultValue: false    
-			}
-     	input "restrictPresenceSensor1", "capability.presenceSensor", title: "Select presence sensor 2 to restrict action", required: false, multiple: false, submitOnChange: true
-    	if(restrictPresenceSensor1){
-   		input "restrictPresenceAction1", "bool", title: "On = Allow action only when someone is 'Present'  <br>Off = Allow action only when someone is 'NOT Present'  ", required: true, defaultValue: false    
-			}
-   		}   
-        section() {label title: "Enter a name for this automation", required: false}
+		if(sunriseSunset == "Sunrise"){
+    	input "sunriseOffsetValue", "number", title: "Optional Sunrise Offset (Minutes)", required: false
+		input "sunriseOffsetDir", "enum", title: "Before or After", required: false, options: ["Before","After"]
+        	}
+     	}
+        section(" ") {label title: "Enter a name for this automation", required: false} // 
         section() {input "debugMode", "bool", title: "Enable debug logging", required: true, defaultValue: false}
+
     }
-}  
+}
+             
 
 def installed(){initialise()}
-def updated(){
-	unsubscribe()
-	initialise()
-}
+def updated(){initialise()}
+
 def initialise(){
 	version()
-	log.info "Initialised with settings: ${settings}"
 	subscribeNow()
+	log.info "Initialised with settings: ${settings}"
+	logCheck()
+	
 }
 def subscribeNow() {
-    unsubscribe()
+	unsubscribe()
 	if(enableSwitch){subscribe(enableSwitch, "switch", switchEnable)}
 	if(enableSwitchMode == null){enableSwitchMode = true} // ????
 	if(restrictPresenceSensor){subscribe(restrictPresenceSensor, "presence", restrictPresenceSensorHandler)}
 	if(restrictPresenceSensor1){subscribe(restrictPresenceSensor1, "presence", restrictPresence1SensorHandler)}
-	if(modes){subscribe(location, "mode", modeHandler)}
+	if(sunriseSunset){astroCheck()}
+	if(sunriseSunset){schedule("0 1 0 1/1 * ? *", astroCheck)} // checks sunrise/sunset change at 00.01am every day
+    
+  // App Specific subscriptions & settings below here
+
     subscribe(switch1, "switch", switchHandler)
     subscribe(dimmer1, "level", dimmerHandler1)
     subscribe(dimmer1, "switch", dimmerHandler3)
@@ -157,8 +167,7 @@ LOGDEBUG("$dimmer2 set to: $evt.value")
 }
 
 def dimmerHandler1(evt){
-     if(state.pauseApp == true){log.warn "Unable to continue - App paused"}
-	if(state.pauseApp == false){checkAllow()}
+    checkAllow()
 	if(state.allAllow == true){
     state.mylevel1 = evt.value
         
@@ -167,13 +176,13 @@ def dimmerHandler1(evt){
  
     state.mylevel1 = evt.value.toDouble()
    	dimmer2.setLevel(state.mylevel1)
-    }   
-  }    
+    }  
+  }      
 }
 def dimmerHandler3(evt){
-     if(state.pauseApp == true){log.warn "Unable to continue - App paused"}
-	if(state.pauseApp == false){checkAllow()}
+    checkAllow()
 	if(state.allAllow == true){
+
     state.mylevel1 = evt.value
         
     if(dimmer2){
@@ -181,15 +190,15 @@ def dimmerHandler3(evt){
     
     if(state.mylevel1 == 'on'){dimmer2.on()}
     if(state.mylevel1 == 'off'){dimmer2.off()}
-     }  
-  }    
+     }
+    }      
 }
 
 
 def switchHandler1 (evt) {
-    if(state.pauseApp == true){log.warn "Unable to continue - App paused"}
-	if(state.pauseApp == false){checkAllow()}
+    checkAllow()
 	if(state.allAllow == true){
+
 	state.reverse = reversemode
 if(reversemode == null){state.reverse = false}
 	state.currS1 = evt.value
@@ -216,10 +225,15 @@ if (state.reverse == true){
 	LOGDEBUG("Turning on $switch2")
 	switch2.on()
 	}
+   } 
  } 
 }
-}
+    
+    
+    
+    
 def checkAllow(){
+    state.allAllow = false
     LOGDEBUG("Checking for any restrictions...")
     if(state.pauseApp == true){log.warn "Unable to continue - App paused"}
     if(state.pauseApp == false){
@@ -228,8 +242,10 @@ def checkAllow(){
     	modeCheck()
     	checkTime()
         checkDay()
+        checkSun()
         checkPresence()
         checkPresence1()
+	
  
 	if(state.modeCheck == false){
 	LOGDEBUG("Not in correct 'mode' to continue")
@@ -240,15 +256,81 @@ def checkAllow(){
 	if(state.appgo == false){
 	LOGDEBUG("$enableSwitch is not in the correct position so cannot continue")
 	}
-	if(state.appgo == true && state.dayCheck == true && state.presenceRestriction == true && state.presenceRestriction1 == true && state.modeCheck == true && state.timeOK == true && state.noPause == true){
+	if(state.appgo == true && state.dayCheck == true && state.presenceRestriction == true && state.presenceRestriction1 == true && state.modeCheck == true && state.timeOK == true && state.noPause == true && state.sunGoNow == true){
 	state.allAllow = true 
  	  }
 	else{
  	state.allAllow = false
 	log.warn "One or more restrictions apply - Unable to continue"
- 	LOGDEBUG("state.appgo = $state.appgo, state.dayCheck = $state.dayCheck, state.presenceRestriction = $state.presenceRestriction, state.presenceRestriction1 = $state.presenceRestriction1, state.modeCheck = $state.modeCheck, state.timeOK = $state.timeOK, state.noPause = $state.noPause")
+ 	LOGDEBUG("state.appgo = $state.appgo, state.dayCheck = $state.dayCheck, state.presenceRestriction = $state.presenceRestriction, state.presenceRestriction1 = $state.presenceRestriction1, state.modeCheck = $state.modeCheck, state.timeOK = $state.timeOK, state.noPause = $state.noPause, state.sunGoNow = $state.sunGoNow")
       }
    }
+}
+
+def checkSun(){
+	LOGDEBUG("Checking Sunrise/Sunset restrictions...")
+	if(!sunriseSunset){
+        state.sunGoNow = true
+        LOGDEBUG("No Sunrise/Sunset restrictions in place")	
+	}
+        if(sunriseSunset){
+        if(sunriseSunset == "Sunset"){	
+        if(state.astro == "Set"){
+        state.sunGoNow = true
+        LOGDEBUG("Sunset OK")
+            } 
+    	if(state.astro == "Rise"){
+        state.sunGoNow = false
+        LOGDEBUG("Sunset NOT OK")
+            } 
+        }
+	if(sunriseSunset == "Sunrise"){	
+        if(state.astro == "Rise"){
+        state.sunGoNow = true
+        LOGDEBUG("Sunrise OK")
+            } 
+    	if(state.astro == "Set"){
+        state.sunGoNow = false
+        LOGDEBUG("Sunrise NOT OK")
+            } 
+        }  
+    } 
+		return state.sunGoNow
+}    
+
+def astroCheck() {
+    state.sunsetOffsetValue1 = sunsetOffsetValue
+    state.sunriseOffsetValue1 = sunriseOffsetValue
+    if(sunsetOffsetDir == "Before"){state.sunsetOffset1 = -state.sunsetOffsetValue1}
+    if(sunsetOffsetDir == "after"){state.sunsetOffset1 = state.sunsetOffsetValue1}
+    if(sunriseOffsetDir == "Before"){state.sunriseOffset1 = -state.sunriseOffsetValue1}
+    if(sunriseOffsetDir == "after"){state.sunriseOffset1 = state.sunriseOffsetValue1}
+	def both = getSunriseAndSunset(sunriseOffset: state.sunriseOffset1, sunsetOffset: state.sunsetOffset1)
+	def now = new Date()
+	def riseTime = both.sunrise
+	def setTime = both.sunset
+	LOGDEBUG("riseTime: $riseTime")
+	LOGDEBUG("setTime: $setTime")
+	unschedule("sunriseHandler")
+	unschedule("sunsetHandler")
+	if (riseTime.after(now)) {
+	LOGDEBUG("scheduling sunrise handler for $riseTime")
+	runOnce(riseTime, sunriseHandler)
+		}
+	if(setTime.after(now)) {
+	LOGDEBUG("scheduling sunset handler for $setTime")
+	runOnce(setTime, sunsetHandler)
+		}
+	LOGDEBUG("AstroCheck Complete")
+}
+
+def sunsetHandler(evt) {
+	LOGDEBUG("Sun has set!")
+	state.astro = "Set" 
+}
+def sunriseHandler(evt) {
+	LOGDEBUG("Sun has risen!")
+	state.astro = "Rise"
 }
 
 def modeCheck() {
@@ -427,6 +509,7 @@ def preCheck(){
 }
 
 
+
 def logCheck(){
 	state.checkLog = debugMode
     if(state.checkLog == true){log.info "All Logging Enabled"}
@@ -440,26 +523,32 @@ def LOGDEBUG(txt){
     	log.error("LOGDEBUG unable to output requested data!")
     }
 }
+def LOGWARN(txt){
+    try {
+    	if (settings.debugMode) { log.warn("${app.label.replace(" ","_").toUpperCase()}  (App Version: ${state.version}) - ${txt}") }
+    } catch(ex) {
+    	log.error("LOGWARN unable to output requested data!")
+    }
+}
+
 
 
 def display(){
     setDefaults()
-
 	if(state.status){section(){paragraph "<img src='http://update.hubitat.uk/icons/cobra3.png''</img> Version: $state.version <br><font face='Lucida Handwriting'>$state.Copyright </font>"}}
     if(state.status != "<b>** This app is no longer supported by $state.author  **</b>"){section(){input "updateBtn", "button", title: "$state.btnName"}}
-    
 	if(state.status != "Current"){section(){paragraph "<hr><b>Updated: </b><i>$state.Comment</i><br><br><i>Changes in version $state.newver</i><br>$state.UpdateInfo<hr><b>$state.updateURI</b><hr>"}}
 	section() {
       input "updateNotification", "bool", title: "Send a 'Pushover' message when an update is available", required: true, defaultValue: false, submitOnChange: true 
       if(updateNotification == true){ input "speakerUpdate", "capability.speechSynthesis", title: "PushOver Device", required: true, multiple: true}
-    }
-    
-   section(){input "pause1", "bool", title: "Pause This App", required: true, submitOnChange: true, defaultValue: false }
+    	}
+    section(){input "pause1", "bool", title: "Pause This App", required: true, submitOnChange: true, defaultValue: false }
 }
 
 
+
 def checkButtons(){
-    log.info "Running checkButtons"
+    LOGDEBUG("Running checkButtons")
     appButtonHandler("updateBtn")
 }
 
@@ -467,7 +556,7 @@ def checkButtons(){
 def appButtonHandler(btn){
     state.btnCall = btn
     if(state.btnCall == "updateBtn"){
-        log.info "Checking for updates now..."
+        LOGDEBUG("Checking for updates now...")
         updateCheck()
         pause(3000)
   		state.btnName = state.newBtn
@@ -480,7 +569,7 @@ def appButtonHandler(btn){
     
 }   
 def resetBtnName(){
-    log.info "Resetting Button"
+    LOGDEBUG("Resetting Button")
     if(state.status != "Current"){
 	state.btnName = state.newBtn
     }
@@ -508,7 +597,7 @@ LOGDEBUG(" Calling 'pauseOrNot'...")
             if(app.label.contains('red')){
                 log.warn "Paused"}
             else{app.updateLabel(app.label + ("<font color = 'red'> (Paused) </font>" ))
-              log.warn "App Paused - state.pauseApp = $state.pauseApp "   
+                log.warn "App Paused - state.pauseApp = $state.pauseApp "   
                 }
             }
         }
@@ -543,7 +632,7 @@ def updateCheck(){
             def newVer = (respUD.data.versions.Application.(state.InternalName).replace(".", ""))
        		def currentVer = state.version.replace(".", "")
       		state.UpdateInfo = (respUD.data.versions.UpdateInfo.Application.(state.InternalName))
-            state.author = (respUD.data.author)
+                state.author = (respUD.data.author)
            
 		if(newVer == "NLS"){
             state.status = "<b>** This app is no longer supported by $state.author  **</b>"  
@@ -560,7 +649,7 @@ def updateCheck(){
        		} 
 		else{ 
       		state.status = "Current"
-       		log.info "You are using the current version of this app"
+       		LOGDEBUG("You are using the current version of this app")
        		}
       					}
         	} 
@@ -578,8 +667,6 @@ def updateCheck(){
         
 }
 
-
-
 def setDefaults(){
 	log.info "Initialising defaults..." 
     if(pause1 == null){pause1 = false}
@@ -590,7 +677,7 @@ def setDefaults(){
     }
 }
 def setVersion(){
-    state.version = "2.0.0"
+    state.version = "1.2.0"
      state.InternalName = "OneToManyChild"
      state.ExternalName = "One To Many Child"
      state.CobraAppCheck = "one2many.json"
