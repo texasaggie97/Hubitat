@@ -543,7 +543,7 @@ def updateCheck(){
             def newVer = (respUD.data.versions.Application.(state.InternalName).replace(".", ""))
        		def currentVer = state.version.replace(".", "")
       		state.UpdateInfo = (respUD.data.versions.UpdateInfo.Application.(state.InternalName))
-                state.author = (respUD.data.author)
+            state.author = (respUD.data.author)
            
 		if(newVer == "NLS"){
             state.status = "<b>** This app is no longer supported by $state.author  **</b>"  
@@ -556,7 +556,7 @@ def updateCheck(){
         	log.warn " Update: $state.UpdateInfo "
              state.newBtn = state.status
             def updateMsg = "There is a new version of '$state.ExternalName' available (Version: $newVerRaw)"
-            pushOverNow(updateMsg)
+            pushOverUpdate(updateMsg)
        		} 
 		else{ 
       		state.status = "Current"
