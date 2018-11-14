@@ -36,9 +36,9 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update 27/09/2018
+ *  Last Update 14/11/2018/2018
  *
- *
+ *  V1.3.1 - Debug 'LastDevice'
  *  V1.3.0 - Added switchable logging
  *  V1.2.0 - Added 'Motion' average
  *  V1.1.0 - Debug and added 'last device' separation - one for each attribute
@@ -116,65 +116,69 @@ def initialise() {
 }
 
 def lastDeviceLux(dev1){  
-    sendEvent(name: "LastDeviceLux", value: dev1 , isStateChange: true)
-    
+    state.LastDeviceLux = dev1
+	sendEvent(name: "LastDeviceLux", value: state.LastDeviceLux , isStateChange: true)
 }
-def lastDeviceHumid(dev2){    
-    sendEvent(name: "LastDeviceHumidity", value: dev2 , isStateChange: true)
+def lastDeviceHumid(dev2){  
+	state.LastDeviceHumid = dev2
+    sendEvent(name: "LastDeviceHumidity", value: state.LastDeviceHumid , isStateChange: true)
 }
-def lastDevicePressure(dev3){    
-    sendEvent(name: "LastDevicePressure", value: dev3 , isStateChange: true)
+def lastDevicePressure(dev3){ 
+	state.LastDevicePressure = dev3
+    sendEvent(name: "LastDevicePressure", value: state.LastDevicePressure , isStateChange: true)
 }
-def lastDeviceTemperature(dev4){    
-    sendEvent(name: "LastDeviceTemperature", value: dev4 , isStateChange: true)
+def lastDeviceTemperature(dev4){ 
+	state.LastDeviceTemperature = dev4
+    sendEvent(name: "LastDeviceTemperature", value: state.LastDeviceTemperature , isStateChange: true)
 }
 
-def lastDeviceMotion(dev5){    
-    sendEvent(name: "LastDeviceMotion", value: dev5 , isStateChange: true)
+def lastDeviceMotion(dev5){ 
+	state.LastDeviceMotion = dev5
+    sendEvent(name: "LastDeviceMotion", value: state.LastDeviceMotion , isStateChange: true)
 }
 
 def active(motion1) {
 //	state.ReceivedMotion = motion1
-    LOGDEBUG( "Setting motion for ${device.displayName} from external input, Motion = ${motion1}.")
+    LOGDEBUG( "Setting motion for ${device.displayName} from external input ($state.LastDeviceMotion), Motion = ${motion1}.")
 	sendEvent(name: "motion", value: 'active', isStateChange: true)
 }
 
 def inactive(motion1) {
 //	state.ReceivedMotion = motion1
-    LOGDEBUG( "Setting motion for ${device.displayName} from external input, Motion = ${motion1}.")
+    LOGDEBUG( "Setting motion for ${device.displayName} from external input ($state.LastDeviceMotion), Motion = ${motion1}.")
 	sendEvent(name: "motion", value: 'inactive', isStateChange: true)
 }
 
 def setMotion(motion1){
  state.ReceivedMotion = motion1
-    LOGDEBUG( "Setting motion for ${device.displayName} from external input, Motion = ${state.ReceivedMotion}.")
+    LOGDEBUG( "Setting motion for ${device.displayName} from external input ($state.LastDeviceMotion), Motion = ${state.ReceivedMotion}.")
    sendEvent(name: "motion", value: state.ReceivedMotion, isStateChange: true) 
 }
 
 def setHumidity(hum1) {
 	state.ReceivedHumidity = hum1
-    LOGDEBUG( "Setting humidity for ${device.displayName} from external input, Humidity = ${state.ReceivedHumidity}.")
+    LOGDEBUG( "Setting humidity for ${device.displayName} from external input ($state.LastDeviceHumid), Humidity = ${state.ReceivedHumidity}.")
 	sendEvent(name: "humidity", value: state.ReceivedHumidity, unit: "%", isStateChange: true)
 }
 
 
 def setLux(ilum1) {
     state.ReceivedIlluminance = ilum1
-    LOGDEBUG("Setting illuminance for ${device.displayName} from external input, Illuminance = ${state.ReceivedIlluminance}.")
+    LOGDEBUG("Setting illuminance for ${device.displayName} from external input ($state.LastDeviceLux), Illuminance = ${state.ReceivedIlluminance}.")
 	sendEvent(name: "illuminance", value: state.ReceivedIlluminance, unit: "lux", isStateChange: true)
 }
 
 
 def setTemperature(temp1){ 
  state.ReceivedTemp = temp1
-	LOGDEBUG( "Setting temperature for ${device.displayName} from external input, Temperature = ${state.ReceivedTemp}.")
+	LOGDEBUG( "Setting temperature for ${device.displayName} from external input ($state.LastDeviceTemperature), Temperature = ${state.ReceivedTemp}.")
     sendEvent(name:"temperature", value: state.ReceivedTemp , unit: state.TemperatureUnit, isStateChange: true)
    
 }
 
 def setPressure(pres1){ 
  state.ReceivedPressure = pres1
-	LOGDEBUG("Setting pressure for ${device.displayName} from external input, Pressure = ${state.ReceivedPressure}.")
+	LOGDEBUG("Setting pressure for ${device.displayName} from external input ($state.LastDevicePressure), Pressure = ${state.ReceivedPressure}.")
     sendEvent(name:"pressure", value: state.ReceivedPressure , unit: state.PressureUnit, isStateChange: true)
     
 }
@@ -255,7 +259,7 @@ def updateCheck(){
 }
 
 def setVersion(){
-		state.Version = "1.3.0"	
+		state.Version = "1.3.1"	
 		state.InternalName = "AverageAll"   
 }
 
