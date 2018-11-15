@@ -155,7 +155,7 @@ def subscribeNow() {
     
   // App Specific subscriptions & settings below here
 
-    subscribe(switch1, "switch", switchHandler)
+    subscribe(switch1, "switch", switchHandler1)
     subscribe(dimmer1, "level", dimmerHandler1)
     subscribe(dimmer1, "switch", dimmerHandler3)
     subscribe(dimmer2, "level", dimmerHandler2)

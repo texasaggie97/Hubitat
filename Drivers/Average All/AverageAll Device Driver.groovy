@@ -36,8 +36,10 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update 14/11/2018/2018
+ *  Last Update 15/11/2018/2018
  *
+ *
+ *  V1.3.2 - Debug UI
  *  V1.3.1 - Debug 'LastDevice'
  *  V1.3.0 - Added switchable logging
  *  V1.2.0 - Added 'Motion' average
@@ -87,7 +89,7 @@ metadata {
   preferences() {
     
      section("") {
-   		input "unitSelect", "enum", required: true, multiple: true, title: "Temperature Units (If using temperature)", submitOnChange: true,  options: ["C", "F"] 
+   		input "unitSelect", "enum",  title: "Temperature Units (If using temperature)", required: true, options: ["C", "F"] 
    		input "pressureUnit", "enum", title: "Pressure Unit (If using pressure)", required:true, options: ["inhg", "mbar"]
         input "debugMode", "bool", title: "Enable logging", required: true, defaultValue: false  
  		}  
@@ -259,7 +261,7 @@ def updateCheck(){
 }
 
 def setVersion(){
-		state.Version = "1.3.1"	
+		state.Version = "1.3.2"	
 		state.InternalName = "AverageAll"   
 }
 
