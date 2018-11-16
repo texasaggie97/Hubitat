@@ -36,8 +36,10 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update 14/11/2018/2018
+ *  Last Update 15/11/2018/2018
  *
+ *
+ *  V1.3.2 - Debug UI
  *  V1.3.1 - Debug 'LastDevice'
  *  V1.3.0 - Added switchable logging
  *  V1.2.0 - Added 'Motion' average
@@ -259,7 +261,7 @@ def updateCheck(){
 }
 
 def setVersion(){
-		state.Version = "1.3.1"	
+		state.Version = "1.3.2"	
 		state.InternalName = "AverageAll"   
 }
 

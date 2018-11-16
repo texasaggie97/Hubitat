@@ -36,9 +36,9 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update 15/11/2018/2018
+ *  Last Update 15/11/2018
  *
- *
+ *  V1.3.3 - Debug - Typo in lastDeviceHumidity
  *  V1.3.2 - Debug UI
  *  V1.3.1 - Debug 'LastDevice'
  *  V1.3.0 - Added switchable logging
@@ -121,7 +121,7 @@ def lastDeviceLux(dev1){
     state.LastDeviceLux = dev1
 	sendEvent(name: "LastDeviceLux", value: state.LastDeviceLux , isStateChange: true)
 }
-def lastDeviceHumid(dev2){  
+def LastDeviceHumidity(dev2){  
 	state.LastDeviceHumid = dev2
     sendEvent(name: "LastDeviceHumidity", value: state.LastDeviceHumid , isStateChange: true)
 }
@@ -261,7 +261,7 @@ def updateCheck(){
 }
 
 def setVersion(){
-		state.Version = "1.3.2"	
+		state.Version = "1.3.3"	
 		state.InternalName = "AverageAll"   
 }
 
