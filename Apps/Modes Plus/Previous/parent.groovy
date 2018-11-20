@@ -51,7 +51,7 @@ definition(
     description: "Parent App for Modes Plus ChildApps -  This is designed to use various triggers to control location modes",
     category: "Convenience",
     
-    parent: "Cobra:Cobra Apps",  // ************* comment this out if not using the 'Cobra Apps' container  *******************
+    parent: "Cobra:Cobra Apps",  // ************* Comment this out if not using the 'Cobra Apps' container  *******************
     
     iconUrl: "",
     iconX2Url: "",
@@ -104,9 +104,7 @@ if(state.appInstalled == 'COMPLETE'){
 		app(name: "modeApp", appName: "Modes Plus Child", namespace: "Cobra", title: "<b>Add a new Mode automation</b>", multiple: true)
             }
     section (" "){}
-  section() {
-        label title: "Enter a name for this parent app (optional)", required: false
-            }    
+  
 	}
   }
 }
@@ -115,7 +113,7 @@ if(state.appInstalled == 'COMPLETE'){
 def installCheck(){         
    state.appInstalled = app.getInstallationState() 
   if(state.appInstalled != 'COMPLETE'){
-section{paragraph "Please hit 'Done' to install 'Modes Plus' parent app "}
+section{paragraph "Please hit 'Done' to install Modes Plus"}
   }
     else{
  //       log.info "Parent Installed OK"
