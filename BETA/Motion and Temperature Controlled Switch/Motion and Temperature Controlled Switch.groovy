@@ -38,7 +38,7 @@
  *
  *  Changes:
  *
- *  V1.0.1 - Debug 'motion' forcing heater on.
+ *  V1.0.1 - Debug motion forcing heater on.
  *  V1.0.0 - POC 
  *
  *  Author: Cobra
@@ -139,7 +139,7 @@ def temperatureHandler(evt) {
 	state.baseTemp = temperatureBase
 	if(state.motionNow == true){
 	LOGDEBUG("Reported Motion Active.")		
-	motionTemp(state.newTemp)
+	motionTemp()
 	}
 	if(state.motionNow == false){
 	if(state.newTemp < state.baseTemp){
