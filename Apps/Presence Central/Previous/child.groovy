@@ -36,10 +36,14 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 20/08/2018
+ *  Last Update: 01/11/2018
  *
  *  Changes:
  *
+ *
+ *  V2.7.0 - Revised update checking and added 'pause' button
+ *  V2.6.1 - Revised auto update checking and added a manual update check button
+ *  V2.6.0 - Added 'restrict by current mode'
  *  V2.5.0 - code cleanup & Added remote version checking 
  *  V2.4.0 - Re-enabled TTS talking as an action option
  *  V2.3.1 - Added ability to configure Pushover priority from GUI
@@ -59,7 +63,7 @@
  *  V1.0.1 - debug
  *  V1.0.0 - POC
  *
- *  Features to come....  control a garage door?
+ *  
  *  
  */
 
@@ -96,14 +100,12 @@ def updated() {
     initialize()
 }
 def initialize() {
- log.info "Initialised with settings: ${settings}"
     logCheck()
+    setDefaults()
     version()
-    switchRunCheck()
-    state.timer1 = true
-	state.timerDoor = true
-    state.timerlock = true
-	state.riseSetGo = true
+    log.info "Initialised with settings: ${settings}"
+
+
 
 // Basic Subscriptions 
 	subscribe(location, "hsmStatus", statusHandler)
@@ -208,7 +210,7 @@ def finalPage() {
 				input "days", "enum", title: "Only allow actions on these days of the week", required: false, multiple: true, options: ["Monday": "Monday", "Tuesday": "Tuesday", 
 
 "Wednesday": "Wednesday", "Thursday": "Thursday", "Friday": "Friday", "Saturday": "Saturday", "Sunday": "Sunday"]
-                
+        input "modes", "mode", title: "Allow actions when current mode is:", multiple: true, required: false        
 		input "setRise", "bool", title: "Only allow actions between SunSet and SunRise", required: false, submitOnChange: true, defaultValue: false
 				
 if(setRise){
@@ -229,7 +231,12 @@ if(riseSet){
 
 
             }
-             section("Logging") {
+
+                 
+                 
+                 
+               section(" ") {
+        
             input "debugMode", "bool", title: "Enable logging", required: true, defaultValue: false
   	        }
             
@@ -289,7 +296,7 @@ def presenceActions(){
 
 
 def outputActions(){
-input "presenceAction", "enum", title: "What action to take?",required: true, submitOnChange: true, options: ["Control A Switch", "Change Mode",  "Control a Lock", "Send An SMS Message", "PushOver Message", "Speak A Message", "Flash Lights", "Set Safety Monitor Mode"]
+input "presenceAction", "enum", title: "What to do?",required: true, submitOnChange: true, options: ["Control A Switch", "Change Mode",  "Control a Lock", "Send An SMS Message", "PushOver Message", "Speak A Message", "Flash Lights", "Set Safety Monitor Mode"]
 
     // Removed from 'action' options until active/re-coded  ********************************************************************************************************************************
     // , "Control a Door", 
@@ -506,6 +513,15 @@ LOGDEBUG("state.privatePresence = $state.privatePresence")
 
 // end timed presence check =====================================================
 
+// Check Mode
+def checkMode() {
+    LOGDEBUG("Checking mode...")
+	def result = !modes || modes.contains(location.mode)
+    
+    LOGDEBUG("Mode = $result")
+    state.modeCheck = result
+    return state.modeCheck
+ } 
 
 // Sunset & Sunrise Handlers ====================================================
 def sunriseSunsetTimeHandler(evt) {
@@ -729,31 +745,44 @@ private flashLights() {
 
 // Arrival Actions - Check OK to run
 def arrivalAction(){
-LOGDEBUG("Calling Arrival Action")
+    LOGDEBUG("Calling Arrival Action")
+    if(state.pauseApp == true){log.warn "Unable to continue - App paused"}
+    if(state.pauseApp == false){log.info "Continue - App NOT paused" 
+
+
 checkTime()
 checkDay()
-if (state.timeOK == true && state.dayCheck == true){
+checkMode()
+                                
+log.warn "state.timeOK == $state.timeOK && state.dayCheck == $state.dayCheck && state.modeCheck == $state.modeCheck"                               
+if (state.timeOK == true && state.dayCheck == true && state.modeCheck == true){
+    log.warn " ok Go"
 decideActionArrival()
 	}
 }
-
+}
 
 // Departure Actions - Check OK to run
 def departureAction(){
 LOGDEBUG("Calling Departure Action")
+    if(state.pauseApp == true){log.warn "Unable to continue - App paused"}
+    if(state.pauseApp == false){log.info "Continue - App NOT paused" 
+
 checkTime()
 checkDay()
-if (state.timeOK == true && state.dayCheck == true){
+checkMode()
+if (state.timeOK == true && state.dayCheck == true && state.modeCheck == true){
 decideActionDeparture()
 	}
 }
-
+}
 
 
 
 
 // Decide which action to call
 def decideActionArrival() {
+    LOGDEBUG("Deciding on correct Arrival Action - state.appgo = $state.appgo - state.riseSetGo = $state.riseSetGo")
 if(state.appgo == true && state.riseSetGo == true){
 LOGDEBUG("Deciding on correct Arrival Action")
 
@@ -876,6 +905,7 @@ LOGDEBUG( "Cannot continue because of sunset-sunrise restrictions")
 
 
 def decideActionDeparture() {
+    LOGDEBUG("Deciding on correct Departure Action - state.appgo = $state.appgo - state.riseSetGo = $state.riseSetGo")
 if(state.appgo == true && state.riseSetGo == true){
 LOGDEBUG("Deciding on correct Departure Action")
 
@@ -1043,14 +1073,14 @@ def	presentCounter2 = 0
             state.privatePresence2 = "present"
             state.privatePresence = "present"
             log.debug("Arrived - At least one sensor arrived - set group to '$state.privatePresence'")
-             arrivalAction ()
+             arrivalAction()
         }
     } else {
     	if (state.privatePresence2 != "not present") {
             state.privatePresence2 = "not present"
             state.privatePresence = "not present"
             log.debug("Departed - Last sensor left - set group to '$state.privatePresence'")
-             departureAction ()
+             departureAction()
         }
     }
 }
@@ -1075,7 +1105,7 @@ def	presentCounter3 = 0
             state.privatePresence3 = "not present"
             state.privatePresence = "not present"
             log.debug("Arrived - At least one sensor left - set group to '$state.privatePresence'")
-            departureAction ()
+            departureAction()
              
         }
     } else {
@@ -1083,7 +1113,7 @@ def	presentCounter3 = 0
             state.privatePresence3 = "present"
             state.privatePresence = "present"
             log.debug("Departed - All sensors present - set group to '$state.privatePresence'")
-            arrivalAction ()
+            arrivalAction()
         }
     }
 }
@@ -1487,7 +1517,7 @@ LOGDEBUG( "Timer reset - Actions allowed again...")
 
 def checkTime(){
 if(fromTime){
-def between = timeOfDayIsBetween(fromTime, toTime, new Date(), location.timeZone)
+def between = timeOfDayIsBetween(toDateTime(fromTime), toDateTime(toTime), new Date(), location.timeZone)
     if (between) {
     state.timeOK = true
    LOGDEBUG("Time is ok so can continue...")
@@ -1619,21 +1649,109 @@ def LOGDEBUG(txt){
 
 
 def version(){
-	unschedule()
 	schedule("0 0 9 ? * FRI *", updateCheck) //  Check for updates at 9am every Friday
-	updateCheck()  
+ 
+    
+   
+    
 }
 
 def display(){
+ //   setDefaults()
+  	
+    
 	if(state.status){
-	section{paragraph "Version: $state.version -  $state.Copyright"}
-	if(state.status != "Current"){
-	section{ 
-	paragraph "$state.status"
-	paragraph "$state.UpdateInfo"
+	section{paragraph "<img src='http://update.hubitat.uk/icons/cobra3.png''</img> Version: $state.version <br><font face='Lucida Handwriting'>$state.Copyright </font>"}
+       
+        }
+   
+
+    if(state.status != "<b>** This app is no longer supported by $state.author  **</b>"){
+     section(){ input "updateBtn", "button", title: "$state.btnName"}
     }
+    
+    section(){
+   //     log.info "app.label = $app.label"
+    input "pause1", "bool", title: "Pause This App", required: true, submitOnChange: true, defaultValue: false  
+     }
+       
+    if(state.status != "Current"){
+	section{ 
+	paragraph "<b>Update Info:</b> <BR>$state.UpdateInfo <BR>$state.updateURI"
+     }
+    }
+	section(" ") {
+      input "updateNotification", "bool", title: "Send a 'Pushover' message when an update is available", required: true, defaultValue: false, submitOnChange: true 
+      if(updateNotification == true){ input "speaker", "capability.speechSynthesis", title: "PushOver Device", required: true, multiple: true}
+    }
+    
+
+}
+
+def checkButtons(){
+    LOGDEBUG("Running checkButtons")
+    appButtonHandler("updateBtn")
+}
+
+
+def appButtonHandler(btn){
+    state.btnCall = btn
+    if(state.btnCall == "updateBtn"){
+       log.info "Checking for updates now..."
+        updateCheck()
+        pause(3000)
+  		state.btnName = state.newBtn
+        runIn(2, resetBtnName)
+    }
+    if(state.btnCall == "updateBtn1"){
+    state.btnName1 = "Click Here" 
+    httpGet("https://github.com/CobraVmax/Hubitat/tree/master/Apps' target='_blank")
+    }
+    
+}   
+def resetBtnName(){
+//    log.info "Resetting Update Button Name"
+    if(state.status != "Current"){
+	state.btnName = state.newBtn
+    }
+    else{
+ state.btnName = "Check For Update" 
+    }
+}    
+    
+def pushOverNow(inMsg){
+    if(updateNotification == true){  
+     newMessage = inMsg
+  log.info "Message = $newMessage " 
+     state.msg1 = '[L]' + newMessage
+	speaker.speak(state.msg1)
     }
 }
+
+def pauseOrNot(){
+LOGDEBUG(" Calling 'pauseOrNot'...")
+    state.pauseNow = pause1
+        if(state.pauseNow == true){
+            state.pauseApp = true
+            if(app.label){
+            if(app.label.contains('red')){
+                log.warn "Paused"}
+            else{app.updateLabel(app.label + ("<font color = 'red'> (Paused) </font>" ))
+              LOGDEBUG("App Paused - state.pauseApp = $state.pauseApp ")   
+                }
+    
+            }
+        }
+    
+     if(state.pauseNow == false){
+         state.pauseApp = false
+         if(app.label){
+     if(app.label.contains('red')){ app.updateLabel(app.label.minus("<font color = 'red'> (Paused) </font>" ))
+     LOGDEBUG("App Released - state.pauseApp = $state.pauseApp ")                          
+                                  }
+         }
+  }    
+    
 }
 
 
@@ -1642,9 +1760,12 @@ def updateCheck(){
 	def paramsUD = [uri: "http://update.hubitat.uk/cobra.json"]
        	try {
         httpGet(paramsUD) { respUD ->
-//  log.warn " Version Checking - Response Data: ${respUD.data}"   // Troubleshooting Debug Code 
+ //  log.warn " Version Checking - Response Data: ${respUD.data}"   // Troubleshooting Debug Code 
        		def copyrightRead = (respUD.data.copyright)
        		state.Copyright = copyrightRead
+            def updateUri = (respUD.data.versions.UpdateInfo.GithubFiles.(state.InternalName))
+            state.updateURI = updateUri   
+            
             def newVerRaw = (respUD.data.versions.Application.(state.InternalName))
             def newVer = (respUD.data.versions.Application.(state.InternalName).replace(".", ""))
        		def currentVer = state.version.replace(".", "")
@@ -1652,29 +1773,64 @@ def updateCheck(){
                 state.author = (respUD.data.author)
            
 		if(newVer == "NLS"){
-            state.status = "<b>** This app is no longer supported by $state.author  **</b>"       
-            log.warn "** This app is no longer supported by $state.author **"      
+            state.status = "<b>** This app is no longer supported by $state.author  **</b>"  
+             log.warn "** This app is no longer supported by $state.author **" 
+            
       		}           
 		else if(currentVer < newVer){
         	state.status = "<b>New Version Available (Version: $newVerRaw)</b>"
         	log.warn "** There is a newer version of this app available  (Version: $newVerRaw) **"
         	log.warn "** $state.UpdateInfo **"
+             state.newBtn = state.status
+            def updateMsg = "There is a new version of '$state.ExternalName' available (Version: $newVerRaw)"
+            pushOverNow(updateMsg)
        		} 
 		else{ 
       		state.status = "Current"
-      		log.info "You are using the current version of this app"
+       		log.info "You are using the current version of this app"
        		}
       					}
         	} 
         catch (e) {
         	log.error "Something went wrong: CHECK THE JSON FILE AND IT'S URI -  $e"
     		}
-   		
-    
-    	//	
+    if(state.status != "Current"){
+		state.newBtn = state.status
+        
+    }
+    else{
+        state.newBtn = "No Update Available"
+    }
+        
+        
 }
 
+
+
 def setVersion(){
-		state.version = "2.5.0"
+		state.version = "2.7.0"
      		state.InternalName = "PCchild"
+    		state.ExternalName = "Presence Central Child"
 }
+
+def setDefaults(){
+    log.info "Initialising defaults..." 
+    checkButtons()
+    resetBtnName()
+    pauseOrNot()
+    if(pause1 == null){pause1 = false}
+    if(state.pauseApp == null){state.pauseApp = false}  
+
+
+ // add any further default settings below here               
+    state.timer1 = true
+	state.timerDoor = true
+    state.timerlock = true
+	state.riseSetGo = true
+	switchRunCheck()
+
+
+}
+
+
+

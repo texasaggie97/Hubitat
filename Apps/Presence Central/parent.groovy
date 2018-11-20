@@ -33,10 +33,12 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 17/10/2018
+ *  Last Update: 14/11/2018
  *
  *  Changes:
  *
+ *
+ *  V2.3.1 - Revised update check
  *  V2.3.0 - Added to Cobra Apps as a child
  *  V2.2.1 - Added new update code
  *  V2.2.0 - Code cleanup & forced hitting 'done' before further config at install
@@ -61,59 +63,29 @@
     iconX3Url: "",)
 
 
-preferences {
-	
-     page name: "mainPage", title: "", install: true, uninstall: true
-     
+preferences {page name: "mainPage", title: "", install: true, uninstall: true}
+def installed() {initialize()}
+def updated() {initialize()}
+def initialize() {
+    unsubscribe()
+    version()
+    log.debug "Initialised with settings: ${settings}"
+    log.info "There are ${childApps.size()} child apps"
+    childApps.each {child ->
+    log.info "Child app: ${child.label}"
+    }    
 }
+
 
 def mainPage() {
-    dynamicPage(name: "mainPage") {
-      installCheck()
-        
-if(state.appInstalled == 'COMPLETE'){
-			display()
-  section ("Add An Event"){
-		app(name: "switchPresenceAutomation", appName: "Presence_Central_Child", namespace: "Cobra", title: "Create New Presence Automation", multiple: true)
-            }
- 
+    dynamicPage(name: "mainPage") {   
+	installCheck()
+	if(state.appInstalled == 'COMPLETE'){
+	display()
+	section (){app(name: "switchPresenceAutomation", appName: "Presence_Central_Child", namespace: "Cobra", title: "Create New Presence Automation", multiple: true)}
 	}
   }
 }
-
-
-
-
-def installed() {
-    log.debug "Installed with settings: ${settings}"
-    initialize()
-}
-
-def updated() {
-    log.debug "Updated with settings: ${settings}"
-    unsubscribe()
-    initialize()
-}
-
-def initialize() {
-    version()
-    log.debug "there are ${childApps.size()} child smartapps"
-    childApps.each {child ->
-        log.debug "child app: ${child.label}"
-    }
-}
-
-
-def installCheck(){         
-   state.appInstalled = app.getInstallationState() 
-  if(state.appInstalled != 'COMPLETE'){
-section{paragraph "Please hit 'Done' to install Presence Central"}
-  }
-    else{
- //       log.info "Parent Installed OK"
-    }
-	}
-
 
 
 
@@ -122,27 +94,29 @@ def version(){
 	schedule("0 0 9 ? * FRI *", updateCheck) //  Check for updates at 9am every Friday
 	updateCheck()  
     checkButtons()
+   
 }
 
-def display(){
-  
-	if(state.status){
-	section{paragraph "<img src='http://update.hubitat.uk/icons/cobra3.png''</img> Version: $state.version <br><font face='Lucida Handwriting'>$state.Copyright </font>"}
-       
-        }
-    if(state.status != "<b>** This app is no longer supported by $state.author  **</b>"){
-     section(){ input "updateBtn", "button", title: "$state.btnName"}
+
+def installCheck(){         
+   state.appInstalled = app.getInstallationState() 
+  if(state.appInstalled != 'COMPLETE'){
+section{paragraph "Please hit 'Done' to install this app "}
+  }
+    else{
+       log.info "Parent Installed OK"
+        
     }
-    
-    if(state.status != "Current"){
-	section{ 
-	paragraph "<b>Update Information:</b> <BR>$state.UpdateInfo <BR>$state.updateURI"
-     }
-    }         
+	}
+
+def display(){
+	if(state.status){section(){paragraph "<img src='http://update.hubitat.uk/icons/cobra3.png''</img> Version: $state.version <br><font face='Lucida Handwriting'>$state.Copyright </font>"}}
+    if(state.status != "<b>** This app is no longer supported by $state.author  **</b>"){section(){input "updateBtn", "button", title: "$state.btnName"}}
+	if(state.status != "Current"){section(){paragraph "<hr><b>Updated: </b><i>$state.Comment</i><br><br><i>Changes in version $state.newver</i><br>$state.UpdateInfo<hr><b>$state.updateURI</b><hr>"}}   
 }
 
 def checkButtons(){
-    log.info "Running checkButtons"
+//    log.debug "Running checkButtons"
     appButtonHandler("updateBtn")
 }
 
@@ -156,51 +130,42 @@ def appButtonHandler(btn){
   		state.btnName = state.newBtn
         runIn(2, resetBtnName)
     }
-    if(state.btnCall == "updateBtn1"){
-    state.btnName1 = "Click Here" 
-    httpGet("https://github.com/CobraVmax/Hubitat/tree/master/Apps' target='_blank")
-    }
     
-}   
+}  
+ 
 def resetBtnName(){
-    log.info "Resetting Button"
+//    log.info "Resetting Button"
     if(state.status != "Current"){
 	state.btnName = state.newBtn
     }
     else{
- state.btnName = "Check For Update" 
+ 	state.btnName = "Check For Update" 
     }
 }    
     
-def pushOver(inMsg){
-    if(updateNotification == true){  
-     newMessage = inMsg
-  LOGDEBUG(" Message = $newMessage ")  
-     state.msg1 = '[L]' + newMessage
-	speaker.speak(state.msg1)
-    }
-}
-
-
-
 
 
 def updateCheck(){
     setVersion()
-	def paramsUD = [uri: "http://update.hubitat.uk/cobra.json"]
+    def paramsUD = [uri: "http://update.hubitat.uk/json/${state.CobraAppCheck}"]
+    
        	try {
         httpGet(paramsUD) { respUD ->
- //  log.warn " Version Checking - Response Data: ${respUD.data}"   // Troubleshooting Debug Code 
+//  log.warn " Version Checking - Response Data: ${respUD.data}"   // Troubleshooting Debug Code 
        		def copyrightRead = (respUD.data.copyright)
        		state.Copyright = copyrightRead
+            def commentRead = (respUD.data.Comment)
+       		state.Comment = commentRead
+
             def updateUri = (respUD.data.versions.UpdateInfo.GithubFiles.(state.InternalName))
             state.updateURI = updateUri   
             
             def newVerRaw = (respUD.data.versions.Application.(state.InternalName))
+            state.newver = newVerRaw
             def newVer = (respUD.data.versions.Application.(state.InternalName).replace(".", ""))
        		def currentVer = state.version.replace(".", "")
       		state.UpdateInfo = (respUD.data.versions.UpdateInfo.Application.(state.InternalName))
-                state.author = (respUD.data.author)
+            state.author = (respUD.data.author)
            
 		if(newVer == "NLS"){
             state.status = "<b>** This app is no longer supported by $state.author  **</b>"  
@@ -208,16 +173,16 @@ def updateCheck(){
             
       		}           
 		else if(currentVer < newVer){
-        	state.status = "<b>New Version Available (Version: $newVerRaw)</b>"
+        	state.status = "<b>New Version Available ($newVerRaw)</b>"
         	log.warn "** There is a newer version of this app available  (Version: $newVerRaw) **"
-        	log.warn "** $state.UpdateInfo **"
+        	log.warn " Update: $state.UpdateInfo "
              state.newBtn = state.status
             def updateMsg = "There is a new version of '$state.ExternalName' available (Version: $newVerRaw)"
-
+            
        		} 
 		else{ 
       		state.status = "Current"
-       		log.info "You are using the current version of this app"
+       		log.info("You are using the current version of this app")
        		}
       					}
         	} 
@@ -236,9 +201,8 @@ def updateCheck(){
 }
 
 
-
 def setVersion(){
-		state.version = "2.3.0"	 
-		state.InternalName = "PCparent"
-    	state.ExternalName = "Presence Central Parent"
+		state.version = "2.3.1"	 
+		state.InternalName = "PresenceCentralParent"
+		state.CobraAppCheck = "presencecentral.json"
 }
