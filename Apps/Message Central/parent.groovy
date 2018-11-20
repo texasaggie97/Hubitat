@@ -33,10 +33,13 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 17/10/2018
+ *  Last Update: 20/11/2018
  *
  *  Changes:
  *
+ *  V2.3.0 - Moved update PushOver messaging to parent
+ *  V2.2.2 - Revised update checking
+ *  V2.2.1 - Debug and added preconfigured defaults settings
  *  V2.2.0 - Added to Cobra Apps as a child
  *  V2.1.1 - Revised auto update and added manual check for update button
  *  V2.1.0 - Code cleanup and remote version checking
@@ -63,90 +66,65 @@
     iconX2Url: "",
     iconX3Url: "")
 
-preferences {
-    
-    page name: "mainPage", title: "", install: true, uninstall: true
-    
-   
-}
 
-def installed() {
-    log.debug "Installed with settings: ${settings}"
-    initialize()
-}
-
-def updated() {
-    log.debug "Updated with settings: ${settings}"
-    
-    initialize()
-}
-
+preferences {page name: "mainPage", title: "", install: true, uninstall: true}
+def installed() {initialize()}
+def updated() {initialize()}
 def initialize() {
+	schedule("0 1 0 1/1 * ? *", resetMsg)
+    unsubscribe()
     version()
-    
-    log.debug "there are ${childApps.size()} child smartapps"
+    log.debug "Initialised with settings: ${settings}"
+    log.info "There are ${childApps.size()} child apps"
     childApps.each {child ->
-        log.debug "child app: ${child.label}"
-    }
-    
-   
-    
+    log.info "Child app: ${child.label}"
+    }    
 }
 
 def mainPage() {
-    dynamicPage(name: "mainPage") {
-installCheck()
-if(state.appInstalled == 'COMPLETE'){
-			display()
-    
-     section (""){
-            app(name: "switchMessageAutomation", appName: "Message_Central_Child", namespace: "Cobra", title: "Create New Triggered Message", multiple: true)
-            }  
-    
+    dynamicPage(name: "mainPage") {   
+	installCheck()
+	if(state.appInstalled == 'COMPLETE'){
+	display()
+	section (){app(name: "switchMessageAutomation", appName: "Message_Central_Child", namespace: "Cobra", title: "Create New Automation", multiple: true)}
 		}
     }
 }
     
-    
-def installCheck(){         
-   state.appInstalled = app.getInstallationState() 
-  if(state.appInstalled != 'COMPLETE'){
-section{paragraph "Please hit 'Done' to install Message Central"}
-  }
-    else{
- //       log.info "Parent Installed OK"
-    }
-	}
 
-def version(){
+
+ def version(){
     resetBtnName()
-	unschedule()
 	schedule("0 0 9 ? * FRI *", updateCheck) //  Check for updates at 9am every Friday
 	updateCheck()  
     checkButtons()
+   
 }
 
-def display(){
-  
-	if(state.status){
-	section{paragraph "<img src='http://update.hubitat.uk/icons/cobra3.png''</img> Version: $state.version <br><font face='Lucida Handwriting'>$state.Copyright </font>"}
-       
-        }
-    if(state.status != "<b>** This app is no longer supported by $state.author  **</b>"){
-     section(){ input "updateBtn", "button", title: "$state.btnName"}
-    }
-    
-    if(state.status != "Current"){
-	section{ 
 
-	paragraph "<b>Update Info: $state.UpdateInfo ***</b>"
+def installCheck(){         
+   state.appInstalled = app.getInstallationState() 
+  if(state.appInstalled != 'COMPLETE'){
+section{paragraph "Please hit 'Done' to install this app "}
+  }
+    else{
+       log.info "Parent Installed OK"
+        
     }
-         
-    }         
+	}
+
+def display(){
+	if(state.status){section(){paragraph "<img src='http://update.hubitat.uk/icons/cobra3.png''</img> Version: $state.version <br><font face='Lucida Handwriting'>$state.Copyright </font>"}}
+    if(state.status != "<b>** This app is no longer supported by $state.author  **</b>"){section(){input "updateBtn", "button", title: "$state.btnName"}}
+	if(state.status != "Current"){section(){paragraph "<hr><b>Updated: </b><i>$state.Comment</i><br><br><i>Changes in version $state.newver</i><br>$state.UpdateInfo<hr><b>$state.updateURI</b><hr>"}}
+	section() {
+    input "updateNotification", "bool", title: "Send a 'Pushover' message when an update is available for either parent or child apps", required: true, defaultValue: false, submitOnChange: true 
+    if(updateNotification == true){ input "speakerUpdate", "capability.speechSynthesis", title: "PushOver Device", required: true, multiple: true}
+    }
 }
 
 def checkButtons(){
-    log.info "Running checkButtons"
+//    log.debug "Running checkButtons"
     appButtonHandler("updateBtn")
 }
 
@@ -160,35 +138,42 @@ def appButtonHandler(btn){
   		state.btnName = state.newBtn
         runIn(2, resetBtnName)
     }
-}   
+    
+}  
+ 
 def resetBtnName(){
-    log.info "Resetting Button"
+//    log.info "Resetting Button"
     if(state.status != "Current"){
 	state.btnName = state.newBtn
     }
     else{
- state.btnName = "Check For Update" 
+ 	state.btnName = "Check For Update" 
     }
 }    
     
 
 
-
-
-
 def updateCheck(){
     setVersion()
-	def paramsUD = [uri: "http://update.hubitat.uk/cobra.json"]
+    def paramsUD = [uri: "http://update.hubitat.uk/json/${state.CobraAppCheck}"]
+    
        	try {
         httpGet(paramsUD) { respUD ->
- //  log.warn " Version Checking - Response Data: ${respUD.data}"   // Troubleshooting Debug Code 
+//  log.warn " Version Checking - Response Data: ${respUD.data}"   // Troubleshooting Debug Code 
        		def copyrightRead = (respUD.data.copyright)
        		state.Copyright = copyrightRead
+            def commentRead = (respUD.data.Comment)
+       		state.Comment = commentRead
+
+            def updateUri = (respUD.data.versions.UpdateInfo.GithubFiles.(state.InternalName))
+            state.updateURI = updateUri   
+            
             def newVerRaw = (respUD.data.versions.Application.(state.InternalName))
+            state.newver = newVerRaw
             def newVer = (respUD.data.versions.Application.(state.InternalName).replace(".", ""))
        		def currentVer = state.version.replace(".", "")
       		state.UpdateInfo = (respUD.data.versions.UpdateInfo.Application.(state.InternalName))
-                state.author = (respUD.data.author)
+            state.author = (respUD.data.author)
            
 		if(newVer == "NLS"){
             state.status = "<b>** This app is no longer supported by $state.author  **</b>"  
@@ -196,14 +181,16 @@ def updateCheck(){
             
       		}           
 		else if(currentVer < newVer){
-        	state.status = "<b>New Version Available (Version: $newVerRaw)</b>"
+        	state.status = "<b>New Version Available ($newVerRaw)</b>"
         	log.warn "** There is a newer version of this app available  (Version: $newVerRaw) **"
-        	log.warn "** $state.UpdateInfo **"
+        	log.warn " Update: $state.UpdateInfo "
              state.newBtn = state.status
+            state.updateMsg = "There is a new version of '$state.ExternalName' available (Version: $newVerRaw)"
+            pushOverUpdate(state.updateMsg)
        		} 
 		else{ 
       		state.status = "Current"
-       		log.info "You are using the current version of this app"
+       		log.info("You are using the current version of this app")
        		}
       					}
         	} 
@@ -212,6 +199,7 @@ def updateCheck(){
     		}
     if(state.status != "Current"){
 		state.newBtn = state.status
+        
     }
     else{
         state.newBtn = "No Update Available"
@@ -219,8 +207,47 @@ def updateCheck(){
         
         
 }
-def setVersion(){
-		state.version = "2.2.0"	 
-		state.InternalName = "MCparent"  
+
+def childUpdate(set, msg){
+	if(state.msgDone == false){
+	state.childUpdate = set.value
+	state.upMsg = msg.toString()
+	if(state.childUpdate == true){
+	log.warn "Parent $state.upMsg"	
+	
+	pushOverUpdate(state.upMsg)	
+	state.msgDone = true	
+	}	
+	}
+	else{
+		
+		//		log.info "Message already sent - Not able to send again today"
+	}
+		
 }
+
+def resetMsg(){
+	state.msgDone = false
+	
+}
+
+def pushOverUpdate(inMsg){
+    if(updateNotification == true){  
+    newMessage = inMsg
+   log.debug"PushOver Message = $newMessage "  
+    state.msg1 = '[L]' + newMessage
+    speakerUpdate.speak(state.msg1)
+    }
+}
+
+
+def setVersion(){
+		state.version = "2.3.0"	 
+		state.InternalName = "MessageCentralParent" 
+		state.ExternalName = "Message Central Parent"
+		state.CobraAppCheck = "messagecentral.json"
+}
+
+
+
 
