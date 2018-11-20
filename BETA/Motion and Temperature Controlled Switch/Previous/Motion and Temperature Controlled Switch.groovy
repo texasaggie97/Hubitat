@@ -1,5 +1,5 @@
 /**
- *  ****************  Kennel Heater Control  ****************
+ *  ****************  Motion and Temperature Controlled Switch  ****************
  *
  *
  *  Design Usage:
@@ -38,7 +38,6 @@
  *
  *  Changes:
  *
- *  V1.0.1 - Debug 'motion' forcing heater on.
  *  V1.0.0 - POC 
  *
  *  Author: Cobra
@@ -105,19 +104,18 @@ def subscribeNow() {
 
 
 def motionHandler(evt){
-	LOGDEBUG("Motion Handler Called")
 	if(state.enable == true){
 	state.motion = evt.value
 	if(delay1){state.delay = 60 * delay1}
     else {state.delay = 0}           
 
 if(state.motion == 'active' ){
-LOGDEBUG("$motion1 is 'active' so switching $switch2 on and setting to higher temperature range ($state.confTempOn&#176- $state.confTempOff&#176) but only if current temperature is below $state.confTempOff&#176")
-		motionTemp()
+LOGDEBUG("$motion1 is 'active' so switching $switch2 on and setting to higher temperature range ($state.confTempOn&#176- $state.confTempOff&#176)")
+		switch2.on()
 		state.motionNow = true
 }
 if(state.motion == 'inactive'){
-LOGDEBUG("Motion has stopped so waiting for $delay1 minutes before setting to baseline temperature to $state.baseTemp&#176 unless $motion1 goes 'active' again")
+LOGDEBUG("Motion has stopped so waiting for $delay1 minutes before setting to baseline temperature ($state.baseTemp&#176) unless $motion1 goes 'active' again")
 		runIn(state.delay, timeReset)
 	}
   }
@@ -131,11 +129,10 @@ def timeReset(){
 }
 
 def temperatureHandler(evt) {
-	LOGDEBUG("Temperature Handler Called")
 	if(state.enable == true){
     def newtemp1 = evt.value
 	state.newTemp = newtemp1.toDouble()
-	LOGDEBUG("Reported temperature is now: $state.newTemp&#176")	
+	LOGDEBUG("Reported temperature is now: $state.newTemp degrees.")	
 	state.baseTemp = temperatureBase
 	if(state.motionNow == true){
 	LOGDEBUG("Reported Motion Active.")		
@@ -143,11 +140,11 @@ def temperatureHandler(evt) {
 	}
 	if(state.motionNow == false){
 	if(state.newTemp < state.baseTemp){
-	LOGDEBUG("Temperature is below $state.baseTemp&#176 so turning on $switch2")	
+	LOGDEBUG("Temperature is below $state.baseTemp so turning on $switch2")	
 	switch2.on()
 	}
 	if(state.newTemp > state.baseTemp){
-	LOGDEBUG("Temperature is above $state.baseTemp&#176 so turning off $switch2")
+	LOGDEBUG("Temperature is above $state.baseTemp so turning off $switch2")
 	switch2.off()
 	}
 	}
@@ -155,22 +152,15 @@ def temperatureHandler(evt) {
 	else {LOGDEBUG("Temperature changed but app is disabled by switch")}
 }
 
-
-
-
-def motionTemp(){
-	LOGDEBUG("MotionTemp Handler Called - Checking if I turn on heat or not")
-	if(state.newTemp){
-    if (state.newTemp < state.confTempOff) {
-	LOGDEBUG( "Reported temperature is below $state.confTempOff&#176 so activating $switch2")
+def motionTemp(currTemp){
+    if (currTemp < state.confTempOn) {
+	LOGDEBUG( "Reported temperature is below $confTempOn so activating $switch2")
 	switch2.on()
 	}
-    if (state.newTemp > state.confTempOff) {
-    LOGDEBUG( "Reported temperature is above $state.confTempOff&#176 so deactivating $switch2")
+    if (currTemp > state.confTempOff) {
+    LOGDEBUG( "Reported temperature is above $confTempOff so deactivating $switch2")
 	switch2.off()
 	}
-  }
-	else{LOGDEBUG("No temperature recorded yet - Nothing to work with...")}
 }
 
 def switch2Handler(evt){
@@ -187,13 +177,13 @@ def logCheck(){
 
 def LOGDEBUG(txt){
     try {
-    if (settings.debugMode) { log.debug("${app.label.replace(" ","_").toUpperCase()}  (Version: ${state.version}) - ${txt}") }
+    if (settings.debugMode) { log.debug("${app.label.replace(" ","_").toUpperCase()}  (App Version: ${state.version}) - ${txt}") }
     } catch(ex) {
     log.error("LOGDEBUG unable to output requested data!")
     }
 }
 
-def setVersion(){state.version = "1.0.1"}
+def setVersion(){state.version = "1.0.0"}
 		
 
 
