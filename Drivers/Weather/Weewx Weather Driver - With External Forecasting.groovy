@@ -37,8 +37,9 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update 07/11/2018
+ *  Last Update 23/11/2018
  *
+ *  V2.5.1 - Revised update check
  *  V2.5.0 - Revised 'alert' code
  *  V2.4.1 - Forced change on weather alert
  *  V2.4.0 - Added 'Poll' button for use with Message Central
@@ -1696,17 +1697,20 @@ def version(){
 
 def updateCheck(){
     setVersion()
-	def paramsUD = [uri: "http://update.hubitat.uk/cobra.json" ]  
+	def paramsUD = [uri: "http://update.hubitat.uk/json/${state.CobraAppCheck}"] 
        	try {
         httpGet(paramsUD) { respUD ->
- //  log.warn " Version Checking - Response Data: ${respUD.data}"   // Troubleshooting Debug Code **********************
+//  log.warn " Version Checking - Response Data: ${respUD.data}"   // Troubleshooting Debug Code **********************
        		def copyrightRead = (respUD.data.copyright)
        		state.Copyright = copyrightRead
             def newVerRaw = (respUD.data.versions.Driver.(state.InternalName))
-            def newVer = (respUD.data.versions.Driver.(state.InternalName).replace(".", ""))
-       		def currentVer = state.Version.replace(".", "")
-      		state.UpdateInfo = (respUD.data.versions.UpdateInfo.Driver.(state.InternalName))
+//			log.warn "$state.InternalName = $newVerRaw"
+			def newVer = newVerRaw.replace(".", "")
+//			log.warn "$state.InternalName = $newVer"
+       		def currentVer = state.version.replace(".", "")
+      		state.UpdateInfo = "Updated: "+ state.newUpdateDate + " - "+ (respUD.data.versions.UpdateInfo.Driver.(state.InternalName))
             state.author = (respUD.data.author)
+			state.newUpdateDate = (respUD.data.Comment)
            
 		if(newVer == "NLS"){
             state.Status = "<b>** This driver is no longer supported by $state.author  **</b>"       
@@ -1736,15 +1740,18 @@ def updateCheck(){
 	     	sendEvent(name: "DriverStatus", value: state.Status, isStateChange: true)
 	    }   
  			sendEvent(name: "DriverAuthor", value: state.author, isStateChange: true)
-    		sendEvent(name: "DriverVersion", value: state.Version, isStateChange: true)
+    		sendEvent(name: "DriverVersion", value: state.version, isStateChange: true)
     
     
     	//	
 }
 
 def setVersion(){
-		state.Version = "2.5.0"	
-		state.InternalName = "WeewxExternal"   
+    state.version = "2.5.1"
+    state.InternalName = "WeewxExternalDriver"
+   	state.CobraAppCheck = "weewxexternal.json"
+    
+      
 }
 
 

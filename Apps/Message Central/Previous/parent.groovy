@@ -33,11 +33,10 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 17/10/2018
+ *  Last Update: 01/10/2018
  *
  *  Changes:
  *
- *  V2.2.0 - Added to Cobra Apps as a child
  *  V2.1.1 - Revised auto update and added manual check for update button
  *  V2.1.0 - Code cleanup and remote version checking
  *  V2.0.0 - Port to Hubitat (disabled missed messages child)
@@ -54,10 +53,6 @@
     namespace: "Cobra",
     author: "Andrew Parker",
     description: "Message Automation.",
-     
-     
-     parent: "Cobra:Cobra Apps",  // ******** Comment this out if not using the 'Cobra Apps' container  ***************
-     
    category: "Fun & Social",
     iconUrl: "",
     iconX2Url: "",
@@ -102,7 +97,9 @@ if(state.appInstalled == 'COMPLETE'){
      section (""){
             app(name: "switchMessageAutomation", appName: "Message_Central_Child", namespace: "Cobra", title: "Create New Triggered Message", multiple: true)
             }  
-    
+     section(" ") {
+        label title: "Enter a name for parent app (optional)", required: false
+            }      
 		}
     }
 }
@@ -220,7 +217,7 @@ def updateCheck(){
         
 }
 def setVersion(){
-		state.version = "2.2.0"	 
+		state.version = "2.1.1"	 
 		state.InternalName = "MCparent"  
 }
 

@@ -16,9 +16,9 @@
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
  *  for the specific language governing permissions and limitations under the License.
  *
- *  Last Update 07/11/2018
+ *  Last Update 23/11/2018
  *
- *
+ *  V3.0.0 - Updated info checking.
  *  V2.9.0 - Changed with way 'alerts' are handled for US/Non US timezones
  *  V2.8.1 - Debug Poll command
  *  V2.8.0 - Added switchable 'forecastIcon' to show current or forcast icon
@@ -135,7 +135,7 @@ metadata {
 
 def updated() {
     log.debug "updated called"
-   
+   updateCheck()
     unschedule()
     version()
     state.NumOfPolls = 0
@@ -417,75 +417,66 @@ def Report(){
 
 
 def version(){
-    updatecheck()
-    if (state.Type == "Application"){schedule("0 0 9 ? * FRI *", updatecheck)}
-    if (state.Type == "Driver"){schedule("0 0 8 ? * FRI *", updatecheck)}
+    updateCheck()
+   schedule("0 0 9 ? * FRI *", updateCheck)
 }
     
 
-    
-
-def updatecheck(){
-    
+def updateCheck(){
     setVersion()
-  
-    def paramsUD = [uri: "http://update.hubitat.uk/cobra.json"]
-       try {
+	def paramsUD = [uri: "http://update.hubitat.uk/json/${state.CobraAppCheck}"] 
+       	try {
         httpGet(paramsUD) { respUD ->
-//  log.info " Version Checking - Response Data: ${respUD.data}"   // Debug Code 
-       def copyNow = (respUD.data.copyright)
-       state.Copyright = copyNow
-            def newver = (respUD.data.versions.(state.Type).(state.InternalName))
-            def cobraVer = (respUD.data.versions.(state.Type).(state.InternalName).replace(".", ""))
-       def cobraOld = state.version.replace(".", "")
-      state.UpdateInfo = (respUD.data.versions.UpdateInfo.(state.Type).(state.InternalName)) 
-			
-            if(cobraVer == "NLS"){
-            state.Status = "<b>** This $state.Type is no longer supported by Cobra  **</b>"       
-            log.warn "** This $state.Type is no longer supported by Cobra **"      
-      }           
-      		else if(cobraOld < cobraVer){
-        	state.Status = "<b>New Version Available (Version: $newver)</b>"
-        	log.warn "** There is a newer version of this $state.Type available  (Version: $newver) **"
+//  log.warn " Version Checking - Response Data: ${respUD.data}"   // Troubleshooting Debug Code **********************
+       		def copyrightRead = (respUD.data.copyright)
+       		state.Copyright = copyrightRead
+            def newVerRaw = (respUD.data.versions.Driver.(state.InternalName))
+	//		log.warn "$state.InternalName = $newVerRaw"
+  			def newVer = newVerRaw.replace(".", "")
+//			log.warn "$state.InternalName = $newVer"
+       		def currentVer = state.version.replace(".", "")
+      		state.UpdateInfo = "Updated: "+state.newUpdateDate + " - "+(respUD.data.versions.UpdateInfo.Driver.(state.InternalName))
+            state.author = (respUD.data.author)
+			state.newUpdateDate = (respUD.data.Comment)
+           
+		if(newVer == "NLS"){
+            state.Status = "<b>** This driver is no longer supported by $state.author  **</b>"       
+            log.warn "** This driver is no longer supported by $state.author **"      
+      		}           
+		else if(currentVer < newVer){
+        	state.Status = "<b>New Version Available (Version: $newVerRaw)</b>"
+        	log.warn "** There is a newer version of this driver available  (Version: $newVerRaw) **"
         	log.warn "** $state.UpdateInfo **"
-       } 
-            else{ 
+       		} 
+		else{ 
       		state.Status = "Current"
-      		log.info "$state.Type is the current version"
-       }
-       
-       }
-        } 
+      		log.info "You are using the current version of this driver"
+       		}
+      					}
+        	} 
         catch (e) {
-        log.error "Something went wrong: $e"
-    }
-    
-    checkInfo()
-        
-}        
-
-def checkInfo(){
-  if(state.Status == "Current"){
-    state.UpdateInfo = "N/A"
-    sendEvent(name: "DriverUpdate", value: state.UpdateInfo, isStateChange: true)
-    sendEvent(name: "DriverStatus", value: state.Status, isStateChange: true)
-    }
-    else{
-     sendEvent(name: "DriverUpdate", value: state.UpdateInfo, isStateChange: true)
-     sendEvent(name: "DriverStatus", value: state.Status, isStateChange: true)
-    }   
+        	log.error "Something went wrong: CHECK THE JSON FILE AND IT'S URI -  $e"
+    		}
+   		if(state.Status == "Current"){
+			state.UpdateInfo = "N/A"
+		    sendEvent(name: "DriverUpdate", value: state.UpdateInfo, isStateChange: true)
+	 	    sendEvent(name: "DriverStatus", value: state.Status, isStateChange: true)
+			}
+    	else{
+	    	sendEvent(name: "DriverUpdate", value: state.UpdateInfo, isStateChange: true)
+	     	sendEvent(name: "DriverStatus", value: state.Status, isStateChange: true)
+	    }   
+ 			sendEvent(name: "DriverAuthor", value: state.author, isStateChange: true)
+    		sendEvent(name: "DriverVersion", value: state.version, isStateChange: true)
     
     
-    
-    
+    	//	
 }
-
 
 def setVersion(){
-     state.version = "2.9.0"
-     state.InternalName = "WUWeather"
-     state.Type = "Driver"
-   
+    state.version = "3.0.0"
+    state.InternalName = "WUWeatherDriver"
+   	state.CobraAppCheck = "customwu.json"
     sendEvent(name: "DriverAuthor", value: "Cobra", isStateChange: true)
     sendEvent(name: "DriverVersion", value: state.version, isStateChange: true)
     

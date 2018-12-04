@@ -33,10 +33,11 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 20/11/2018
+ *  Last Update: 04/12/2018
  *
  *  Changes:
  *
+ *  V2.4.0 - added disable apps code
  *  V2.3.0 - Moved update PushOver messaging to parent
  *  V2.2.2 - Revised update checking
  *  V2.2.1 - Debug and added preconfigured defaults settings
@@ -87,41 +88,102 @@ def mainPage() {
 	if(state.appInstalled == 'COMPLETE'){
 	display()
 	section (){app(name: "switchMessageAutomation", appName: "Message_Central_Child", namespace: "Cobra", title: "Create New Automation", multiple: true)}
-		}
-    }
+	displayDisable()
+	}
+  }
 }
-    
 
 
- def version(){
+def version(){
     resetBtnName()
-	schedule("0 0 9 ? * FRI *", updateCheck) //  Check for updates at 9am every Friday
-	updateCheck()  
+    schedule("0 0 9 ? * FRI *", updateCheck) //  Check for updates at 9am every Friday
+    updateCheck()  
     checkButtons()
    
 }
 
 
 def installCheck(){         
-   state.appInstalled = app.getInstallationState() 
-  if(state.appInstalled != 'COMPLETE'){
-section{paragraph "Please hit 'Done' to install this app "}
-  }
-    else{
-       log.info "Parent Installed OK"
-        
+	state.appInstalled = app.getInstallationState() 
+	if(state.appInstalled != 'COMPLETE'){
+	section{paragraph "Please hit 'Done' to load this app into the Cobra Apps container"}
+	  }
+	else{
+ //      log.info "Parent Installed OK"  
     }
 	}
 
 def display(){
 	if(state.status){section(){paragraph "<img src='http://update.hubitat.uk/icons/cobra3.png''</img> Version: $state.version <br><font face='Lucida Handwriting'>$state.Copyright </font>"}}
-    if(state.status != "<b>** This app is no longer supported by $state.author  **</b>"){section(){input "updateBtn", "button", title: "$state.btnName"}}
-	if(state.status != "Current"){section(){paragraph "<hr><b>Updated: </b><i>$state.Comment</i><br><br><i>Changes in version $state.newver</i><br>$state.UpdateInfo<hr><b>$state.updateURI</b><hr>"}}
-	section() {
-    input "updateNotification", "bool", title: "Send a 'Pushover' message when an update is available for either parent or child apps", required: true, defaultValue: false, submitOnChange: true 
-    if(updateNotification == true){ input "speakerUpdate", "capability.speechSynthesis", title: "PushOver Device", required: true, multiple: true}
-    }
+	if(state.status != "<b>** This app is no longer supported by $state.author  **</b>"){section(){input "updateBtn", "button", title: "$state.btnName"}}
+	if(state.status != "Current"){
+		section(){paragraph "<hr><b>Updated: </b><i>$state.Comment</i><br><br><i>Changes in version $state.newver</i><br>$state.UpdateInfo<hr><b>Update URL: </b><font color = 'red'> $state.updateURI</font><hr>"}
+		}
+		section(){
+		input "updateNotification", "bool", title: "Send a 'Pushover' message when an update is available for either the parent or the child app", required: true, defaultValue: false, submitOnChange: true 
+		if(updateNotification == true){ input "speakerUpdate", "capability.speechSynthesis", title: "PushOver Device", required: true, multiple: true}
+		}
+	
 }
+
+def displayDisable(){
+	if(app.label){
+	section("<hr>"){
+		input "disableAll1", "bool", title: "Disable <b>all</b> <i>'${app.label}'</i> child apps", required: true, defaultValue: false, submitOnChange: true
+		state.allDisabled1 = disableAll1
+		stopAll()
+	}
+	section("<hr>"){}
+	}
+	else{
+	section("<hr>"){
+		input "disableAll1", "bool", title: "Disable <b><i>ALL</i></b> child apps ", required: true, defaultValue: false, submitOnChange: true
+		state.allDisabled1 = disableAll1
+		stopAll()
+	}
+	section("<hr>"){}
+	}
+	
+}
+
+
+
+
+def stopAll(){
+	
+	if(state.allDisabled1 == true) {
+	log.debug "state.allDisabled1 = TRUE"
+	state.msg2 = "Disabled by parent"
+	childApps.each { child ->
+	child.stopAllChildren(state.allDisabled1, state.msg2)
+	log.warn "Disabling ChildApp: $child.label"
+	}
+	}	
+	
+	if(state.allDisabled1 == false){
+	log.debug "state.allDisabled1 = FALSE"
+	state.msg3 = "Enabled by parent"
+	childApps.each { child ->
+	child.stopAllChildren(state.allDisabled1, state.msg3)	
+	log.trace "Enabling ChildApp: $child.label "
+	}
+	}
+}
+
+def stopAllParent(stopNowCobra, msgCobra){
+	state.allDisabled1 = stopNowCobra
+	def msgNowCobra = msgCobra
+	log.info " Message from Cobra Apps -  Disable = $stopNowCobra"
+	childApps.each { child ->
+	child.stopAllChildren(state.allDisabled1, msgNowCobra)
+	//	if(stopNowCobra == true){log.warn "Disabling ChildApp: $child.label"}
+	//	if(stopNowCobra == false){log.trace "Enabling ChildApp: $child.label "}
+		
+		
+		
+	}
+}	
+
 
 def checkButtons(){
 //    log.debug "Running checkButtons"
@@ -130,25 +192,25 @@ def checkButtons(){
 
 
 def appButtonHandler(btn){
-    state.btnCall = btn
-    if(state.btnCall == "updateBtn"){
+	state.btnCall = btn
+	if(state.btnCall == "updateBtn"){
         log.info "Checking for updates now..."
         updateCheck()
         pause(3000)
-  		state.btnName = state.newBtn
+	state.btnName = state.newBtn
         runIn(2, resetBtnName)
     }
     
 }  
  
 def resetBtnName(){
-//    log.info "Resetting Button"
-    if(state.status != "Current"){
+//    log.info "Resetting Button"	
+	if(state.status != "Current"){
 	state.btnName = state.newBtn
-    }
-    else{
+	    }
+	else{
  	state.btnName = "Check For Update" 
-    }
+	}
 }    
     
 
@@ -213,24 +275,15 @@ def childUpdate(set, msg){
 	state.childUpdate = set.value
 	state.upMsg = msg.toString()
 	if(state.childUpdate == true){
-	log.warn "Parent $state.upMsg"	
-	
 	pushOverUpdate(state.upMsg)	
 	state.msgDone = true	
-	}	
-	}
+			}	
+		}
 	else{
-		
-		//		log.info "Message already sent - Not able to send again today"
-	}
-		
+//		log.info "Message already sent - Not able to send again today"
+	    }		
 }
-
-def resetMsg(){
-	state.msgDone = false
-	
-}
-
+def resetMsg(){state.msgDone = false}
 def pushOverUpdate(inMsg){
     if(updateNotification == true){  
     newMessage = inMsg
@@ -242,10 +295,11 @@ def pushOverUpdate(inMsg){
 
 
 def setVersion(){
-		state.version = "2.3.0"	 
+		state.version = "2.4.0"	 
 		state.InternalName = "MessageCentralParent" 
 		state.ExternalName = "Message Central Parent"
 		state.CobraAppCheck = "messagecentral.json"
+
 }
 
 

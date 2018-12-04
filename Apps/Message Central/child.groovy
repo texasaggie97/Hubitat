@@ -33,11 +33,16 @@
  *-------------------------------------------------------------------------------------------------------------------
  *
  *
- *  Last Update: 20/11/2018
+ *  Last Update: 04/12/2018
  *
  *  Changes:
  *
- *  V13.2.3 - Debug - Fixed bug where %time% variable would not work with 24Hr switched on.
+ *
+ *  V13.5.0 - Added disable app code
+ *  V13.4.0 - Streamlined restrictions page to action faster if specific restrictions not used. 
+ *  V13.3.1 - Added legacy modeHandler as Hubitat does not remove it on code update
+ *  V13.3.0 - Moved Pushover update messaging to parent
+ *  V13.2.3 - Debug - Fixed bug where %time% variable would not work with 24Hr switched on. Also fixed issue with new UI
  *  V13.2.2 - Changed contact input to multiple so ANY selected contact will trigger open/close message
  *  V13.2.1 - Debug - Update pushover message had same speaker name as others - changed now.
  *  V13.2.0 - Changed the way message is converted to English - Now converted to lowercase before processing.
@@ -149,27 +154,27 @@ preferences {
     
 }
 
-def installed() {
+def installed(){initialise()}
+def updated(){initialise()}
+def initialise(){
+	version()
+	subscribeNow()
+	log.info "Initialised with settings: ${settings}"
+	logCheck()	
+}
+def subscribeNow() {
+	unsubscribe()
+	if(enableSwitch){subscribe(enableSwitch, "switch", switchEnable)}
+	if(enableSwitchMode == null){enableSwitchMode = true} // ????
+	if(restrictPresenceSensor){subscribe(restrictPresenceSensor, "presence", restrictPresenceSensorHandler)}
+	if(restrictPresenceSensor1){subscribe(restrictPresenceSensor1, "presence", restrictPresence1SensorHandler)}
+	if(sunriseSunset){astroCheck()}
+	if(sunriseSunset){schedule("0 1 0 1/1 * ? *", astroCheck)} // checks sunrise/sunset change at 00.01am every day
     
-  
-    initialize()
-}
-
-def updated() {
-    unschedule()
-    initialize()
-}
-
-def initialize() {
-	logCheck()
-    setDefaults()
-    version()
-    log.info "Initialised with settings: ${settings}"
-      
-      
-      
-     
-      switchRunCheck()
+  // App Specific subscriptions & settings below here
+ 
+      if(state.multiVolumeSlots == null){state.multiVolumeSlots = false}    
+      if(state.multiVolumeSlotsq == null){state.multiVolumeSlotsq = false}
       state.timer1 = true
       state.timer2 = true
       state.timeDelay = 0
@@ -189,13 +194,8 @@ def initialize() {
      }
     if(msgDelay == null){state.msgDelay = 0}
     else{state.msgDelay = msgDelay}
-      
-// Subscriptions    
 
-    if(enableSwitch){subscribe(enableSwitch, "switch", switchEnable)}
-subscribe(location, "mode", modeHandler)
-
-if(trigger == 'Time'){
+	if(trigger == 'Time'){
    LOGDEBUG("Trigger is $trigger")
    schedule(runTime,timeTalkNow)
   if (missedPresenceSensor1){subscribe(missedPresenceSensor1, "presence", missedPresenceCheckNow)}
@@ -305,25 +305,18 @@ subscribe(restrictPresenceSensor1, "presence", restrictPresence1SensorHandler)
 
 // main page *************************************************************************
 def mainPage() {
-    dynamicPage(name: "mainPage") {
-		
-		
-	    section {
-        paragraph title: "Message Central Child",
-                  required: false,
-                  "This child app allows you use different triggers to create different messages"
-                  }
-    display()
+	dynamicPage(name: "mainPage") {  
+	preCheck()
    
        section{
               href "pageHelp", title:"Message Variables", description:"Tap here for a list of 'variables' you can configure for use in your messages (and what they do)"
         }
-
-    
       section() {
-        	speakerInputs()
+        	
             triggerInput()
+		  speakerInputs()
             actionInputs()
+		  
         }
          }
 }
@@ -504,23 +497,47 @@ def setUpPage() {
 
 
        
-   def restrictionsPage() {
+def restrictionsPage() {
     dynamicPage(name: "restrictionsPage") {
-        section(){paragraph "<br><font size='+1'><i><b>App Restrictions</b></i></font> <br>These restrictions are optional <br>Any restriction you don't want to use, you can just leave blank"}  // 
+        section(){paragraph "<font size='+1'>App Restrictions</font> <br>These restrictions are optional <br>Any restriction you don't want to use, you can just leave blank or disabled"}
         section(){
-        input "enableSwitch", "capability.switch", required: false, title: "Select a switch to remotely enable or disable this app", multiple: false, submitOnChange: true 
-     	if(enableSwitch){ input "enableSwitchMode", "bool", title: "Allow app to run only when this switch is..", required: true, defaultValue: false, submitOnChange: true}
-      }
-  section(){
-            input(name:"modes", type: "mode", title: "Allow actions when current mode is:", multiple: true, required: false)
-       	
+		input "enableSwitchYes", "bool", title: "Enable restriction by external on/off switch", required: true, defaultValue: false, submitOnChange: true
+			if(enableSwitchYes){
+			input "enableSwitch", "capability.switch", title: "Select a switch Enable/Disable this app", required: false, multiple: false, submitOnChange: true 
+			if(enableSwitch){ input "enableSwitchMode", "bool", title: "Allow app to run only when this switch is On or Off", required: true, defaultValue: false, submitOnChange: true}
+			}
+		}
+        section(){
+		input "modesYes", "bool", title: "Enable restriction by current mode(s)", required: true, defaultValue: false, submitOnChange: true	
+			if(modesYes){	
+			input(name:"modes", type: "mode", title: "Allow actions when current mode is:", multiple: true, required: false)
+			}
+		}	
+       	section(){
+		input "timeYes", "bool", title: "Enable restriction by time", required: true, defaultValue: false, submitOnChange: true	
+			if(timeYes){	
     	input "fromTime", "time", title: "Allow actions from", required: false
     	input "toTime", "time", title: "Allow actions until", required: false
+        	}
+		}
+		section(){
+		input "dayYes", "bool", title: "Enable restriction by day(s)", required: true, defaultValue: false, submitOnChange: true	
+			if(dayYes){	
     	input "days", "enum", title: "Allow actions only on these days of the week", required: false, multiple: true, options: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
-    	input "restrictPresenceSensor", "capability.presenceSensor", title: "Select Presence Sensor (1) to restrict action", required: false, multiple: false, submitOnChange: true
-    	if(restrictPresenceSensor){input "restrictPresenceAction", "bool", title: "On = Allow action only when Presence Sensor is 'Present'  <br>Off = Allow action only when Presence Sensor is 'NOT Present'  ", required: true, defaultValue: false}
-     	input "restrictPresenceSensor1", "capability.presenceSensor", title: "Select Presence Sensor (2) to restrict action", required: false, multiple: false, submitOnChange: true
-    	if(restrictPresenceSensor1){input "restrictPresenceAction1", "bool", title: "On = Allow action only when Presence Sensor is 'Present'  <br>Off = Allow action only when Presence Sensor is 'NOT Present'  ", required: true, defaultValue: false}
+        	}
+		}
+		section(){
+		input "presenceYes", "bool", title: "Enable restriction by presence sensor(s)", required: true, defaultValue: false, submitOnChange: true	
+			if(presenceYes){	
+    	input "restrictPresenceSensor", "capability.presenceSensor", title: "Select presence sensor 1 to restrict action", required: false, multiple: false, submitOnChange: true
+    	if(restrictPresenceSensor){input "restrictPresenceAction", "bool", title: "On = Allow action only when someone is 'Present'  <br>Off = Allow action only when someone is 'NOT Present'  ", required: true, defaultValue: false}
+     	input "restrictPresenceSensor1", "capability.presenceSensor", title: "Select presence sensor 2 to restrict action", required: false, multiple: false, submitOnChange: true
+    	if(restrictPresenceSensor1){input "restrictPresenceAction1", "bool", title: "On = Allow action only when someone is 'Present'  <br>Off = Allow action only when someone is 'NOT Present'  ", required: true, defaultValue: false}
+   			}
+		}	
+		section(){
+		input "sunrisesetYes", "bool", title: "Enable restriction by sunrise or sunset", required: true, defaultValue: false, submitOnChange: true	
+			if(sunrisesetYes){
        	input "sunriseSunset", "enum", title: "Sunrise/Sunset Restriction", required: false, submitOnChange: true, options: ["Sunrise","Sunset"] 
 		if(sunriseSunset == "Sunset"){	
        	input "sunsetOffsetValue", "number", title: "Optional Sunset Offset (Minutes)", required: false
@@ -531,13 +548,21 @@ def setUpPage() {
 		input "sunriseOffsetDir", "enum", title: "Before or After", required: false, options: ["Before","After"]
         	}
      	}
-        section(" ") {label title: "Enter a name for this automation", required: false} // 
+		}	
+       
         section() {input "debugMode", "bool", title: "Enable debug logging", required: true, defaultValue: false}
-
+		 section() {label title: "Enter a name for this automation", required: false}
     }
 }
+
+
+
            
-           
+
+def modeHandler(evt){
+// legacy	
+	
+}           
 
 
 
@@ -552,10 +577,13 @@ def speakerInputs(){
      
  state.msgType = messageAction
     if(state.msgType == "Voice Message (MusicPlayer)"){
+	
+		
          input "speaker", "capability.musicPlayer", title: "All Music Player Device(s)", required: true, multiple: true
         input "multiVolume", "bool", title: "Multiple Volume Slots?", required: false, defaultValue: false, submitOnChange: true
         state.multiVolumeSlots = multiVolume
-        
+
+      
         if(state.multiVolumeSlots == true){
         
         
@@ -627,10 +655,103 @@ def speakerInputs(){
          }
             
         }
-        else {
+        if(state.multiVolumeSlots == false){
             input "volume1", "number", title: "Normal Speaker volume", description: "0-100%", defaultValue: "70",  required: true
             state.volumeAll = volume1
-        }    
+        }
+		
+	// **********************
+		
+		 input "quietVolume", "bool", title: "'Quiet Time' - This is to reduce volume during a specified time", required: false, defaultValue: false, submitOnChange: true
+			state.volQuiet = quietVolume
+		if(state.volQuiet == true){
+	//	section("'Quiet Time' - This is to reduce volume during a specified time") {
+          input "multiVolumeQuiet", "bool", title: "Multiple Quiet Time Volume Slots?", required: false, defaultValue: false, submitOnChange: true   
+        state.multiVolumeSlotsq = multiVolumeQuiet
+        
+        if(state.multiVolumeSlotsq == true){
+        input "fromTime2", "time", title: "Quiet Time Start", required: false
+   		input "toTime2", "time", title: "Quiet Time End", required: false  
+        
+        input "speakerNoq", "enum", title: "How Many Quiet Time Volume Slots Do You Need", submitOnChange: true, defaultValue: "0", options: [ "2","3","4","5"]
+        if(speakerNoq != null){
+            state.speakerNumberq = speakerNoq
+        }
+         if(state.speakerNumberq == null){
+         paragraph "You need to make a selection here!"
+         }
+		
+         if(state.speakerNumberq == "2"){
+         input "speakerN1q", "capability.musicPlayer", title: "Music Player Quiet Time Device Slot 1", required: true, multiple: true
+         input "volumeAq", "number", title: "Quiet Volume (Slot 1)", description: "0-100%", defaultValue: "70",  required: true
+         input "speakerN2q", "capability.musicPlayer", title: "Music Player Device Slot 2", required: true, multiple: true
+         input "volumeBq", "number", title: "Quiet Volume (Slot 2)", description: "0-100%", defaultValue: "70",  required: true    
+          state.voiceVolumeAq = volumeAq
+          state.voiceVolumeBq = volumeBq   
+             
+             
+             
+         }   
+        
+         if(state.speakerNumberq == "3"){
+        input "speakerN1q", "capability.musicPlayer", title: "Music Player Quiet Time Device Slot 1", required: true, multiple: true 
+        input "volumeAq", "number", title: "Quiet Volume (Slot 1)", description: "0-100%", defaultValue: "70",  required: true     
+        input "speakerN2q", "capability.musicPlayer", title: "Music Player Quiet Time Device Slot 2", required: true, multiple: true
+        input "volumeBq", "number", title: "Quiet Volume (Slot 2)", description: "0-100%", defaultValue: "70",  required: true     
+        input "speakerN3q", "capability.musicPlayer", title: "Music Player Quiet Time Device Slot 3", required: true, multiple: true 
+        input "volumeCq", "number", title: "Quiet Volume (Slot 3)", description: "0-100%", defaultValue: "70",  required: true
+        state.voiceVolumeAq = volumeAq
+        state.voiceVolumeBq = volumeBq   
+        state.voiceVolumeCq = volumeCq
+             
+         }     
+             
+         if(state.speakerNumberq == "4"){
+        input "speakerN1q", "capability.musicPlayer", title: "Music Player Quiet Time Device Slot 1", required: true, multiple: true 
+        input "volumeAq", "number", title: "Quiet Volume (Slot 1)", description: "0-100%", defaultValue: "70",  required: true
+        input "speakerN2q", "capability.musicPlayer", title: "Music Player Quiet Time Device Slot 2", required: true, multiple: true
+        input "volumeBq", "number", title: "Quiet Volume (Slot 2)", description: "0-100%", defaultValue: "70",  required: true     
+        input "speakerN3q", "capability.musicPlayer", title: "Music Player Quiet Time Device Slot 3", required: true, multiple: true
+        input "volumeCq", "number", title: "Quiet Volume (Slot 3)", description: "0-100%", defaultValue: "70",  required: true
+        input "speakerN4q", "capability.musicPlayer", title: "Music Player Quiet Time Device Slot 4", required: true, multiple: true
+        input "volumeDq", "number", title: "Quiet Volume (Slot 4)", description: "0-100%", defaultValue: "70",  required: true      
+        state.voiceVolumeAq = volumeAq
+        state.voiceVolumeBq = volumeBq   
+        state.voiceVolumeCq = volumeCq
+        state.voiceVolumeDq = volumeDq     
+             
+         }     
+             
+         if(state.speakerNumberq == "5"){    
+        input "speakerN1q", "capability.musicPlayer", title: "Music Player Quiet Time Device Slot 1", required: true, multiple: true
+        input "volumeAq", "number", title: "Quiet Volume (Slot 1)", description: "0-100%", defaultValue: "70",  required: true
+        input "speakerN2q", "capability.musicPlayer", title: "Music Player Quiet Time Device Slot 2", required: true, multiple: true
+        input "volumeBq", "number", title: "Quiet Volume (Slot 2)", description: "0-100%", defaultValue: "70",  required: true
+        input "speakerN3q", "capability.musicPlayer", title: "Music Player Quiet Time Device Slot 3", required: true, multiple: true
+        input "volumeCq", "number", title: "Quiet Volume (Slot 3)", description: "0-100%", defaultValue: "70",  required: true
+        input "speakerN4q", "capability.musicPlayer", title: "Music Player Quiet Time Device Slot 4", required: true, multiple: true
+        input "volumeDq", "number", title: "Quiet Volume (Slot 4)", description: "0-100%", defaultValue: "70",  required: true     
+        input "speakerN5q", "capability.musicPlayer", title: "Music Player Quiet Time Device Slot 5", required: true, multiple: true
+        input "volumeEq", "number", title: "Quiet Volume (Slot 5)", description: "0-100%", defaultValue: "70",  required: true
+        state.voiceVolumeAq = volumeAq
+        state.voiceVolumeBq = volumeBq   
+        state.voiceVolumeCq = volumeCq
+        state.voiceVolumeDq = volumeDq    
+        state.voiceVolumeEq = volumeEq     
+         }
+            
+        }
+        else {
+        input "fromTime2", "time", title: "Quiet Time Start", required: false
+    	input "toTime2", "time", title: "Quiet Time End", required: false     
+    	input "volume2", "number", title: "Quiet Time All Speaker volume", description: "0-100%", required: false, defaultValue: "50",submitOnChange: true
+   		state.volumeAllq = volume2
+
+    	}
+    }
+		
+		
+		// ***********************
             
     }    
     else if(state.msgType == "PushOver Message"){ 
@@ -689,149 +810,43 @@ def speakerInputs(){
 def triggerInput() {
    input "trigger", "enum", title: "How to trigger message?",required: false, submitOnChange: true, options: ["Appliance Power Monitor", "Contact", "Contact - Open Too Long", "Lock/Unlock", "Mode Change", "Motion", "Power", "Presence", "Switch", "Time", "Time if Contact Open", "Water", "Weather Alert"]
   /// "Temperature",  "Button",
+    if (trigger) {
+    state.selection = trigger
+		
+	if(state.selection == 'Button'){ input "button1", "capability.button", title: "Button", multiple: false, required: false}
+	if(state.selection == 'Switch'){input "switch1", "capability.switch", title: "Select switch to trigger message/report", required: false, multiple: false }
+    if(state.selection == 'Water'){ input "water1", "capability.waterSensor", title: "Select water sensor to trigger message", required: false, multiple: false }
+	if(state.selection == 'Presence'){input "presenceSensor1", "capability.presenceSensor", title: "Select presence sensor to trigger message", required: false, multiple: false }
+	if(state.selection == 'Contact'){input "contactSensor", "capability.contactSensor", title: "Select contact sensor to trigger message", required: false, multiple: true }
+	if(state.selection == 'Power'){input "powerSensor", "capability.powerMeter", title: "Select power sensor to trigger message", required: false, multiple: false }
+	if(state.selection == 'Appliance Power Monitor'){input "powerSensor", "capability.powerMeter", title: "Select power sensor to trigger message", required: true, multiple: false} 
+	if(state.selection == 'Motion'){input "motionSensor",  "capability.motionSensor", title: "Select Motion Sensor", required: false, multiple: false}
+	if(state.selection == 'Time'){input (name: "runTime", title: "Time to run", type: "time",  required: true)}	
+	if(state.selection == 'Time if Contact Open'){
+	input (name: "runTime", title: "Time to run", type: "time",  required: true) 
+    input "contact1", "capability.contactSensor", title: "Select contact sensor to check", required: false, multiple: false }	
+	if(state.selection == 'Contact - Open Too Long'){
+	input "openSensor", "capability.contactSensor", title: "Select contact sensor to trigger message", required: false, multiple: false 
+   	input(name: "opendelay1", type: "number", title: "Only if it stays open for this number of minutes...", required: true, description: "this number of minutes", defaultValue: '0')}
+	if(state.selection == 'Mode Change'){input "newMode1", "mode", title: "Action when changing to this mode",  required: false}
+	if(state.selection == 'Lock/Unlock'){input "lock1", "capability.lock", title: "Select lock to trigger message", required: false, multiple: false }
+	if(state.selection == 'Weather Alert'){input "weather2", "capability.sensor", title: "Select Weather Device", required: false, multiple: false }
+
+		
+		
+	}		
 }
+    
+    
+    
 
-def restrictionInputs(){
-
-
-        
-
-		section() {
-        
-    input "restrictions1", "bool", title: "Configure Time or Day or Mode Restriction", required: true, defaultValue: false, submitOnChange: true
-    input "restrictions2", "bool", title: "Configure 'Volume by Time' Restriction", required: true, defaultValue: false, submitOnChange: true
-    input "restrictions3", "bool", title: "Configure Presence Sensor Restriction", required: true, defaultValue: false, submitOnChange: true
-     }
-
-		
-    
-     if(restrictions1){    
-         
-           section() {input(name:"modes", type: "mode", title: "Set for specific mode(s)", multiple: true, required: false)}
-              
-         
-     	section("Time/Day") {
-            
-            
-    input "fromTime", "time", title: "Allow messages from", required: false
-    input "toTime", "time", title: "Allow messages until", required: false
-    input "days", "enum", title: "Select Days of the Week", required: false, multiple: true, options: ["Monday": "Monday", "Tuesday": "Tuesday", "Wednesday": "Wednesday", "Thursday": "Thursday", "Friday": "Friday", "Saturday": "Saturday", "Sunday": "Sunday"]
-    		}
-    }
-    if(restrictions2){
-		section("'Quiet Time' - This is to reduce volume during a specified time") {
-          input "multiVolumeQuiet", "bool", title: "Multiple Volume Slots?", required: false, defaultValue: false, submitOnChange: true   
-        state.multiVolumeSlotsq = multiVolumeQuiet
-        
-        if(state.multiVolumeSlotsq == true){
-        input "fromTime2", "time", title: "Quiet Time Start", required: false
-   		input "toTime2", "time", title: "Quiet Time End", required: false  
-        
-        input "speakerNoq", "enum", title: "How Many Volume Slots Do You Need", submitOnChange: true, defaultValue: "0", options: [ "2","3","4","5"]
-        if(speakerNoq != null){
-            state.speakerNumberq = speakerNoq
-        }
-         if(state.speakerNumberq == null){
-         paragraph "You need to make a selection here!"
-         }
-		
-         if(state.speakerNumberq == "2"){
-         input "speakerN1q", "capability.musicPlayer", title: "Music Player Device Slot 1", required: true, multiple: true
-         input "volumeAq", "number", title: "Quiet Volume (Slot 1)", description: "0-100%", defaultValue: "70",  required: true
-         input "speakerN2q", "capability.musicPlayer", title: "Music Player Device Slot 2", required: true, multiple: true
-         input "volumeBq", "number", title: "Quiet Volume (Slot 2)", description: "0-100%", defaultValue: "70",  required: true    
-          state.voiceVolumeAq = volumeAq
-          state.voiceVolumeBq = volumeBq   
-             
-             
-             
-         }   
-        
-         if(state.speakerNumberq == "3"){
-        input "speakerN1q", "capability.musicPlayer", title: "Music Player Device Slot 1", required: true, multiple: true 
-        input "volumeAq", "number", title: "Quiet Volume (Slot 1)", description: "0-100%", defaultValue: "70",  required: true     
-        input "speakerN2q", "capability.musicPlayer", title: "Music Player Device Slot 2", required: true, multiple: true
-        input "volumeBq", "number", title: "Quiet Volume (Slot 2)", description: "0-100%", defaultValue: "70",  required: true     
-        input "speakerN3q", "capability.musicPlayer", title: "Music Player Device Slot 3", required: true, multiple: true 
-        input "volumeCq", "number", title: "Quiet Volume (Slot 3)", description: "0-100%", defaultValue: "70",  required: true
-        state.voiceVolumeAq = volumeAq
-        state.voiceVolumeBq = volumeBq   
-        state.voiceVolumeCq = volumeCq
-             
-         }     
-             
-         if(state.speakerNumberq == "4"){
-        input "speakerN1q", "capability.musicPlayer", title: "Music Player Device Slot 1", required: true, multiple: true 
-        input "volumeAq", "number", title: "Quiet Volume (Slot 1)", description: "0-100%", defaultValue: "70",  required: true
-        input "speakerN2q", "capability.musicPlayer", title: "Music Player Device Slot 2", required: true, multiple: true
-        input "volumeBq", "number", title: "Quiet Volume (Slot 2)", description: "0-100%", defaultValue: "70",  required: true     
-        input "speakerN3q", "capability.musicPlayer", title: "Music Player Device Slot 3", required: true, multiple: true
-        input "volumeCq", "number", title: "Quiet Volume (Slot 3)", description: "0-100%", defaultValue: "70",  required: true
-        input "speakerN4q", "capability.musicPlayer", title: "Music Player Device Slot 4", required: true, multiple: true
-        input "volumeDq", "number", title: "Quiet Volume (Slot 4)", description: "0-100%", defaultValue: "70",  required: true      
-        state.voiceVolumeAq = volumeAq
-        state.voiceVolumeBq = volumeBq   
-        state.voiceVolumeCq = volumeCq
-        state.voiceVolumeDq = volumeDq     
-             
-         }     
-             
-         if(state.speakerNumberq == "5"){    
-        input "speakerN1q", "capability.musicPlayer", title: "Music Player Device Slot 1", required: true, multiple: true
-        input "volumeAq", "number", title: "Quiet Volume (Slot 1)", description: "0-100%", defaultValue: "70",  required: true
-        input "speakerN2q", "capability.musicPlayer", title: "Music Player Device Slot 2", required: true, multiple: true
-        input "volumeBq", "number", title: "Quiet Volume (Slot 2)", description: "0-100%", defaultValue: "70",  required: true
-        input "speakerN3q", "capability.musicPlayer", title: "Music Player Device Slot 3", required: true, multiple: true
-        input "volumeCq", "number", title: "Quiet Volume (Slot 3)", description: "0-100%", defaultValue: "70",  required: true
-        input "speakerN4q", "capability.musicPlayer", title: "Music Player Device Slot 4", required: true, multiple: true
-        input "volumeDq", "number", title: "Quiet Volume (Slot 4)", description: "0-100%", defaultValue: "70",  required: true     
-        input "speakerN5q", "capability.musicPlayer", title: "Music Player Device Slot 5", required: true, multiple: true
-        input "volumeEq", "number", title: "Quiet Volume (Slot 5)", description: "0-100%", defaultValue: "70",  required: true
-        state.voiceVolumeAq = volumeAq
-        state.voiceVolumeBq = volumeBq   
-        state.voiceVolumeCq = volumeCq
-        state.voiceVolumeDq = volumeDq    
-        state.voiceVolumeEq = volumeEq     
-         }
-            
-        }
-        else {
-        input "fromTime2", "time", title: "Quiet Time Start", required: false
-    	input "toTime2", "time", title: "Quiet Time End", required: false     
-    	input "volume2", "number", title: "Quiet Time All Speaker volume", description: "0-100%", required: false, defaultValue: "50",submitOnChange: true
-   		state.volumeAllq = volume2
-
-    	}
-    }
-}    
-    
-    
-    
-    
-    
-    if(restrictions3){
-    section("This is to restrict on 1 or 2 presence sensor(s)") {
-    input "restrictPresenceSensor", "capability.presenceSensor", title: "Select presence sensor 1 to restrict action", required: false, multiple: false, submitOnChange: true
-    if(restrictPresenceSensor){
-   	input "restrictPresenceAction", "bool", title: "   On = Action only when someone is 'Present'  <br>Off = Action only when someone is 'NOT Present'  ", required: true, defaultValue: false    
-	}
-     input "restrictPresenceSensor1", "capability.presenceSensor", title: "Select presence sensor 2 to restrict action", required: false, multiple: false, submitOnChange: true
-    if(restrictPresenceSensor1){
-   	input "restrictPresenceAction1", "bool", title: "   On = Action only when someone is 'Present'  <br>Off = Action only when someone is 'NOT Present'  ", required: true, defaultValue: false    
-	}
-    
-    }
-            }
-		
-  
-}
 
 def actionInputs() {
     if (trigger) {
     state.selection = trigger
     
 if(state.selection == 'Button'){
-   input "button1", "capability.button", title: "Button", multiple: false, required: false
+ //  input "button1", "capability.button", title: "Button", multiple: false, required: false
 
     
     if(state.msgType == "Voice Message (MusicPlayer)"){
@@ -870,7 +885,7 @@ if(state.selection == 'Button'){
     
     
 if(state.selection == 'Switch'){
-    input "switch1", "capability.switch", title: "Select switch to trigger message/report", required: false, multiple: false 
+//    input "switch1", "capability.switch", title: "Select switch to trigger message/report", required: false, multiple: false 
 
     
     if(state.msgType == "Voice Message (MusicPlayer)" || state.msgType == "Voice Message (SpeechSynth)"){
@@ -911,7 +926,7 @@ if(state.selection == 'Switch'){
  
 
 else if(state.selection == 'Water'){
-	 input "water1", "capability.waterSensor", title: "Select water sensor to trigger message", required: false, multiple: false 
+	// input "water1", "capability.waterSensor", title: "Select water sensor to trigger message", required: false, multiple: false 
      
     if(state.msgType == "Voice Message (MusicPlayer)" || state.msgType == "Voice Message (SpeechSynth)"){
    	input "message1", "text", title: "Message to play when WET",  required: false
@@ -949,7 +964,7 @@ else if(state.selection == 'Water'){
         
 
 else if(state.selection == 'Presence'){
-	input "presenceSensor1", "capability.presenceSensor", title: "Select presence sensor to trigger message", required: false, multiple: false 
+//	input "presenceSensor1", "capability.presenceSensor", title: "Select presence sensor to trigger message", required: false, multiple: false 
    
     if(state.msgType == "Voice Message (MusicPlayer)" || state.msgType == "Voice Message (SpeechSynth)"){
 	input "message1", "text", title: "Message to play when sensor arrives",  required: false
@@ -986,7 +1001,7 @@ else if(state.selection == 'Presence'){
 } 
 
 else if(state.selection == 'Contact'){
-	input "contactSensor", "capability.contactSensor", title: "Select contact sensor to trigger message", required: false, multiple: true 
+//	input "contactSensor", "capability.contactSensor", title: "Select contact sensor to trigger message", required: false, multiple: true 
    
      
     if(state.msgType == "Voice Message (MusicPlayer)" || state.msgType == "Voice Message (SpeechSynth)"){
@@ -1023,7 +1038,7 @@ else if(state.selection == 'Contact'){
 } 
 
 else if(state.selection == 'Power'){
-	input "powerSensor", "capability.powerMeter", title: "Select power sensor to trigger message", required: false, multiple: false 
+//	input "powerSensor", "capability.powerMeter", title: "Select power sensor to trigger message", required: false, multiple: false 
     input(name: "belowThreshold", type: "decimal", title: "Power Threshold (Watts)", required: true, description: "this number of watts")
     input "actionType1", "bool", title: "Select Power Sensor action type: \r\n \r\n On = Alert when power goes ABOVE configured threshold  \r\n Off = Alert when power goes BELOW configured threshold", required: true, defaultValue: false
 	input(name: "delay1", type: "number", title: "Only if it stays that way for this number of minutes...", required: true, description: "this number of minutes", defaultValue: '0')
@@ -1057,7 +1072,7 @@ else if(state.selection == 'Power'){
 
 
 else if(state.selection == 'Appliance Power Monitor'){
-	input "powerSensor", "capability.powerMeter", title: "Select power sensor to trigger message", required: true, multiple: false 
+//	input "powerSensor", "capability.powerMeter", title: "Select power sensor to trigger message", required: true, multiple: false 
     input(name: "belowThreshold", type: "decimal", title: "Below Power Threshold (Watts)", required: true, description: "Trigger below this number of watts", defaultValue: '0')
     input(name: "delay2", type: "number", title: "Only if it stays that way for this number of minutes...", required: true, description: "this number of minutes", defaultValue: '0')
     input(name: "aboveThreshold", type: "number", title: "Activate Power Threshold (Watts)", required: true, description: "Start monitoring above this number of watts", defaultValue: '0')
@@ -1090,7 +1105,7 @@ else if(state.selection == 'Appliance Power Monitor'){
 } 
 
 else if(state.selection == 'Motion'){
-	input "motionSensor",  "capability.motionSensor", title: "Select Motion Sensor", required: false, multiple: false 
+//	input "motionSensor",  "capability.motionSensor", title: "Select Motion Sensor", required: false, multiple: false 
     input "motionActionType", "bool", title: "Select Motion Sensor action type: \r\n \r\n On = Alert when motion 'Active'  \r\n Off = Alert when motion 'Inactive'", required: true, defaultValue: false
 	
     
@@ -1150,7 +1165,7 @@ else if(state.selection == 'Temperature'){
 }
 
 else if(state.selection == 'Time'){
-	input (name: "runTime", title: "Time to run", type: "time",  required: true) 
+//	input (name: "runTime", title: "Time to run", type: "time",  required: true) 
    
     
    if(state.msgType == "Voice Message (MusicPlayer)" || state.msgType == "Voice Message (SpeechSynth)"){
@@ -1187,8 +1202,8 @@ else if(state.selection == 'Time'){
 }   
 
 else if(state.selection == 'Time if Contact Open'){
-	input (name: "runTime", title: "Time to run", type: "time",  required: true) 
-    input "contact1", "capability.contactSensor", title: "Select contact sensor to check", required: false, multiple: false 
+//	input (name: "runTime", title: "Time to run", type: "time",  required: true) 
+//    input "contact1", "capability.contactSensor", title: "Select contact sensor to check", required: false, multiple: false 
    
   if(state.msgType == "Voice Message (MusicPlayer)" || state.msgType == "Voice Message (SpeechSynth)"){
 	input "messageTime", "text", title: "Message to play if contact open",  required: true
@@ -1215,7 +1230,7 @@ else if(state.selection == 'Time if Contact Open'){
 }   
 
 else if(state.selection == 'Mode Change'){
-	input "newMode1", "mode", title: "Action when changing to this mode",  required: false
+//	input "newMode1", "mode", title: "Action when changing to this mode",  required: false
     
      
   if(state.msgType == "Voice Message (MusicPlayer)" || state.msgType == "Voice Message (SpeechSynth)"){
@@ -1245,8 +1260,8 @@ else if(state.selection == 'Mode Change'){
     
  
 	else if(state.selection == 'Contact - Open Too Long'){
-	input "openSensor", "capability.contactSensor", title: "Select contact sensor to trigger message", required: false, multiple: false 
-   	input(name: "opendelay1", type: "number", title: "Only if it stays open for this number of minutes...", required: true, description: "this number of minutes", defaultValue: '0')
+//	input "openSensor", "capability.contactSensor", title: "Select contact sensor to trigger message", required: false, multiple: false 
+//   	input(name: "opendelay1", type: "number", title: "Only if it stays open for this number of minutes...", required: true, description: "this number of minutes", defaultValue: '0')
    
     
   if(state.msgType == "Voice Message (MusicPlayer)" || state.msgType == "Voice Message (SpeechSynth)"){
@@ -1275,7 +1290,7 @@ else if(state.selection == 'Mode Change'){
 
         
      else if(state.selection == 'Lock/Unlock'){
-	 input "lock1", "capability.lock", title: "Select lock to trigger message", required: false, multiple: false 
+//	 input "lock1", "capability.lock", title: "Select lock to trigger message", required: false, multiple: false 
      
     if(state.msgType == "Voice Message (MusicPlayer)" || state.msgType == "Voice Message (SpeechSynth)"){
    	input "message1", "text", title: "Message to play when LOCKED",  required: false
@@ -1312,7 +1327,7 @@ else if(state.selection == 'Mode Change'){
 
                
      else if(state.selection == 'Weather Alert'){
-	 input "weather2", "capability.sensor", title: "Select Weather Device", required: false, multiple: false 
+//	 input "weather2", "capability.sensor", title: "Select Weather Device", required: false, multiple: false 
      input "preAlert", "text", title: "Message to play before weather alert (optional)", required: false, multiple: false 
          
     if(state.msgType == "Voice Message (MusicPlayer)" || state.msgType == "Voice Message (SpeechSynth)"){
@@ -1388,9 +1403,8 @@ def weatherAlert(evt){
      LOGDEBUG("Weather Alert is 'null'")   
     }
     else{
-        if(state.pauseApp == true){log.warn "Unable to continue - App paused"}
-    if(state.pauseApp == false){log.info "Continue - App NOT paused" 
-
+       checkAllow()
+	if(state.allAllow == true){
     if(state.selection == 'Weather Alert'){
     if(preAlert == null){state.alertPre = " "}
     else {state.alertPre = preAlert}
@@ -1527,14 +1541,12 @@ def weatherChanceOfRain(evt){
 
 
 def mp3EventHandler(){
-    if(state.pauseApp == true){log.warn "Unable to continue - App paused"}
-    if(state.pauseApp == false){log.info "Continue - App NOT paused" 
-	checkAllow()
+checkAllow()
+
 	if(state.allAllow == true && state.mp3Timer == true){
 	LOGDEBUG( " Continue... Check delay...")
 	def delayBefore = mp3Delay
 	runIn(delayBefore, mp3Now)
-		}
     }
 }
 
@@ -1569,8 +1581,8 @@ LOGDEBUG("Timer reset - Messages allowed")
 
 // Appliance Power Monitor
 def powerApplianceNow(evt){
-    if(state.pauseApp == true){log.warn "Unable to continue - App paused"}
-    if(state.pauseApp == false){log.info "Continue - App NOT paused" 
+    checkAllow()
+	if(state.allAllow == true){
 state.meterValue = evt.value as double
 state.activateThreshold = aboveThreshold
 state.nameOfDevice = evt.displayName
@@ -1688,8 +1700,8 @@ LOGDEBUG("Already told you, so won't tell you again!")
 
 // Button
 def buttonEvent(evt){
-    if(state.pauseApp == true){log.warn "Unable to continue - App paused"}
-    if(state.pauseApp == false){log.info "Continue - App NOT paused" 
+checkAllow()
+	if(state.allAllow == true){
 state.buttonStatus1 = evt.value
 state.nameOfDevice = evt.displayName
 state.actionEvent = evt.value
@@ -1754,15 +1766,15 @@ LOGDEBUG("Button - PushOver Message - Sending Message: $msg")
 pushOver(2, msg)
     }
 
-}    
-                               }
+   }    
+  }
 }
 
 
 // Temperature
 def tempTalkNow(evt){
-    if(state.pauseApp == true){log.warn "Unable to continue - App paused"}
-    if(state.pauseApp == false){log.info "Continue - App NOT paused" 
+    checkAllow()
+	if(state.allAllow == true){ 
 state.tempStatus2 = evt.value
 state.tempStatus1 = state.tempStatus2.toDouble()
 state.nameOfDevice = evt.displayName
@@ -1873,8 +1885,8 @@ def stopRepeat(){
 // Motion
 
 def motionTalkNow(evt){
-    if(state.pauseApp == true){log.warn "Unable to continue - App paused"}
-    if(state.pauseApp == false){log.info "Continue - App NOT paused" 
+checkAllow()
+	if(state.allAllow == true){
 state.motionStatus1 = evt.value
 state.nameOfDevice = evt.displayName
 state.actionEvent = evt.value
@@ -1960,8 +1972,8 @@ LOGDEBUG("MotionTalkNow - Join Message - Sending Message: $msg")
 
 // Open Too Long
 def tooLongOpen(evt){
-    if(state.pauseApp == true){log.warn "Unable to continue - App paused"}
-    if(state.pauseApp == false){log.info "Continue - App NOT paused" 
+checkAllow()
+	if(state.allAllow == true){
 LOGDEBUG("tooLongOpen - Contact is $evt.value")
 state.openContact = evt.value
 state.nameOfDevice = evt.displayName
@@ -1994,8 +2006,8 @@ LOGDEBUG( "tooLongOpen - openContactTimer1 -  Contact is: $state.openContact")
       
       
 def openContactSpeak(){
-    if(state.pauseApp == true){log.warn "Unable to continue - App paused"}
-    if(state.pauseApp == false){log.info "Continue - App NOT paused" 
+checkAllow()
+	if(state.allAllow == true){ 
 LOGDEBUG( "openContactSpeak -  Contact is: $state.openContact")
 state.msg1 = message1
 state.msgNow = 'oneNow'
@@ -2038,20 +2050,11 @@ LOGDEBUG("tooLongOpen - Join Message - Sending Message: $msg")
   }
  }
 }
-// Mode Change
-
-def modeHandler(evt){
- state.modeNow = evt.value
-state.actionEvent = evt.value
-//    LOGDEBUG("state.actionEvent = $evt.value")   
-    
-    
-}
 
 
 def modeChangeHandler(evt){
-    if(state.pauseApp == true){log.warn "Unable to continue - App paused"}
-    if(state.pauseApp == false){log.info "Continue - App NOT paused"     
+checkAllow()
+	if(state.allAllow == true){    
 state.modeNow = evt.value
 state.actionEvent = evt.value
     LOGDEBUG("state.actionEvent = $evt.value")
@@ -2118,189 +2121,21 @@ LOGDEBUG("Mode Change - Join Message - Sending Message: $msg")
 }
 
 
-// Define restrictPresenceSensor actions
-def restrictPresenceSensorHandler(evt){
-state.presencestatus1 = evt.value
-LOGDEBUG("state.presencestatus1 = $evt.value")
-checkPresence()
-checkPresence1()
-
-}
-
-
-def checkPresence(){
-LOGDEBUG("running checkPresence - restrictPresenceSensor = $restrictPresenceSensor")
-
-if(restrictPresenceSensor){
-LOGDEBUG("Presence = $state.presencestatus1")
-def actionPresenceRestrict = restrictPresenceAction
-
-
-if (state.presencestatus1 == "present" && actionPresenceRestrict == true){
-LOGDEBUG("Presence ok")
-state.presenceRestriction = true
-}
-else if (state.presencestatus1 == "not present" && actionPresenceRestrict == true){
-LOGDEBUG("Presence not ok")
-state.presenceRestriction = false
-}
-
-if (state.presencestatus1 == "not present" && actionPresenceRestrict == false){
-LOGDEBUG("Presence ok")
-state.presenceRestriction = true
-}
-else if (state.presencestatus1 == "present" && actionPresenceRestrict == false){
-LOGDEBUG("Presence not ok")
-state.presenceRestriction = false
-}
-}
-else if(!restrictPresenceSensor){
-state.presenceRestriction = true
-LOGDEBUG("Presence sensor restriction not used")
-}
-}
-
-
-def restrictPresence1SensorHandler(evt){
-state.presencestatus2 = evt.value
-LOGDEBUG("state.presencestatus2 = $evt.value")
-checkPresence1()
-
-
-}
-
-
-def checkPresence1(){
-LOGDEBUG("running checkPresence1 - restrictPresenceSensor1 = $restrictPresenceSensor1")
-
-if(restrictPresenceSensor1){
-LOGDEBUG("Presence = $state.presencestatus1")
-def actionPresenceRestrict1 = restrictPresenceAction1
-
-
-if (state.presencestatus2 == "present" && actionPresenceRestrict1 == true){
-LOGDEBUG("Presence 2 ok")
-state.presenceRestriction1 = true
-}
-else if (state.presencestatus2 == "not present" && actionPresenceRestrict1 == true){
-LOGDEBUG("Presence 2 not ok")
-state.presenceRestriction1 = false
-}
-
-if (state.presencestatus2 == "not present" && actionPresenceRestrict1 == false){
-LOGDEBUG("Presence 2 ok")
-state.presenceRestriction1 = true
-}
-else if (state.presencestatus2 == "present" && actionPresenceRestrict1 == false){
-LOGDEBUG("Presence 2 not ok")
-state.presenceRestriction1 = false
-}
-}
-else if(!restrictPresenceSensor1){
-state.presenceRestriction1 = true
-LOGDEBUG("Presence sensor 2 restriction not used")
-}
-}
 
 
 
-
-
-// define debug action
-def logCheck(){
-state.checkLog = debugMode
-if(state.checkLog == true){
-log.info "All Logging Enabled"
-}
-else if(state.checkLog == false){
-log.info "Further Logging Disabled"
-}
-
-}
-def LOGDEBUG(txt){
-    try {
-    	if (settings.debugMode) { log.debug("${app.label.replace(" ","_").toUpperCase()}  (Childapp Version: ${state.version}) - ${txt}") }
-    } catch(ex) {
-    	log.error("LOGDEBUG unable to output requested data!")
-    }
-}
 
 
 
 // Enable Switch
 
-def switchRunCheck(){
-if(enableSwitch){
-def switchstate = enableSwitch.currentValue('switch')
-LOGDEBUG("Enable switch is used. Switch is: $enableSwitch ")
-
-if(switchstate == 'on'){
-state.appgo = true
-LOGDEBUG("$enableSwitch - Switch State = $switchstate - Appgo = $state.appgo")
-}
-if(switchstate == 'off'){
-state.appgo = false
-LOGDEBUG("$enableSwitch - Switch State = $switchstate - Appgo = $state.appgo")
-}
-if(switchstate == null){
-state.appgo = true
-LOGDEBUG("$enableSwitch - Switch State = $switchstate - Appgo = $state.appgo")
-}  
-}
-
-
-if(!enableSwitch){
-LOGDEBUG("Enable switch is NOT used. Switch is: $enableSwitch ")
-state.appgo = true
-LOGDEBUG("AppGo = $state.appgo")
-}
-}
-
-def switchEnable(evt){
-state.enableInput = evt.value
-    
-    if(enableSwitchMode == true && state.enableInput == 'off'){
-state.appgo = false
-        LOGDEBUG("Cannot change mode - App disabled by switch")  
-    }
-     if(enableSwitchMode == true && state.enableInput == 'on'){
-state.appgo = true
-        LOGDEBUG("Switch restriction is OK.. Continue...") 
-    }    
-     if(enableSwitchMode == false && state.enableInput == 'off'){
-state.appgo = true
-        LOGDEBUG("Switch restriction is OK.. Continue...")  
-    }
-     if(enableSwitchMode == false && state.enableInput == 'on'){
-state.appgo = false
-        LOGDEBUG("Cannot change mode - App disabled by switch")  
-    }    
-      
-    
-LOGDEBUG("Allow by switch is $state.appgo")
-        
-    
-state.sEnable = evt.value
-LOGDEBUG("$enableSwitch = $state.sEnable")
-if(state.sEnable == 'on'){
-state.appgo = true
-LOGDEBUG("AppGo = $state.appgo")
-}
-else if(state.sEnable == 'off'){
-state.appgo = false
-LOGDEBUG("AppGo = $state.appgo")
-}
-}
-
 
 // Time
 def timeTalkNow(evt){
-    if(state.pauseApp == true){log.warn "Unable to continue - App paused"}
-    if(state.pauseApp == false){log.info "Continue - App NOT paused"    
 checkAllow()
+	if(state.allAllow == true){
 
 LOGDEBUG("state.appgo = $state.appgo - state.dayCheck = $state.dayCheck - state.volume = $state.volume - runTime = $runTime")
-if(state.allAllow == true ){
 LOGDEBUG("Time trigger -  Activating now! ")
     
     if(state.msgType == "Play an Mp3 (No variables can be used)"){
@@ -2348,21 +2183,12 @@ LOGDEBUG("Time - Join Message - Sending Message: $msg")
  if(state.msgType == "Play an Mp3 (No variables can be used)"){
 			mp3EventHandler()
     		if(state.soundToPlay == null){ LOGDEBUG(" Mp3 ERROR - cannot find $state.soundToPlay")}
-}         
+			}         
 
     }
+  }
 }
-else if(state.appgo == false){
-LOGDEBUG( "$enableSwitch is off so cannot continue")
-}
-else if(state.dayCheck == false){
-LOGDEBUG( "Cannot continue - Daycheck failed")
-}
-else if(state.presenceRestriction ==  false){
-LOGDEBUG( "Cannot continue - Presence failed")
-}
-}
-}
+
 
 
 // Time if Contact Open
@@ -2376,12 +2202,11 @@ LOGDEBUG( "$contact1 = $evt.value")
 
 
 def timeTalkNow1(evt){
-    if(state.pauseApp == true){log.warn "Unable to continue - App paused"}
-    if(state.pauseApp == false){log.info "Continue - App NOT paused"     
 checkAllow()
+	if(state.allAllow == true){
 
 LOGDEBUG("state.appgo = $state.appgo - state.dayCheck = $state.dayCheck - state.volume = $state.volume - runTime = $runTime")
-if(state.allAllow == true  && state.contact1SW == 'open' ){
+if(state.contact1SW == 'open' ){
 LOGDEBUG("Time trigger -  Activating now! ")
 LOGDEBUG("Calling.. CompileMsg")
   def msg = messageTime
@@ -2439,9 +2264,8 @@ LOGDEBUG( "Cannot continue - $contact1 is Closed")
 
 // Switch
 def switchTalkNow(evt){
-    log.warn "talkswitch called"
-    if(state.pauseApp == true){log.warn "Unable to continue - App paused"}
-    if(state.pauseApp == false){log.info "Continue - App NOT paused"     
+checkAllow()
+	if(state.allAllow == true){
 state.talkswitch1 = evt.value
 state.nameOfDevice = evt.displayName
 state.actionEvent = evt.value
@@ -2563,8 +2387,8 @@ LOGDEBUG("Switch - Join Message - Sending Message: $msg - $state.nameOfDevice")
 
 // Contact
 def contactTalkNow(evt){
-    if(state.pauseApp == true){log.warn "Unable to continue - App paused"}
-    if(state.pauseApp == false){log.info "Continue - App NOT paused" 
+    checkAllow()
+	if(state.allAllow == true){
 state.talkcontact = evt.value
 state.nameOfDevice = evt.displayName
 state.actionEvent = evt.value
@@ -2682,8 +2506,8 @@ LOGDEBUG("Contact - Join Message - Sending Message: $state.fullPhrase")
 
 // Lock/Unlock
 def lockTalkNow(evt){
-    if(state.pauseApp == true){log.warn "Unable to continue - App paused"}
-    if(state.pauseApp == false){log.info "Continue - App NOT paused" 
+    checkAllow()
+	if(state.allAllow == true){
 state.talklock = evt.value
 state.nameOfDevice = evt.displayName
 state.actionEvent = evt.value
@@ -2800,8 +2624,8 @@ LOGDEBUG("Unlocked - Join Message - Sending Message: $state.fullPhrase")
 
 // Water
 def waterTalkNow(evt){
-    if(state.pauseApp == true){log.warn "Unable to continue - App paused"}
-    if(state.pauseApp == false){log.info "Continue - App NOT paused" 
+    checkAllow()
+	if(state.allAllow == true){
 state.talkwater = evt.value
 state.nameOfDevice = evt.displayName
 state.actionEvent = evt.value
@@ -2897,8 +2721,8 @@ LOGDEBUG("Water - SMS Message - Sending Message: $state.fullPhrase")
 
 // Presence
 def presenceTalkNow(evt){
-    if(state.pauseApp == true){log.warn "Unable to continue - App paused"}
-    if(state.pauseApp == false){log.info "Continue - App NOT paused"     
+    checkAllow()
+	if(state.allAllow == true){    
 state.talkpresence = evt.value
 state.nameOfDevice = evt.displayName
 state.actionEvent = evt.value
@@ -3010,21 +2834,16 @@ LOGDEBUG("Presence - Join Message - Sending Message: $state.fullPhrase")
 
 // Power 
 def powerTalkNow (evt){
-    if(state.pauseApp == true){log.warn "Unable to continue - App paused"}
-    if(state.pauseApp == false){log.info "Continue - App NOT paused" 
+    checkAllow()
+	if(state.allAllow == true){
 state.meterValue = evt.value as double
 state.nameOfDevice = evt.displayName
 state.actionEvent = evt.value as double
 	LOGDEBUG("$powerSensor shows $state.meterValue Watts")
-    if(state.appgo == true){
+    
 	checkNow1()  
-	}
-    else if(state.appgo == false){
-    LOGDEBUG("App disabled by $enableswitch being off")
-
-}
-                              
-}                               
+	
+	}                               
 }
         
     
@@ -3082,7 +2901,7 @@ def checkAgain2() {
 
 def speakNow(){
 	checkAllow()
-    if(state.allAllow == true){  
+	if(state.allAllow == true){  
 		LOGDEBUG("Power - speakNow...")
 		state.msg1 = message1
 	    if ( state.timer1 == true){
@@ -3264,12 +3083,11 @@ def joinMsg(inMsg){
 // Talk now....
 
 def talkSwitch(){
-    if(state.pauseApp == true){log.warn "Unable to continue - App paused"}
-    if(state.pauseApp == false){log.info "Continue - App NOT paused"     
- 	checkAllow()
-
+// checkAllow()
+	
+LOGDEBUG( " Continue... talkswitch. - state.msgNow = $state.msgNow")
 if(state.allAllow == true){
-LOGDEBUG( " Continue... Check delay...")
+
 
 if(state.msgNow == 'oneNow' && state.timer1 == true && state.msg1 != null){
 LOGDEBUG("Calling.. CompileMsg")
@@ -3287,30 +3105,35 @@ compileMsg(state.msg2)
 LOGDEBUG("All OK! - Playing message 2: '$state.fullPhrase'")
      speaker.playTextAndRestore(state.fullPhrase)
 		startTimer2()
-			}
+			
 		}
+	if(state.msgNow == 'twoNow'  && state.msg2 == null){
+		LOGDEBUG("msg2 is empty so nothing to say..")
+		
+	}
 	}
 }
 
 
+   
+
 def checkVolume(){
     LOGDEBUG("Calling.. CheckVolume")
-    setDefaults()
     LOGDEBUG("state.multiVolumeSlots = $state.multiVolumeSlots")
-def timecheck = fromTime2
-if (timecheck != null){
-def between2 = timeOfDayIsBetween(toDateTime(fromTime2), toDateTime(toTime2), new Date(), location.timeZone)
+	def timecheck = fromTime2
+	if(timecheck != null){
+	def between2 = timeOfDayIsBetween(toDateTime(fromTime2), toDateTime(toTime2), new Date(), location.timeZone)
     if (between2) {
-   state.volume = state.volumeAllq 
+    state.volume = state.volumeAllq 
  
- if(state.multiVolumeSlotsq == false){
-      speaker.setLevel(state.volume)
+	if(state.multiVolumeSlotsq == false){
+    speaker.setLevel(state.volume)
     LOGDEBUG("Multi Volume Not used - setting volume of all speakers to $state.volume")
 
   }
     
-   else if(state.multiVolumeSlotsq == true){
-     LOGDEBUG("Multi Volume used - setting volume of each speaker")  
+        else if(state.multiVolumeSlotsq == true){
+        LOGDEBUG("Multi Volume used - setting volume of each speaker")  
 		if(state.speakerNumberq == "2"){ 
         speakerN1q.setLevel(state.voiceVolumeAq)
         LOGDEBUG("Speaker 1: setting volume to $state.voiceVolumeAq")     
@@ -3352,38 +3175,33 @@ def between2 = timeOfDayIsBetween(toDateTime(fromTime2), toDateTime(toTime2), ne
 		} 
        
     } 
-    
- 
-        
-        
-    
-   LOGDEBUG("Quiet Time = Yes - Setting Quiet time volume")
+		LOGDEBUG("Quiet Time = Yes - Setting Quiet time volume")
     
 }
-else if (!between2) {
-state.volume = state.volumeAll
-LOGDEBUG("Quiet Time = No - Setting Normal time volume ")
+		else if (!between2) {
+		state.volume = state.volumeAll
+		LOGDEBUG("Quiet Time = No - Setting Normal time volume ")
     
-  if(state.multiVolumeSlots == false){
-      speaker.setLevel(state.volume)
-     LOGDEBUG("Multi Volume Not used - setting volume of all speakers to $state.volume")
+		if(state.multiVolumeSlots == false){
+		speaker.setLevel(state.volume)
+		LOGDEBUG("Multi Volume Not used - setting volume of all speakers to $state.volume")
   }
     
-   else if(state.multiVolumeSlots == true){
+		else if(state.multiVolumeSlots == true){
 		if(state.speakerNumber == "2"){ 
         speakerN1.setLevel(state.voiceVolumeA)
-            LOGDEBUG("Speaker 1: setting volume to $state.voiceVolumeA")  
+			LOGDEBUG("Speaker 1: setting volume to $state.voiceVolumeA")  
     	speakerN2.setLevel(state.voiceVolumeB)
-            LOGDEBUG("Speaker 2: setting volume to $state.voiceVolumeB") 
+			LOGDEBUG("Speaker 2: setting volume to $state.voiceVolumeB") 
 		}
        
 		if(state.speakerNumber == "3"){ 
         speakerN1.setLevel(state.voiceVolumeA)
-            LOGDEBUG("Speaker 1: setting volume to $state.voiceVolumeA") 
+			LOGDEBUG("Speaker 1: setting volume to $state.voiceVolumeA") 
     	speakerN2.setLevel(state.voiceVolumeB)
-            LOGDEBUG("Speaker 2: setting volume to $state.voiceVolumeB") 
+			LOGDEBUG("Speaker 2: setting volume to $state.voiceVolumeB") 
         speakerN3.setLevel(state.voiceVolumeC)    
-            LOGDEBUG("Speaker 3: setting volume to $state.voiceVolumeC") 
+			LOGDEBUG("Speaker 3: setting volume to $state.voiceVolumeC") 
 		}
     
         if(state.speakerNumber == "4"){ 
@@ -3416,11 +3234,11 @@ LOGDEBUG("Quiet Time = No - Setting Normal time volume ")
 	}
 }
 else if (timecheck == null){
-   if(state.multiVolumeSlots == false){
-       state.volume = state.volumeAll
-      speaker.setLevel(state.volume)
-    LOGDEBUG("No 'quiet time' settings...Multi Volume Not used - setting volume of all speakers to $state.volume - state.volume = $state.volumeAll")
-     speaker.setLevel(state.volume)  
+		if(state.multiVolumeSlots == false){
+		state.volume = state.volumeAll
+		speaker.setLevel(state.volume)
+		LOGDEBUG("No 'quiet time' settings...Multi Volume Not used - setting volume of all speakers to $state.volume - state.volume = $state.volumeAll")
+		speaker.setLevel(state.volume)  
        
 
       
@@ -3465,9 +3283,9 @@ def sendMessage(msg) {
     LOGDEBUG("Calling.. sendMessage")
     compileMsg(msg)
     if(state.allAllow == true){
-        def mydelay = triggerDelay
-        LOGDEBUG("Waiting $mydelay seconds before sending")
-        runIn(mydelay, pushNow)
+	def mydelay = triggerDelay
+	LOGDEBUG("Waiting $mydelay seconds before sending")
+	runIn(mydelay, pushNow)
 	}
 }
 
@@ -3504,73 +3322,9 @@ log.trace "SendMessage - $state.fullPhrase"
          LOGDEBUG("Sending message: '$state.fullPhrase' to $sms5")
          sendSms(sms5, state.fullPhrase)
      }
-     state.timer1 = false
+     
             startTimer1()
 }
-}
-
-
-
-// Check Mode
-def modeCheck() {
-    LOGDEBUG("Checking mode...")
-	def result = !modes || modes.contains(location.mode)
-    
-    LOGDEBUG("Mode = $result")
-    state.modeCheck = result
-    return state.modeCheck
- }
-
-
-// Check time allowed to run...
-
-
-
-def checkTime(){
-def timecheckNow = fromTime
-if (timecheckNow != null){
-    
-def between = timeOfDayIsBetween(toDateTime(fromTime), toDateTime(toTime), new Date(), location.timeZone)
-    if (between) {
-    state.timeOK = true
-   LOGDEBUG("Time is ok so can continue...")
-    
-}
-else if (!between) {
-state.timeOK = false
-LOGDEBUG("Time is NOT ok so cannot continue...")
-	}
-  }
-else if (timecheckNow == null){  
-state.timeOK = true
-  LOGDEBUG("Time restrictions have not been configured -  Continue...")
-  }
-}
-
-
-// check days allowed to run
-def checkDay(){
-def daycheckNow = days
-if (daycheckNow != null){
- def df = new java.text.SimpleDateFormat("EEEE")
-    
-    df.setTimeZone(location.timeZone)
-    def day = df.format(new Date())
-    def dayCheck1 = days.contains(day)
-    if (dayCheck1) {
-
-  state.dayCheck = true
-LOGDEBUG( " Day ok so can continue...")
- }       
- else {
-LOGDEBUG( " Not today!")
- state.dayCheck = false
- }
- }
-if (daycheckNow == null){ 
- LOGDEBUG("Day restrictions have not been configured -  Continue...")
- state.dayCheck = true 
-} 
 }
 
 
@@ -3594,11 +3348,11 @@ runIn(state.timeDelay, resetTimer2)
 
 def resetTimer1() {
 state.timer1 = true
-LOGDEBUG( "Timer 1 reset - Messages allowed")
+LOGDEBUG( "Timer 1 reset - state.timer1 = $state.timer1 - Messages allowed")
 }
 def resetTimer2() {
 state.timer2 = true
-LOGDEBUG("Timer 2 reset - Messages allowed")
+LOGDEBUG("Timer 2 reset - state.timer2 = $state.timer2 - Messages allowed")
 }
 
 
@@ -3606,10 +3360,10 @@ LOGDEBUG("Timer 2 reset - Messages allowed")
 
 private compileMsg(msg) {
 	LOGDEBUG("compileMsg - msg = ${msg}")
-    if(pollorNot){
+    if(pollorNot == true){
         weather1.poll()
-        pause(5000)
-		LOGDEBUG("Waiting a short while for the weather device to catch up")  
+		LOGDEBUG("Waiting a short while for the weather device to catch up and report..") 
+		pause(5000)
     }
     def msgComp = ""
     msgComp = msg.toLowerCase()
@@ -3989,7 +3743,7 @@ LOGDEBUG("hour24 = $hour24 -  So converting hours to 24hr format")
  if (timeHH == "10" && timeampm.contains ("pm")){timeHH = timeHH.replace("10", "22")}
  if (timeHH == "11" && timeampm.contains ("pm")){timeHH = timeHH.replace("11", "23")}
 	 timeampm = timeampm.replace("pm", " ")
- log.warn " Added 12 hrs to numbers"    
+// log.warn " Added 12 hrs to numbers"    
   if (timemm == "0") {
      LOGDEBUG("timemm = 0  - So changing to 'hundred hours")
      timemm = timemm.replace("0", " hundred hours")
@@ -4281,65 +4035,323 @@ private getGroup4(msgPostitem) {
 }
 
 def checkAllow(){
-    LOGDEBUG("Running Check Allow...")
-    	LOGDEBUG("Calling.. ModeCheck")
-    	modeCheck()
-    	LOGDEBUG("Calling.. CheckTime")
-		checkTime()
-        LOGDEBUG("Calling.. CheckDay")
-        checkDay()
-        LOGDEBUG("Calling.. CheckPresence")
-        checkPresence()
-        LOGDEBUG("Calling.. CheckPresence1")
-        checkPresence1()
-    	LOGDEBUG("Calling.. SwitchRunCheck")
-    	switchRunCheck()
+    state.allAllow = false
+    LOGDEBUG("Checking for any restrictions...")
+    if(state.pauseApp == true){log.warn "Unable to continue - App paused"}
+    if(state.pauseApp != true){
+        LOGDEBUG("CheckAllow - Continue - App NOT paused")
+        state.noPause = true
+		state.modeCheck = true
+		state.presenceRestriction = true
+		state.presenceRestriction1 = true
+		state.dayCheck = true
+		state.sunGoNow = true
+		state.timeOK = true
+		state.modes = modes
+		state.fromTime = fromTime
+		state.days = days
+		state.sunriseSunset = sunriseSunset
+		state.restrictPresenceSensor = restrictPresenceSensor
+		state.restrictPresenceSensor1 = restrictPresenceSensor1
+		state.timeYes = timeYes
+		state.enableSwitchYes = enableSwitchYes
+		state.modesYes = modesYes
+		state.dayYes = dayYes
+		state.sunrisesetYes = sunrisesetYes
+		
+		if(state.enableSwitchYes == false){state.appgo = true}
+		if(state.modes != null && state.modesYes == true){modeCheck()}	
+		if(state.fromTime !=null && state.timeYes == true){checkTime()}
+		if(state.days!=null && state.dayYes == true){checkDay()}
+		if(state.sunriseSunset !=null && state.sunrisesetYes == true){checkSun()}
+		if(state.restrictPresenceSensor != null && state.presenceYes == true){checkPresence()}
+        if(state.restrictPresenceSensor1 != null && state.presenceYes == true){checkPresence1()}
  
-if(state.modeCheck == false){
-LOGDEBUG("Not in correct 'mode' to continue")
-    }    
-if(state.timeOK == false){
-LOGDEBUG("Not enabled for this time so cannot continue")
+	if(state.modeCheck == false){
+	LOGDEBUG("Not in correct 'mode' to continue")
+	    }    
+	if(state.presenceRestriction ==  false || state.presenceRestriction1 ==  false){
+	LOGDEBUG( "Cannot continue - Presence failed")
+	}
+	if(state.appgo == false){
+	LOGDEBUG("$enableSwitch is not in the correct position so cannot continue")
+	}
+	if(state.appgo == true && state.dayCheck == true && state.presenceRestriction == true && state.presenceRestriction1 == true && state.modeCheck == true && state.timeOK == true && state.noPause == true && state.sunGoNow == true){
+	state.allAllow = true 
+ 	  }
+	else{
+ 	state.allAllow = false
+	LOGWARN( "One or more restrictions apply - Unable to continue")
+ 	LOGDEBUG("state.appgo = $state.appgo, state.dayCheck = $state.dayCheck, state.presenceRestriction = $state.presenceRestriction, state.presenceRestriction1 = $state.presenceRestriction1, state.modeCheck = $state.modeCheck, state.timeOK = $state.timeOK, state.noPause = $state.noPause, state.sunGoNow = $state.sunGoNow")
+      }
+   }
+LOGDEBUG( "checkallow complete - state.allAllow = $state.allAllow")
 }
-if(state.dayCheck == false){    
-LOGDEBUG("Not the correct day to continue")
+
+def checkSun(){
+	LOGDEBUG("Checking Sunrise/Sunset restrictions...")
+	if(!sunriseSunset){
+        state.sunGoNow = true
+        LOGDEBUG("No Sunrise/Sunset restrictions in place")	
+	}
+        if(sunriseSunset){
+        if(sunriseSunset == "Sunset"){	
+        if(state.astro == "Set"){
+        state.sunGoNow = true
+        LOGDEBUG("Sunset OK")
+            } 
+    	if(state.astro == "Rise"){
+        state.sunGoNow = false
+        LOGDEBUG("Sunset NOT OK")
+            } 
+        }
+	if(sunriseSunset == "Sunrise"){	
+        if(state.astro == "Rise"){
+        state.sunGoNow = true
+        LOGDEBUG("Sunrise OK")
+            } 
+    	if(state.astro == "Set"){
+        state.sunGoNow = false
+        LOGDEBUG("Sunrise NOT OK")
+            } 
+        }  
+    } 
+		return state.sunGoNow
 }    
-if(state.presenceRestriction ==  false || state.presenceRestriction1 ==  false){
-LOGDEBUG( "Cannot continue - Presence failed")
-}
-if(state.appgo == false){
-LOGDEBUG("$enableSwitch is off so cannot continue")
+
+def astroCheck() {
+    state.sunsetOffsetValue1 = sunsetOffsetValue
+    state.sunriseOffsetValue1 = sunriseOffsetValue
+    if(sunsetOffsetDir == "Before"){state.sunsetOffset1 = -state.sunsetOffsetValue1}
+    if(sunsetOffsetDir == "after"){state.sunsetOffset1 = state.sunsetOffsetValue1}
+    if(sunriseOffsetDir == "Before"){state.sunriseOffset1 = -state.sunriseOffsetValue1}
+    if(sunriseOffsetDir == "after"){state.sunriseOffset1 = state.sunriseOffsetValue1}
+	def both = getSunriseAndSunset(sunriseOffset: state.sunriseOffset1, sunsetOffset: state.sunsetOffset1)
+	def now = new Date()
+	def riseTime = both.sunrise
+	def setTime = both.sunset
+	LOGDEBUG("riseTime: $riseTime")
+	LOGDEBUG("setTime: $setTime")
+	unschedule("sunriseHandler")
+	unschedule("sunsetHandler")
+	if (riseTime.after(now)) {
+	LOGDEBUG("scheduling sunrise handler for $riseTime")
+	runOnce(riseTime, sunriseHandler)
+		}
+	if(setTime.after(now)) {
+	LOGDEBUG("scheduling sunset handler for $setTime")
+	runOnce(setTime, sunsetHandler)
+		}
+	LOGDEBUG("AstroCheck Complete")
 }
 
-	if(state.appgo == true && state.dayCheck == true && state.presenceRestriction == true && state.presenceRestriction1 == true && state.modeCheck == true && state.timeOK == true){
-		 state.allAllow = true 
-   }
-		else{
- 		state.allAllow = false
-		log.info "One or more restrictions apply - Unable to continue"
- log.debug "state.appgo = $state.appgo, state.dayCheck = $state.dayCheck, state.presenceRestriction = $state.presenceRestriction, state.presenceRestriction1 = $state.presenceRestriction1, state.modeCheck = $state.modeCheck, state.timeOK = $state.timeOK"
-   }
+def sunsetHandler(evt) {
+	LOGDEBUG("Sun has set!")
+	state.astro = "Set" 
+}
+def sunriseHandler(evt) {
+	LOGDEBUG("Sun has risen!")
+	state.astro = "Rise"
+}
+
+def modeCheck() {
+    LOGDEBUG("Checking for any 'mode' restrictions...")
+	def result = !modes || modes.contains(location.mode)
+    LOGDEBUG("Mode = $result")
+    state.modeCheck = result
+    return state.modeCheck
+ }
+
+
+
+def checkTime(){
+    LOGDEBUG("Checking for any time restrictions")
+	def timecheckNow = fromTime
+	if (timecheckNow != null){
+    
+def between = timeOfDayIsBetween(toDateTime(fromTime), toDateTime(toTime), new Date(), location.timeZone)
+    if (between) {
+    state.timeOK = true
+   LOGDEBUG("Time is ok so can continue...")
+    
+}
+	else if (!between) {
+	state.timeOK = false
+	LOGDEBUG("Time is NOT ok so cannot continue...")
+	}
+  }
+	else if (timecheckNow == null){  
+	state.timeOK = true
+  	LOGDEBUG("Time restrictions have not been configured -  Continue...")
+  }
 }
 
 
+
+def checkDay(){
+    LOGDEBUG("Checking for any 'Day' restrictions")
+	def daycheckNow = days
+	if (daycheckNow != null){
+ 	def df = new java.text.SimpleDateFormat("EEEE")
+    df.setTimeZone(location.timeZone)
+    def day = df.format(new Date())
+    def dayCheck1 = days.contains(day)
+    if (dayCheck1) {
+	state.dayCheck = true
+	LOGDEBUG( "Day ok so can continue...")
+ }       
+ 	else {
+	LOGDEBUG( "Cannot run today!")
+ 	state.dayCheck = false
+ 	}
+ }
+if (daycheckNow == null){ 
+	LOGDEBUG("Day restrictions have not been configured -  Continue...")
+	state.dayCheck = true 
+	} 
+}
+
+def restrictPresenceSensorHandler(evt){
+	state.presencestatus1 = evt.value
+	LOGDEBUG("state.presencestatus1 = $evt.value")
+	checkPresence()
+}
+
+
+
+def checkPresence(){
+	LOGDEBUG("Running checkPresence - restrictPresenceSensor = $restrictPresenceSensor")
+	if(restrictPresenceSensor){
+	LOGDEBUG("Presence = $state.presencestatus1")
+	def actionPresenceRestrict = restrictPresenceAction
+	if (state.presencestatus1 == "present" && actionPresenceRestrict == true){
+	LOGDEBUG("Presence ok")
+	state.presenceRestriction = true
+	}
+	if (state.presencestatus1 == "not present" && actionPresenceRestrict == true){
+	LOGDEBUG("Presence not ok")
+	state.presenceRestriction = false
+	}
+
+	if (state.presencestatus1 == "not present" && actionPresenceRestrict == false){
+	LOGDEBUG("Presence ok")
+	state.presenceRestriction = true
+	}
+	if (state.presencestatus1 == "present" && actionPresenceRestrict == false){
+	LOGDEBUG("Presence not ok")
+	state.presenceRestriction = false
+	}
+}
+	else if(restrictPresenceSensor == null){
+	state.presenceRestriction = true
+	LOGDEBUG("Presence sensor restriction not used")
+	}
+}
+
+
+def restrictPresence1SensorHandler(evt){
+	state.presencestatus2 = evt.value
+	LOGDEBUG("state.presencestatus2 = $evt.value")
+	checkPresence1()
+}
+
+
+def checkPresence1(){
+	LOGDEBUG("running checkPresence1 - restrictPresenceSensor1 = $restrictPresenceSensor1")
+	if(restrictPresenceSensor1){
+	LOGDEBUG("Presence = $state.presencestatus1")
+	def actionPresenceRestrict1 = restrictPresenceAction1
+	if (state.presencestatus2 == "present" && actionPresenceRestrict1 == true){
+	LOGDEBUG("Presence 2 ok - Continue..")
+	state.presenceRestriction1 = true
+	}
+	if (state.presencestatus2 == "not present" && actionPresenceRestrict1 == true){
+	LOGDEBUG("Presence 2 not ok")
+	state.presenceRestriction1 = false
+	}
+	if (state.presencestatus2 == "not present" && actionPresenceRestrict1 == false){
+	LOGDEBUG("Presence 2 ok - Continue..")
+	state.presenceRestriction1 = true
+	}
+	if (state.presencestatus2 == "present" && actionPresenceRestrict1 == false){
+	LOGDEBUG("Presence 2 not ok")
+	state.presenceRestriction1 = false
+	}
+  }
+	if(restrictPresenceSensor1 == null){
+	state.presenceRestriction1 = true
+	LOGDEBUG("Presence sensor 2 restriction not used - Continue..")
+	}
+}
+
+def switchEnable(evt){
+	state.enableInput = evt.value
+	LOGDEBUG("Switch changed to: $state.enableInput")  
+    if(enableSwitchMode == true && state.enableInput == 'off'){
+	state.appgo = false
+	LOGDEBUG("Cannot continue - App disabled by switch")  
+    }
+	if(enableSwitchMode == true && state.enableInput == 'on'){
+	state.appgo = true
+	LOGDEBUG("Switch restriction is OK.. Continue...") 
+    }    
+	if(enableSwitchMode == false && state.enableInput == 'off'){
+	state.appgo = true
+	LOGDEBUG("Switch restriction is OK.. Continue...")  
+    }
+	if(enableSwitchMode == false && state.enableInput == 'on'){
+	state.appgo = false
+	LOGDEBUG("Cannot continue - App disabled by switch")  
+    }    
+	LOGDEBUG("Allow by switch is $state.appgo")
+}
 
 def version(){
+	setDefaults()
+	pauseOrNot()
+	logCheck()
+	resetBtnName()
 	schedule("0 0 9 ? * FRI *", updateCheck) //  Check for updates at 9am every Friday
-  
-    
+	checkButtons()
    
-    
 }
+
+
+
+
+
+
+def logCheck(){
+    state.checkLog = debugMode
+    if(state.checkLog == true){log.info "All Logging Enabled"}
+    if(state.checkLog == false){log.info "Further Logging Disabled"}
+}
+
+def LOGDEBUG(txt){
+    try {
+    	if (settings.debugMode) { log.debug("${app.label.replace(" ","_").toUpperCase()}  (App Version: ${state.version}) - ${txt}") }
+    } catch(ex) {
+    	log.error("LOGDEBUG unable to output requested data!")
+    }
+}
+def LOGWARN(txt){
+    try {
+    	if (settings.debugMode) { log.warn("${app.label.replace(" ","_").toUpperCase()}  (App Version: ${state.version}) - ${txt}") }
+    } catch(ex) {
+    	log.error("LOGWARN unable to output requested data!")
+    }
+}
+
+
 
 def display(){
     setDefaults()
-
-	if(state.status){section(){paragraph "<img src='http://update.hubitat.uk/icons/cobra3.png''</img> Version: $state.version <br><font face='Lucida Handwriting'>$state.Copyright </font>"}}
+    if(state.status){section(){paragraph "<img src='http://update.hubitat.uk/icons/cobra3.png''</img> Version: $state.version <br><font face='Lucida Handwriting'>$state.Copyright </font>"}}
     if(state.status != "<b>** This app is no longer supported by $state.author  **</b>"){section(){input "updateBtn", "button", title: "$state.btnName"}}
-    
-	if(state.status != "Current"){section(){paragraph "<hr><b>Updated: </b><i>$state.Comment</i><br><br><i>Changes in version $state.newver</i><br>$state.UpdateInfo<hr><b>$state.updateURI</b><hr>"}}
-	section(){input "pause1", "bool", title: "Pause This App", required: true, submitOnChange: true, defaultValue: false }
+    if(state.status != "Current"){section(){paragraph "<hr><b>Updated: </b><i>$state.Comment</i><br><br><i>Changes in version $state.newver</i><br>$state.UpdateInfo<hr><b>Update URL: </b><font color = 'red'> $state.updateURI</font><hr>"}}
+    section(){input "pause1", "bool", title: "Pause This App", required: true, submitOnChange: true, defaultValue: false }
 }
+
 
 
 def checkButtons(){
@@ -4351,66 +4363,83 @@ def checkButtons(){
 def appButtonHandler(btn){
     state.btnCall = btn
     if(state.btnCall == "updateBtn"){
-       log.info "Checking for updates now..."
-        updateCheck()
-        pause(3000)
-  		state.btnName = state.newBtn
-        runIn(2, resetBtnName)
+    LOGDEBUG("Checking for updates now...")
+    updateCheck()
+    pause(3000)
+    state.btnName = state.newBtn
+    runIn(2, resetBtnName)
     }
+    if(state.btnCall == "updateBtn1"){
+    state.btnName1 = "Click Here" 
+    httpGet("https://github.com/CobraVmax/Hubitat/tree/master/Apps' target='_blank")
+    }
+    
 }   
 def resetBtnName(){
-//    log.info "Resetting Update Button Name"
+    LOGDEBUG("Resetting Button")
     if(state.status != "Current"){
-	state.btnName = state.newBtn
+    state.btnName = state.newBtn
     }
     else{
- state.btnName = "Check For Update" 
+    state.btnName = "Check For Update" 
     }
 }    
     
+
 def pushOverUpdate(inMsg){
     if(updateNotification == true){  
-     newMessage = inMsg
-  log.info "Message = $newMessage " 
-     state.msg1 = '[L]' + newMessage
-	speakerUpdate.speak(state.msg1)
+    newMessage = inMsg
+    LOGDEBUG(" Message = $newMessage ")  
+    state.msg1 = '[L]' + newMessage
+    speakerUpdate.speak(state.msg1)
     }
 }
 
 def pauseOrNot(){
 LOGDEBUG(" Calling 'pauseOrNot'...")
     state.pauseNow = pause1
-        if(state.pauseNow == true){
-            state.pauseApp = true
-            if(app.label){
-            if(app.label.contains('red')){
-                log.warn "Paused"}
-            else{app.updateLabel(app.label + ("<font color = 'red'> (Paused) </font>" ))
-              LOGDEBUG("App Paused - state.pauseApp = $state.pauseApp ")   
-                }
-    
-            }
-        }
-    
-     if(state.pauseNow == false){
-         state.pauseApp = false
-         if(app.label){
-     if(app.label.contains('red')){ app.updateLabel(app.label.minus("<font color = 'red'> (Paused) </font>" ))
-     LOGDEBUG("App Released - state.pauseApp = $state.pauseApp ")                          
-                                  }
-         }
+    if(state.pauseNow == true){
+    state.pauseApp = true
+    if(app.label){
+    if(app.label.contains('red')){
+    log.warn "Paused"}
+    else{app.updateLabel(app.label + ("<font color = 'red'> (Paused) </font>" ))
+    log.warn "App Paused - state.pauseApp = $state.pauseApp "   
+    }
+   }
+  }
+    if(state.pauseNow == false){
+    state.pauseApp = false
+    if(app.label){
+    if(app.label.contains('red')){ app.updateLabel(app.label.minus("<font color = 'red'> (Paused) </font>" ))
+    LOGDEBUG("App Released - state.pauseApp = $state.pauseApp ")                          
+    }
+   }
   }    
-    
 }
 
 
+def stopAllChildren(disableChild, msg){
+	state.disableornot = disableChild
+	state.message1 = msg
+	log.trace " $state.message1 - Disable app = $state.disableornot"
+	state.appgo = state.disableornot
+	state.restrictRun = state.disableornot
+	if(state.disableornot == true){
+	unsubscribe()
+//	unschedule()
+	}
+	if(state.disableornot == false){
+	subscribeNow()}
+//	version()
+	
+}
+
 def updateCheck(){
     setVersion()
-	
     def paramsUD = [uri: "http://update.hubitat.uk/json/${state.CobraAppCheck}"]
-    
-       	try {
-        httpGet(paramsUD) { respUD ->
+    try {
+    httpGet(paramsUD) { respUD ->
 //  log.warn " Version Checking - Response Data: ${respUD.data}"   // Troubleshooting Debug Code 
        		def copyrightRead = (respUD.data.copyright)
        		state.Copyright = copyrightRead
@@ -4437,12 +4466,12 @@ def updateCheck(){
         	log.warn "** There is a newer version of this app available  (Version: $newVerRaw) **"
         	log.warn " Update: $state.UpdateInfo "
              state.newBtn = state.status
-            state.updateMsg = "There is a new version of '$state.ExternalName' available (Version: $newVerRaw)"
-    
+            def updateMsg = "There is a new version of '$state.ExternalName' available (Version: $newVerRaw)"
+            
        		} 
 		else{ 
       		state.status = "Current"
-       		log.info "You are using the current version of this app"
+       		LOGDEBUG("You are using the current version of this app")
        		}
       					}
         	} 
@@ -4451,7 +4480,8 @@ def updateCheck(){
     		}
     if(state.status != "Current"){
 		state.newBtn = state.status
-        inform()
+		inform()
+        
     }
     else{
         state.newBtn = "No Update Available"
@@ -4461,30 +4491,46 @@ def updateCheck(){
 }
 
 
-def setDefaults(){
-  log.info "Initialising defaults..." 
-  	checkButtons()
-    resetBtnName()
-    pauseOrNot()
-    
-    
-    if(pause1 == null){pause1 = false}
-    if(state.pauseApp == null){state.pauseApp = false}                 
-    if(state.multiVolumeSlots == null){state.multiVolumeSlots = false}    
-    if(state.multiVolumeSlotsq == null){state.multiVolumeSlotsq = false}
-
-}
-
 def inform(){
-	log.warn "An update is available - Telling the parent to send a pushover message to user..."
-      parent.childUpdate(true,state.updateMsg) 
+	log.warn "An update is available - Telling the parent!"
+	parent.childUpdate(true,state.updateMsg) 
 }
+
+
+
+def preCheck(){
+	setVersion()
+    state.appInstalled = app.getInstallationState()  
+    if(state.appInstalled != 'COMPLETE'){
+    section(){ paragraph "$state.preCheckMessage"}
+    }
+    if(state.appInstalled == 'COMPLETE'){
+    display()   
+ 	}
+}
+
+def setDefaults(){
+    LOGDEBUG("Initialising defaults...")
+    if(pause1 == null){pause1 = false}
+    if(state.pauseApp == null){state.pauseApp = false}
+    if(enableSwitch == null){
+    LOGDEBUG("Enable switch is NOT used. Switch is: $enableSwitch - Continue..")
+    state.appgo = true
+	state.restrictRun = false
+    }
+}
+
+
+
+
+
 
 
 def setVersion(){
-		state.version = "13.2.3"	 
+		state.version = "13.5.0"	 
 		state.InternalName = "MessageCentralChild" 
     	state.ExternalName = "Message Central Child"
+		state.preCheckMessage = "This is designed to use various 'triggers' to make your home 'speak'"
     	state.CobraAppCheck = "messagecentral.json"
 }
 

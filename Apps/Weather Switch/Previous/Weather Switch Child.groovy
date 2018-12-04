@@ -33,10 +33,11 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 08/10/2018
+ *  Last Update: 30/10/2018
  *
  *  Changes:
  *
+ *  V2.6.2 - Slight UI changes
  *  V2.6.1 - Revised update checks
  *  V2.6.0 - Added trigger: Alert 
  *  V2.5.0 - Added additional triggers: 'Temperature', 'Max Temperature Today', 'Min Temperature Today', 'Max Inside Temp Today', 'Min Inside Temp Today', 'Chance of Rain'
@@ -204,11 +205,11 @@ def restrictionsPage() {
     section("This is to restrict on 1 or 2 presence sensor(s)") {
     input "restrictPresenceSensor", "capability.presenceSensor", title: "Select presence sensor 1 to restrict action", required: false, multiple: false, submitOnChange: true
     if(restrictPresenceSensor){
-   	input "restrictPresenceAction", "bool", title: "   On = Action only when someone is 'Present'  \r\n   Off = Action only when someone is 'NOT Present'  ", required: true, defaultValue: false    
+   	input "restrictPresenceAction", "bool", title: "   On = Action only when someone is 'Present'  <br>Off = Action only when someone is 'NOT Present'  ", required: true, defaultValue: false    
 	}
      input "restrictPresenceSensor1", "capability.presenceSensor", title: "Select presence sensor 2 to restrict action", required: false, multiple: false, submitOnChange: true
     if(restrictPresenceSensor1){
-   	input "restrictPresenceAction1", "bool", title: "   On = Action only when someone is 'Present'  \r\n   Off = Action only when someone is 'NOT Present'  ", required: true, defaultValue: false    
+   	input "restrictPresenceAction1", "bool", title: "   On = Action only when someone is 'Present'  <br>Off = Action only when someone is 'NOT Present'  ", required: true, defaultValue: false    
 	}
     
     }
@@ -1152,7 +1153,7 @@ def updateCheck(){
 
 
 def setVersion(){
-     state.version = "2.6.1"
+     state.version = "2.6.2"
      state.InternalName = "WSchild"
      state.ExternalName = "Weather Switch Child"
  

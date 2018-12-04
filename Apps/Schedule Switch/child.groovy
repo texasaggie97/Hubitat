@@ -1,5 +1,5 @@
 /**
- * ****************  Schedule Switch ****************
+ * ****************  Scheduled Switch ****************
  *
  *  Design Usage:
  *	This was designed to schedule a switch on/off some months ahead
@@ -33,11 +33,15 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 08/10/2018
+ *  Last Update: 04/12/2018
  *
  *  Changes:
  *
- *
+ *  V1.6.0 - Added disable apps code
+ *  V1.5.0 - Streamlined restrictions page to action faster if specific restrictions not used.
+ *  V1.4.0 - Move update notification to parent
+ *  V1.3.0 - Debug & code cleanup
+ *  V1.2.0 - added restrictions page
  *  V1.1.1 - set default switch states.
  *  V1.1.0 - Added 'return' option
  *  V1.0.1 - Code cleanup & revised version checking - Debug - March was not working correctly when selected
@@ -48,7 +52,7 @@
  
  
 definition(
-    name: "Schedule Switch Child",
+    name: "Scheduled Switch Child",
     namespace: "Cobra",
     author: "Andrew Parker",
     description: "Schedule a switch on a certain date & time",
@@ -63,14 +67,16 @@ definition(
 
 
 preferences {
+	section() {
+	page name: "mainPage", title: "", install: false, uninstall: true, nextPage: "restrictionsPage"
+	page name: "restrictionsPage", title: "", install: true, uninstall: true
+	}
+}
 
-section ("") {
+def mainPage() {
+	dynamicPage(name: "mainPage") {  
+	preCheck()
 
-  paragraph "Schedule a switch on a certain date & time"
- 
- }
-    
- display()
 	 section(){
 		input "switch1",  "capability.switch",  title: "Switch to Schedule", multiple: false, required: true
 		input "month1", "enum", title: "Select Month", required: true, options: [ "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
@@ -91,34 +97,98 @@ section ("") {
          }
      }
     
-    
+    } 
+}
+def restrictionsPage() {
+    dynamicPage(name: "restrictionsPage") {
+        section(){paragraph "<font size='+1'>App Restrictions</font> <br>These restrictions are optional <br>Any restriction you don't want to use, you can just leave blank or disabled"}
+        section(){
+		input "enableSwitchYes", "bool", title: "Enable restriction by external on/off switch", required: true, defaultValue: false, submitOnChange: true
+			if(enableSwitchYes){
+			input "enableSwitch", "capability.switch", title: "Select a switch Enable/Disable this app", required: false, multiple: false, submitOnChange: true 
+			if(enableSwitch){ input "enableSwitchMode", "bool", title: "Allow app to run only when this switch is On or Off", required: true, defaultValue: false, submitOnChange: true}
+			}
+		}
+        section(){
+		input "modesYes", "bool", title: "Enable restriction by current mode(s)", required: true, defaultValue: false, submitOnChange: true	
+			if(modesYes){	
+			input(name:"modes", type: "mode", title: "Allow actions when current mode is:", multiple: true, required: false)
+			}
+		}	
+       	section(){
+		input "timeYes", "bool", title: "Enable restriction by time", required: true, defaultValue: false, submitOnChange: true	
+			if(timeYes){	
+    	input "fromTime", "time", title: "Allow actions from", required: false
+    	input "toTime", "time", title: "Allow actions until", required: false
+        	}
+		}
+		section(){
+		input "dayYes", "bool", title: "Enable restriction by day(s)", required: true, defaultValue: false, submitOnChange: true	
+			if(dayYes){	
+    	input "days", "enum", title: "Allow actions only on these days of the week", required: false, multiple: true, options: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+        	}
+		}
+		section(){
+		input "presenceYes", "bool", title: "Enable restriction by presence sensor(s)", required: true, defaultValue: false, submitOnChange: true	
+			if(presenceYes){	
+    	input "restrictPresenceSensor", "capability.presenceSensor", title: "Select presence sensor 1 to restrict action", required: false, multiple: false, submitOnChange: true
+    	if(restrictPresenceSensor){input "restrictPresenceAction", "bool", title: "On = Allow action only when someone is 'Present'  <br>Off = Allow action only when someone is 'NOT Present'  ", required: true, defaultValue: false}
+     	input "restrictPresenceSensor1", "capability.presenceSensor", title: "Select presence sensor 2 to restrict action", required: false, multiple: false, submitOnChange: true
+    	if(restrictPresenceSensor1){input "restrictPresenceAction1", "bool", title: "On = Allow action only when someone is 'Present'  <br>Off = Allow action only when someone is 'NOT Present'  ", required: true, defaultValue: false}
+   			}
+		}	
+		section(){
+		input "sunrisesetYes", "bool", title: "Enable restriction by sunrise or sunset", required: true, defaultValue: false, submitOnChange: true	
+			if(sunrisesetYes){
+       	input "sunriseSunset", "enum", title: "Sunrise/Sunset Restriction", required: false, submitOnChange: true, options: ["Sunrise","Sunset"] 
+		if(sunriseSunset == "Sunset"){	
+       	input "sunsetOffsetValue", "number", title: "Optional Sunset Offset (Minutes)", required: false
+		input "sunsetOffsetDir", "enum", title: "Before or After", required: false, options: ["Before","After"]
+        	}
+		if(sunriseSunset == "Sunrise"){
+    	input "sunriseOffsetValue", "number", title: "Optional Sunrise Offset (Minutes)", required: false
+		input "sunriseOffsetDir", "enum", title: "Before or After", required: false, options: ["Before","After"]
+        	}
+     	}
+		}	
+       
+        section() {input "debugMode", "bool", title: "Enable debug logging", required: true, defaultValue: false}
+		 section() {label title: "Enter a name for this automation", required: false}
+    }
 }
 
-def installed() {
-	log.debug "Installed with settings: ${settings}"
 
-	initialize()
+
+  
+
+
+def installed(){initialise()}
+def updated(){initialise()}
+def initialise(){
+	version()
+	subscribeNow()
+	log.info "Initialised with settings: ${settings}"
+	logCheck()	
 }
-
-def updated() {
-	log.debug "Updated with settings: ${settings}"
-	unschedule()
+def subscribeNow() {
 	unsubscribe()
-	initialize()
-}
+	if(enableSwitch){subscribe(enableSwitch, "switch", switchEnable)}
+	if(enableSwitchMode == null){enableSwitchMode = true} // ????
+	if(restrictPresenceSensor){subscribe(restrictPresenceSensor, "presence", restrictPresenceSensorHandler)}
+	if(restrictPresenceSensor1){subscribe(restrictPresenceSensor1, "presence", restrictPresence1SensorHandler)}
+	if(sunriseSunset){astroCheck()}
+	if(sunriseSunset){schedule("0 1 0 1/1 * ? *", astroCheck)} // checks sunrise/sunset change at 00.01am every day
+    
+  // App Specific subscriptions & settings below here
 
-def initialize() {
-    version()
-//    logCheck()
+	
 	subscribe(switch1, "switch", switchHandler1)
     calculateCron1()
     state.return = return1
     if(state.return == true){calculateCron2()}    
     state.switchMode = false
     state.switchMode2 = false
-   	state.appGo = true
-    state.btnName = "Pause"
-    state.pause = false
+   	
 }
 
 
@@ -184,7 +254,10 @@ state.schedule2 = "0 ${state.selectedMin2} ${state.selectedHour2} ${state.select
 
 
 def switchNow1(){
-state.switchMode = mode1
+    checkAllow()
+	if(state.allAllow == true){
+
+	state.switchMode = mode1
     
     if(state.switchMode == true){
         log.info "It's $state.selectedHour:$state.selectedMin on $state.selectedMonth $state.selectedDate so switching on: $switch1"
@@ -194,10 +267,13 @@ state.switchMode = mode1
         log.info "It's $state.selectedHour:$state.selectedMin on $state.selectedMonth $state.selectedDate so switching off: $switch1"
         switch1.off()
     } 
-    
+  }  
 }
 def switchNow2(){
-state.switchMode2 = mode2
+    checkAllow()
+	if(state.allAllow == true){
+
+	state.switchMode2 = mode2
     
     if(state.switchMode2 == true){
         log.info "It's $state.selectedHour2:$state.selectedMin2 on $state.selectedMonth2 $state.selectedDate2 so switching on: $switch1"
@@ -207,7 +283,7 @@ state.switchMode2 = mode2
         log.info "It's $state.selectedHour2:$state.selectedMin2 on $state.selectedMonth2 $state.selectedDate2 so switching off: $switch1"
         switch1.off()
     } 
-    
+  } 
 }
 
 
@@ -226,135 +302,17 @@ def switching = evt.value
 }
 
 
-def version(){
-    resetBtnName()
-	schedule("0 0 9 ? * FRI *", updateCheck) //  Check for updates at 9am every Friday
-	updateCheck()  
-    checkButtons()
-}
-
-def display(){
-  
-	if(state.status){
-	section{paragraph "<img src='http://update.hubitat.uk/icons/cobra3.png''</img> Version: $state.version <br><font face='Lucida Handwriting'>$state.Copyright </font>"}
-       
-        }
-   
-
-    if(state.status != "<b>** This app is no longer supported by $state.author  **</b>"){
-     section(){ input "updateBtn", "button", title: "$state.btnName"}
-    }
-    
-    if(state.status != "Current"){
-	section{ 
-	paragraph "<b>Update Info:</b> <BR>$state.UpdateInfo <BR>$state.updateURI"
-     }
-    }
-	section(" ") {
-      input "updateNotification", "bool", title: "Send a 'Pushover' message when an update is available", required: true, defaultValue: false, submitOnChange: true 
-      if(updateNotification == true){ input "speaker", "capability.speechSynthesis", title: "PushOver Device", required: true, multiple: true}
-    }
-}
-
-def checkButtons(){
-    log.info "Running checkButtons"
-    appButtonHandler("updateBtn")
-}
-
-
-def appButtonHandler(btn){
-    state.btnCall = btn
-    if(state.btnCall == "updateBtn"){
-        log.info "Checking for updates now..."
-        updateCheck()
-        pause(3000)
-  		state.btnName = state.newBtn
-        runIn(2, resetBtnName)
-    }
-    if(state.btnCall == "updateBtn1"){
-    state.btnName1 = "Click Here" 
-    httpGet("https://github.com/CobraVmax/Hubitat/tree/master/Apps' target='_blank")
-    }
-    
-}   
-def resetBtnName(){
-    log.info "Resetting Button"
-    if(state.status != "Current"){
-	state.btnName = state.newBtn
-    }
-    else{
- state.btnName = "Check For Update" 
-    }
-}    
-    
-def pushOverUpdate(inMsg){
-    if(updateNotification == true){  
-     newMessage = inMsg
-  LOGDEBUG(" Message = $newMessage ")  
-     state.msg1 = '[L]' + newMessage
-	speaker.speak(state.msg1)
-    }
-}
-
-
-
-
-
-def updateCheck(){
-    setVersion()
-	def paramsUD = [uri: "http://update.hubitat.uk/cobra.json"]
-       	try {
-        httpGet(paramsUD) { respUD ->
- //  log.warn " Version Checking - Response Data: ${respUD.data}"   // Troubleshooting Debug Code 
-       		def copyrightRead = (respUD.data.copyright)
-       		state.Copyright = copyrightRead
-            def updateUri = (respUD.data.versions.UpdateInfo.GithubFiles.(state.InternalName))
-            state.updateURI = updateUri   
-            
-            def newVerRaw = (respUD.data.versions.Application.(state.InternalName))
-            def newVer = (respUD.data.versions.Application.(state.InternalName).replace(".", ""))
-       		def currentVer = state.version.replace(".", "")
-      		state.UpdateInfo = (respUD.data.versions.UpdateInfo.Application.(state.InternalName))
-                state.author = (respUD.data.author)
-           
-		if(newVer == "NLS"){
-            state.status = "<b>** This app is no longer supported by $state.author  **</b>"  
-             log.warn "** This app is no longer supported by $state.author **" 
-            
-      		}           
-		else if(currentVer < newVer){
-        	state.status = "<b>New Version Available (Version: $newVerRaw)</b>"
-        	log.warn "** There is a newer version of this app available  (Version: $newVerRaw) **"
-        	log.warn "** $state.UpdateInfo **"
-             state.newBtn = state.status
-            def updateMsg = "There is a new version of '$state.ExternalName' available (Version: $newVerRaw)"
-            pushOverUpdate(updateMsg)
-       		} 
-		else{ 
-      		state.status = "Current"
-       		log.info "You are using the current version of this app"
-       		}
-      					}
-        	} 
-        catch (e) {
-        	log.error "Something went wrong: CHECK THE JSON FILE AND IT'S URI -  $e"
-    		}
-    if(state.status != "Current"){
-		state.newBtn = state.status
-        
-    }
-    else{
-        state.newBtn = "No Update Available"
-    }
-        
-        
-}
+state.timer1 = true
+	state.timerDoor = true
+    state.timerlock = true
 
 
 def setVersion(){
-		state.version = "1.1.1"	 
-		state.InternalName = "SchedSwitchchild"
+		state.version = "1.6.0"	 
+		state.InternalName = "SchedSwitchChild"
     	state.ExternalName = "Scheduled Switch Child"
+		state.preCheckMessage = "This app is designed to schedule a switch on/off some hours/days/weeks/months ahead..."
+		state.CobraAppCheck = "scheduledswitch.json"
 }
 
 

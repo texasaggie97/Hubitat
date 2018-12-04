@@ -33,12 +33,12 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 20/08/2018
+ *  Last Update: 25/10/2018
  *
  *  Changes:
  *
- * 
- *  V1.3.1 - Added uninstall logging
+ *  V1.4.0 - Added to Cobra Apps
+ *  V1.3.1 - Added revised update code.
  *  V1.3.0 - Code cleanup & forced hitting 'done' before further config at install
  *  V1.2.0 - Added remote version checking
  *  V1.1.0 - Debug
@@ -54,6 +54,9 @@ definition(
     author: "Andrew Parker",
     description: "Control a switch in response to a weather condition or event ",
     category: "Convenience",
+    
+    parent: "Cobra:Cobra Apps",  // ******** Comment this out if not using the 'Cobra Apps' container  ***************
+    
     iconUrl: "",
     iconX2Url: "",
     iconX3Url: ""
@@ -92,11 +95,6 @@ def initialize() {
     }
     
 }
-def uninstalled(){
-   log.info "Parent app uninstalled: ${app.label}" 
-    
-    
-}
 
 
 def mainPage() {
@@ -108,9 +106,7 @@ if(state.appInstalled == 'COMPLETE'){
   section ("Add An Event"){
 		app(name: "weatherApp", appName: "Weather Switch Child", namespace: "Cobra", title: "Add a new weather event automation", multiple: true)
             }
-  section("App name") {
-        label title: "Enter a name for parent app (optional)", required: false
-            }    
+ 
 	}
   }
 }
@@ -127,23 +123,73 @@ section{paragraph "Please hit 'Done' to install Weather Switch"}
     }
 	}
 
+
 def version(){
-	unschedule()
+    resetBtnName()
 	schedule("0 0 9 ? * FRI *", updateCheck) //  Check for updates at 9am every Friday
 	updateCheck()  
+    checkButtons()
 }
 
 def display(){
+  
 	if(state.status){
-	section{paragraph "Version: $state.version -  $state.Copyright"}
-	if(state.status != "Current"){
+	section{paragraph "<img src='http://update.hubitat.uk/icons/cobra3.png''</img> Version: $state.version <br><font face='Lucida Handwriting'>$state.Copyright </font>"}
+       
+        }
+    if(state.status != "<b>** This app is no longer supported by $state.author  **</b>"){
+     section(){ input "updateBtn", "button", title: "$state.btnName"}
+    }
+    
+    if(state.status != "Current"){
 	section{ 
-	paragraph "$state.status"
-	paragraph "$state.UpdateInfo"
+	paragraph "<b>Update Information:</b> <BR>$state.UpdateInfo <BR>$state.updateURI"
+     }
+    }         
+}
+
+def checkButtons(){
+    log.info "Running checkButtons"
+    appButtonHandler("updateBtn")
+}
+
+
+def appButtonHandler(btn){
+    state.btnCall = btn
+    if(state.btnCall == "updateBtn"){
+        log.info "Checking for updates now..."
+        updateCheck()
+        pause(3000)
+  		state.btnName = state.newBtn
+        runIn(2, resetBtnName)
     }
+    if(state.btnCall == "updateBtn1"){
+    state.btnName1 = "Click Here" 
+    httpGet("https://github.com/CobraVmax/Hubitat/tree/master/Apps' target='_blank")
+    }
+    
+}   
+def resetBtnName(){
+    log.info "Resetting Button"
+    if(state.status != "Current"){
+	state.btnName = state.newBtn
+    }
+    else{
+ state.btnName = "Check For Update" 
+    }
+}    
+    
+def pushOver(inMsg){
+    if(updateNotification == true){  
+     newMessage = inMsg
+  LOGDEBUG(" Message = $newMessage ")  
+     state.msg1 = '[L]' + newMessage
+	speaker.speak(state.msg1)
     }
 }
-}
+
+
+
 
 
 def updateCheck(){
@@ -154,6 +200,9 @@ def updateCheck(){
  //  log.warn " Version Checking - Response Data: ${respUD.data}"   // Troubleshooting Debug Code 
        		def copyrightRead = (respUD.data.copyright)
        		state.Copyright = copyrightRead
+            def updateUri = (respUD.data.versions.UpdateInfo.GithubFiles.(state.InternalName))
+            state.updateURI = updateUri   
+            
             def newVerRaw = (respUD.data.versions.Application.(state.InternalName))
             def newVer = (respUD.data.versions.Application.(state.InternalName).replace(".", ""))
        		def currentVer = state.version.replace(".", "")
@@ -161,29 +210,43 @@ def updateCheck(){
                 state.author = (respUD.data.author)
            
 		if(newVer == "NLS"){
-            state.status = "<b>** This app is no longer supported by $state.author  **</b>"       
-            log.warn "** This app is no longer supported by $state.author **"      
+            state.status = "<b>** This app is no longer supported by $state.author  **</b>"  
+             log.warn "** This app is no longer supported by $state.author **" 
+            
       		}           
 		else if(currentVer < newVer){
         	state.status = "<b>New Version Available (Version: $newVerRaw)</b>"
         	log.warn "** There is a newer version of this app available  (Version: $newVerRaw) **"
         	log.warn "** $state.UpdateInfo **"
+             state.newBtn = state.status
+            def updateMsg = "There is a new version of '$state.ExternalName' available (Version: $newVerRaw)"
+
        		} 
 		else{ 
       		state.status = "Current"
-      		log.info "You are using the current version of this app"
+       		log.info "You are using the current version of this app"
        		}
       					}
         	} 
         catch (e) {
         	log.error "Something went wrong: CHECK THE JSON FILE AND IT'S URI -  $e"
     		}
- 	
+    if(state.status != "Current"){
+		state.newBtn = state.status
+        
+    }
+    else{
+        state.newBtn = "No Update Available"
+    }
+        
+        
 }
 
+
 def setVersion(){
-		state.version = "1.3.1"	 
+		state.version = "1.4.0"	 
 		state.InternalName = "WSparent"  
+    	state.ExternalName = "Weather Switch Parent"
 }
 
 

@@ -109,7 +109,7 @@ def updated() {
 
 def initialize() {
     version()
-    logCheck()
+//    logCheck()
 	subscribe(switch1, "switch", switchHandler1)
     calculateCron1()
     state.return = return1

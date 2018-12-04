@@ -33,14 +33,14 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 01/10/2018
+ *  Last Update: 29/10/2018
  *
  *  Changes:
  *
  * 
  *
  *  
- *  
+ *  V1.1.0 - Added to 'Cobra Apps' 
  *  V1.0.1 - Revised auto update checking and added a manual update check button
  *  V1.0.0 - POC
  *
@@ -54,6 +54,9 @@ definition(
     author: "Andrew Parker",
     description: "Parent App for 'Check Open Contacts' childapps ",
     category: "Convenience",
+    
+     parent: "Cobra:Cobra Apps",  // ******** Comment this out if not using the 'Cobra Apps' container  ***************
+    
     iconUrl: "",
     iconX2Url: "",
     iconX3Url: ""
@@ -104,10 +107,7 @@ if(state.appInstalled == 'COMPLETE'){
   section (""){
 		app(name: "anyOpenApp", appName: "Check Open Contacts Child", namespace: "Cobra", title: "<b>Add a new 'Open Contact' message</b>", multiple: true)
             }
-    section (" "){}
-  section("App name") {
-        label title: "Enter a name for parent app (optional)", required: false
-            }    
+
 	}
   }
 }
@@ -117,7 +117,7 @@ if(state.appInstalled == 'COMPLETE'){
 def installCheck(){         
    state.appInstalled = app.getInstallationState() 
   if(state.appInstalled != 'COMPLETE'){
-section{paragraph "Please hit 'Done' to install '${app.label}' parent app "}
+section{paragraph "Please hit 'Done' to install Check Open Contacts"}
   }
     else{
  //       log.info "Parent Installed OK"
@@ -126,7 +126,6 @@ section{paragraph "Please hit 'Done' to install '${app.label}' parent app "}
 
 def version(){
     resetBtnName()
-	unschedule()
 	schedule("0 0 9 ? * FRI *", updateCheck) //  Check for updates at 9am every Friday
 	updateCheck()  
     checkButtons()
@@ -144,10 +143,8 @@ def display(){
     
     if(state.status != "Current"){
 	section{ 
-
-	paragraph "<b>Update Info: $state.UpdateInfo ***</b>"
-    }
-         
+	paragraph "<b>Update Info:</b> <BR>$state.UpdateInfo <BR>$state.updateURI"
+     }
     }         
 }
 
@@ -166,6 +163,11 @@ def appButtonHandler(btn){
   		state.btnName = state.newBtn
         runIn(2, resetBtnName)
     }
+    if(state.btnCall == "updateBtn1"){
+    state.btnName1 = "Click Here" 
+    httpGet("https://github.com/CobraVmax/Hubitat/tree/master/Apps' target='_blank")
+    }
+    
 }   
 def resetBtnName(){
     log.info "Resetting Button"
@@ -177,6 +179,14 @@ def resetBtnName(){
     }
 }    
     
+def pushOver(inMsg){
+    if(updateNotification == true){  
+     newMessage = inMsg
+  LOGDEBUG(" Message = $newMessage ")  
+     state.msg1 = '[L]' + newMessage
+	speaker.speak(state.msg1)
+    }
+}
 
 
 
@@ -190,6 +200,9 @@ def updateCheck(){
  //  log.warn " Version Checking - Response Data: ${respUD.data}"   // Troubleshooting Debug Code 
        		def copyrightRead = (respUD.data.copyright)
        		state.Copyright = copyrightRead
+            def updateUri = (respUD.data.versions.UpdateInfo.GithubFiles.(state.InternalName))
+            state.updateURI = updateUri   
+            
             def newVerRaw = (respUD.data.versions.Application.(state.InternalName))
             def newVer = (respUD.data.versions.Application.(state.InternalName).replace(".", ""))
        		def currentVer = state.version.replace(".", "")
@@ -206,6 +219,8 @@ def updateCheck(){
         	log.warn "** There is a newer version of this app available  (Version: $newVerRaw) **"
         	log.warn "** $state.UpdateInfo **"
              state.newBtn = state.status
+            def updateMsg = "There is a new version of '$state.ExternalName' available (Version: $newVerRaw)"
+   //         pushOver(updateMsg)
        		} 
 		else{ 
       		state.status = "Current"
@@ -218,6 +233,7 @@ def updateCheck(){
     		}
     if(state.status != "Current"){
 		state.newBtn = state.status
+        
     }
     else{
         state.newBtn = "No Update Available"
@@ -227,8 +243,9 @@ def updateCheck(){
 }
 
 
+
 def setVersion(){
-		state.version = "1.0.1"	 
+		state.version = "1.1.0"	 
 		state.InternalName = "CheckContactsParent"  
 }
 
