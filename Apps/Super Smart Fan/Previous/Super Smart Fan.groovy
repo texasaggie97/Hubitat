@@ -40,7 +40,7 @@
  *
  *
  *
- *  
+ *  V1.1.0 - Added ability to use 'average' of more than one baseline fan
  *  V1.0.0 - POC
  *
  */
@@ -79,7 +79,7 @@ section("") {
  
         
     section("<b>Humidity Sensors</b>"){
-        input "baselineSensors", "capability.sensor", title: "Select Baseline Sensor", required: true, multiple: false
+        input "baselineSensors", "capability.sensor", title: "Select Baseline Sensor", required: true, multiple: true
         input "bathroomSensor", "capability.sensor", title: "Select Bathroom Sensor", required: true, multiple: false
     }
    section("<b>Bathroom Motion Sensor (Optional)</b>"){     
@@ -147,8 +147,28 @@ def initialize() {
 
 def baseLineHandler(evt) {
     LOGDEBUG("Running humidity baseLineHandler")
-    state.baseline = evt.value.toFloat()
-    LOGDEBUG("state.baseline = $state.baseline")
+    LOGDEBUG( "received $evt.value")
+    def sum = 0
+    def count = 0
+	state.baseline = 0
+    
+    for (sensor in settings.baselineSensors) {
+    count += 1 
+LOGDEBUG( "Sensor data count = $count" )      
+    sum += sensor.currentHumidity }
+LOGDEBUG( "Total Combined value =  $sum")
+
+     state.baseline = sum/count
+   LOGDEBUG("state.baseline = $state.baseline") 
+    
+    
+    
+    
+    
+    
+    
+    
+    
 } 
     
 def bathroomSensorHandler(evt) {
@@ -323,7 +343,7 @@ def updateCheck(){
 }
 
 def setVersion(){
-		state.version = "1.0.0"	 
+		state.version = "1.1.0"	 
 		state.InternalName = "SuperSmartFan"
 }
 

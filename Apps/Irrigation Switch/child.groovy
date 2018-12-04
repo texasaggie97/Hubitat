@@ -715,7 +715,7 @@ LOGDEBUG(" Calling 'pauseOrNot'...")
 def stopAllChildren(disableChild, msg){
 	state.disableornot = disableChild
 	state.message1 = msg
-	log.trace " $state.message1 - Disable app = $state.disableornot"
+	LOGDEBUG(" $state.message1 - Disable app = $state.disableornot")
 	state.appgo = state.disableornot
 	state.restrictRun = state.disableornot
 	if(state.disableornot == true){
