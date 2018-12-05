@@ -33,8 +33,9 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- * Last Updated 04/12/2018
+ * Last Updated 05/12/2018
  *
+ *  V2.3.1 - Changed window/vent input to multiple
  *  V2.3.0 - Added disable apps code
  *  V2.2.0 - Streamlined restrictions page to action faster if specific restrictions not used.
  *  V2.1.0 - Moved update notification to parent
@@ -72,7 +73,7 @@ def mainPage() {
 	preCheck()
 
 	section("Which temperature sensor") {input "temperatureSensor1", "capability.temperatureMeasurement", title: "Select Sensor", required: true}
-	section("Which Window/Vent/Blind control relay?") {input "relay1", "capability.switchLevel" , title: "Select Device", required: true}								
+	section("Which Window/Vent/Blind control relay?") {input "relay1", "capability.switchLevel" , title: "Select Device", required: true, multiple: true}								
 	section() {input(name:"halfLevel", type:"number", title: "Partially Open Level (%)", required: true)}
 	section() {input "fullClose", "number", title: "At or below this temperature the window/vent should be fully closed", required: true}
 	section() {input "halfOpen", "number", title: "At or above this temperature window/vent should be Partially Open <br>Obviously this MUST be between fully open setting and fully closed setting" , required: true}
@@ -848,7 +849,7 @@ def setDefaults(){
 
 
 def setVersion(){
-		state.version = "2.3.0"	 
+		state.version = "2.3.1"	 
 		state.CobraAppCheck = "tempcontrolledwindow.json"
 		state.InternalName = "TempControlledWindowChild" 
 		state.preCheckMessage = "This was designed to monitor a temp sensor and open/close a window/vent/blind to try and regulate temperature"

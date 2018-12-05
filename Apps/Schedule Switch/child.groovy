@@ -33,10 +33,11 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 04/12/2018
+ *  Last Update: 05/12/2018
  *
  *  Changes:
  *
+ *  V1.6.1 - Changed input for minute from an option to freeform number
  *  V1.6.0 - Added disable apps code
  *  V1.5.0 - Streamlined restrictions page to action faster if specific restrictions not used.
  *  V1.4.0 - Move update notification to parent
@@ -82,7 +83,7 @@ def mainPage() {
 		input "month1", "enum", title: "Select Month", required: true, options: [ "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 		input "date1", "enum", title: "Select Date", required: true, options: [ "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31"]
 		input "hour1", "enum", title: "Select Hour", required: true,  options: [ "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23"]
-		input "min1", "enum", title: "Select Minute", required: true, options: [ "0", "5", "10", "15", "20", "25", "30", "35", "40", "45", "50", "55"]
+		input "min1", "number", title: "Enter Minute", required: true
 	    input "mode1", "bool", title: "Turn Switch On or Off", required: true, submitOnChange: true, defaultValue: false    
 	    }
      section(){
@@ -91,7 +92,7 @@ def mainPage() {
         input "month2", "enum", title: "Select Month", required: true, options: [ "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 		input "date2", "enum", title: "Select Date", required: true, options: [ "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31"]
 		input "hour2", "enum", title: "Select Hour", required: true,  options: [ "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23"]
-		input "min2", "enum", title: "Select Minute", required: true, options: [ "0", "5", "10", "15", "20", "25", "30", "35", "40", "45", "50", "55"]
+		input "min2", "number", title: "Enter Minute", required: true
 	    input "mode2", "bool", title: "Turn Switch On or Off", required: true, submitOnChange: true, defaultValue: false       
              
          }
@@ -212,7 +213,7 @@ state.selectedMonth = month1
  
 state.selectedDate = date1
 state.selectedHour = hour1
-state.selectedMin = min1
+state.selectedMin = min1.toInteger()
 state.schedule1 = "0 ${state.selectedMin} ${state.selectedHour} ${state.selectedDate} ${state.runMonth} ? *"
     
     log.info "state.schedule1 = $state.schedule1"
@@ -789,7 +790,7 @@ def setDefaults(){
 }
 
 def setVersion(){
-		state.version = "1.6.0"	 
+		state.version = "1.6.1"	 
 		state.InternalName = "SchedSwitchChild"
     	state.ExternalName = "Scheduled Switch Child"
 		state.preCheckMessage = "This app is designed to schedule a switch on/off some hours/days/weeks/months ahead..."
