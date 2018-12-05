@@ -33,10 +33,11 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 04/12/2018
+ *  Last Update: 05/12/2018
  *
  *  Changes:
  *
+ *  V1.3.1 - debug pushover message error
  *  V1.3.0 - Added disable apps code
  *  V1.2.0 - Moved update check to parent
  *  V1.1.0 - revised update checking
@@ -288,10 +289,10 @@ def pushOverUpdate(inMsg){
 
 
 def setVersion(){
-		state.version = "1.3.0"	 
+		state.version = "1.3.1"	 
 		state.InternalName = "ModeSwitchParent"  
     	state.CobraAppCheck = "modeswitch.json"
-		state.ExternalName - "Mode Switch Parent"
+		state.ExternalName = "Mode Switch Parent"
 }
 
 
