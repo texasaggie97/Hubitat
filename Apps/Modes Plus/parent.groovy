@@ -33,10 +33,11 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 04/12/2018
+ *  Last Update: 05/12/2018
  *
  *  Changes:
- *
+ *  
+ *  V1.3.1 - fixed bug in pushover code preventing correct update checks
  *  V1.3.0 - added disable apps code
  *  V1.2.0 - MOved update check to parent
  *  V1.1.2 - Revised update checking
@@ -290,10 +291,10 @@ def pushOverUpdate(inMsg){
 }
 
 def setVersion(){
-		state.version = "1.3.0"	 
+		state.version = "1.3.1"	 
 		state.InternalName = "ModesPlusParent"
 		state.CobraAppCheck = "modesplus.json"
-		state.ExternalName - " Modes Plus Parent"
+		state.ExternalName = " Modes Plus Parent"
 }
 
 

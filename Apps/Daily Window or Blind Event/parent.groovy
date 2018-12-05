@@ -295,7 +295,7 @@ def setVersion(){
 		state.version = "1.3.0"	 
 		state.InternalName = "DailyWindowtEventParent"
 		state.CobraAppCheck = "dailywindowblindevent.json"
-		state.ExternalName = "Deily Window & Blind Evevt Parent"
+		state.ExternalName = "Daily Window & Blind Event Parent"
 }
 
 
