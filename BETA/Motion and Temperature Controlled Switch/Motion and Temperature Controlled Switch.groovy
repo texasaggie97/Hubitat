@@ -34,10 +34,12 @@
  *-------------------------------------------------------------------------------------------------------------------
  *
  *  
- *  Last Update: 19/11/2018
+ *  Last Update: 06/12/2018
  *
  *  Changes:
  *
+ *
+ *  V1.1.0 - Added second 'enabling' temperature sensor
  *  V1.0.1 - Debug motion forcing heater on.
  *  V1.0.0 - POC 
  *
@@ -62,8 +64,11 @@ definition(
 preferences {
 	section(){input "switch1", "bool", title: "<b>Enable/Disable this app</b>", required: true, defaultValue: false}
    section("<b><u>Devices</i></u></b>") {
-	
-	input "temperatureSensor1", "capability.temperatureMeasurement" , title: "Select Temperature Sensor ", required: true
+	input "outsideSensor1", "capability.temperatureMeasurement" , title: "Select Outside Temperature Sensor ", required: true
+	input "tempOutside", "number", title: "Outside Trigger Temperature (If outside sensor reports below this, then system will be enabled) ", defaultValue: 45, required: true	
+	   
+	   
+	input "temperatureSensor1", "capability.temperatureMeasurement" , title: "Select Inside Temperature Sensor ", required: true
 	input "motion1", "capability.motionSensor", title: "Select Motion Sensor ", required: true, multiple: false
 	input "switch2", "capability.switch", title: "Switch(es) ", required: true, multiple: true   
    } 
@@ -95,6 +100,8 @@ def subscribeNow() {
 	subscribe(motion1, "motion", motionHandler)
 	subscribe(switch2, "switch", switch2Handler)
 	subscribe(temperatureSensor1, "temperature", temperatureHandler)
+	subscribe(outsideSensor1, "temperature", outsideTempHandler)
+	
 	logCheck()
 	state.enable = switch1
 	state.confTempOff = temperature2
@@ -103,10 +110,28 @@ def subscribeNow() {
    }
 
 
+def outsideTempHandler(evt){
+	state.outTemp = evt.value
+	state.triggerTemp = tempOutside.toFloat()
+	LOGDEBUG("Recieved outside temp value of $state.outTemp")
+	if(state.outTemp <= state.triggerTemp){
+	LOGDEBUG("Recieved outside temp is lower than $state.triggerTemp so switching system on")
+	state.outTempAllow = true
+	}
+	
+	else{
+		
+	LOGDEBUG("Recieved outside temp is higher than $state.triggerTemp so switching system off")
+	state.outTempAllow = false
+		
+	}
+}
+
+
 
 def motionHandler(evt){
 	LOGDEBUG("Motion Handler Called")
-	if(state.enable == true){
+	if(state.enable == true && state.outTempAllow == true){
 	state.motion = evt.value
 	if(delay1){state.delay = 60 * delay1}
     else {state.delay = 0}           
@@ -132,7 +157,7 @@ def timeReset(){
 
 def temperatureHandler(evt) {
 	LOGDEBUG("Temperature Handler Called")
-	if(state.enable == true){
+	if(state.enable == true && state.outTempAllow == true){
     def newtemp1 = evt.value
 	state.newTemp = newtemp1.toDouble()
 	LOGDEBUG("Reported temperature is now: $state.newTemp&#176")	
@@ -152,7 +177,7 @@ def temperatureHandler(evt) {
 	}
 	}
   }
-	else {LOGDEBUG("Temperature changed but app is disabled by switch")}
+	else {LOGDEBUG("Temperature changed but app is disabled by switch or outside temp sensor")}
 }
 
 
@@ -193,7 +218,7 @@ def LOGDEBUG(txt){
     }
 }
 
-def setVersion(){state.version = "1.0.1"}
+def setVersion(){state.version = "1.1.0"}
 		
 
 
