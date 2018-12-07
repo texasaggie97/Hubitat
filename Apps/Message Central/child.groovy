@@ -33,11 +33,12 @@
  *-------------------------------------------------------------------------------------------------------------------
  *
  *
- *  Last Update: 04/12/2018
+ *  Last Update: 07/12/2018
  *
  *  Changes:
  *
  *
+ *  V13.5.1 - Fixed an issue with delay on speechsynth output not working
  *  V13.5.0 - Added disable app code
  *  V13.4.0 - Streamlined restrictions page to action faster if specific restrictions not used. 
  *  V13.3.1 - Added legacy modeHandler as Hubitat does not remove it on code update
@@ -3041,28 +3042,35 @@ def speechSynthNow(inMsg){
     LOGDEBUG("Calling.. speechSynthNow")
     checkAllow()
     if(state.allAllow == true){ 
-      
 			if(state.timer1 == true){
-			def newMessage = inMsg
+	//		def newMessage = inMsg
 			if(state.selection == "Weather Alert"){state.msg1 = inMsg}
 			if(state.selection != "Weather Alert"){
             compileMsg(inMsg)
 			LOGDEBUG("Compiled Message = $state.fullPhrase ")
                    }
-            def soundType=inMsg.toUpperCase()
-				if (soundType == '%CHIME%')
-					speaker.chime()
-				else if (soundType == '%DOORBELL%')
- 					speaker.doorbell()
-				else{   
-	            state.msg1 = state.fullPhrase
-            	speaker.speak(state.msg1)
-				state.timer1 = false
-				startTimer1()
+			state.soundTypeSynth = inMsg.toUpperCase()	
+			def mydelay = triggerDelay
+	LOGDEBUG("Speaker(s) in use: $speaker - waiting $mydelay seconds before continuing..."  )
+	runIn(mydelay, processSynth)
+			}		
+	}		
+}				
+  
+def processSynth(){
+			if (state.soundTypeSynth == '%CHIME%')
+			speaker.chime()
+			else if (state.soundTypeSynth == '%DOORBELL%')
+ 			speaker.doorbell()
+			else{   
+	        state.msg1 = state.fullPhrase
+            speaker.speak(state.msg1)
+			state.timer1 = false
+			startTimer1()
  			}
 		}
-    }    
-}
+        
+
 
 
 
@@ -4527,7 +4535,7 @@ def setDefaults(){
 
 
 def setVersion(){
-		state.version = "13.5.0"	 
+		state.version = "13.5.1"	 
 		state.InternalName = "MessageCentralChild" 
     	state.ExternalName = "Message Central Child"
 		state.preCheckMessage = "This is designed to use various 'triggers' to make your home 'speak'"
