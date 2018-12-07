@@ -34,12 +34,12 @@
  *-------------------------------------------------------------------------------------------------------------------
  *
  *  
- *  Last Update: 06/12/2018
+ *  Last Update: 07/12/2018
  *
  *  Changes:
  *
- *
- *  V1.1.0 - Added second 'enabling' temperature sensor
+ *  V1.1.1 - debug 
+ *  V1.1.0 - added second 'enabling' temperature sensor
  *  V1.0.1 - Debug motion forcing heater on.
  *  V1.0.0 - POC 
  *
@@ -52,7 +52,7 @@ definition(
     name: "Motion and Temperature Controlled Switch",
     namespace: "Cobra",
     author: "Andrew Parker",
-    description: "This App was designed to control a kennel heater - Switching on/off around a set temperature with a motion sensor to increase the set temperature",
+    description: "This App was designed to control a kennel heater - Switching on/off around a set temperature with a motion sensor to increase the set temperature range",
     category: "",
     
     iconUrl: "",
@@ -111,10 +111,11 @@ def subscribeNow() {
 
 
 def outsideTempHandler(evt){
-	state.outTemp = evt.value
-	state.triggerTemp = tempOutside.toFloat()
+	def outTemp1 = evt.value
+	state.outTemp = outTemp1.toDouble()
+	state.triggerTemp = tempOutside
 	LOGDEBUG("Recieved outside temp value of $state.outTemp")
-	if(state.outTemp <= state.triggerTemp){
+	if(state.outTemp < state.triggerTemp){
 	LOGDEBUG("Recieved outside temp is lower than $state.triggerTemp so switching system on")
 	state.outTempAllow = true
 	}
@@ -146,7 +147,7 @@ LOGDEBUG("Motion has stopped so waiting for $delay1 minutes before setting to ba
 		runIn(state.delay, timeReset)
 	}
   }
-	else {LOGDEBUG("Motion has changed but app is disabled by switch")}
+	else {LOGDEBUG("Motion has changed but app is disabled by switch or external temperature sensor")}
 }
 
 def timeReset(){
@@ -218,7 +219,7 @@ def LOGDEBUG(txt){
     }
 }
 
-def setVersion(){state.version = "1.1.0"}
+def setVersion(){state.version = "1.1.1"}
 		
 
 
