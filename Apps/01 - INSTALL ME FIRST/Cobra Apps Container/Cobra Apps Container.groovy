@@ -32,10 +32,12 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 30/11/2018
+ *  Last Update: 07/12/2018
  *
  *  Changes:
  *
+ *
+ *  V2.5.0 - Added "Did I leave Something Open"
  *  V2.4.0 - Added 'Disable All Cobra Apps' switch
  *  V2.3.0 - Added 'Irrigation Switch'
  *  V2.2.2 - Revised UI
@@ -108,7 +110,8 @@ def mainPage() {
         if(state.appName1.contains("Contact Controlled Lights and Switches")) {state.para1 = state.para1 + "<BR>Contact Controlled Lights and Switches"}
         if(state.appName1.contains("Daily Switch Event")){state.para1 = state.para1 + "<BR>Daily Switch Event"}
         if(state.appName1.contains("Daily Window or Blind Event")){state.para1 = state.para1 + "<BR>Daily Window or Blind Event"}
-        if(state.appName1.contains("Flasher")){state.para1 = state.para1 + "<BR>Flasher"}
+		if(state.appName1.contains("Did I leave Something Open")){state.para1 = state.para1 + "<BR>Did I leave Something Open"}
+		if(state.appName1.contains("Flasher")){state.para1 = state.para1 + "<BR>Flasher"}
 		if(state.appName1.contains("Irrigation Switch")){state.para1 = state.para1 + "<BR>Irrigation Switch"}
         if(state.appName1.contains("Message Central")){state.para1 = state.para1 + "<BR>Message Central"}
         if(state.appName1.contains("Mode Switch")) {state.para1 = state.para1 + "<BR>Mode Switch"}
@@ -176,6 +179,13 @@ def childAppList(){
         app(name: "dailyWindowEvent", appName: "Daily Window or Blind Event", namespace: "Cobra", title: "<b>Load 'Daily Window or Blind Event' into this container</b>", multiple: true)
         } 
     }
+	if(!state.appName1.contains("Did I leave Something Open") && state.appList.contains("Did I leave Something Open")){
+        section (""){
+        app(name: "leftOpen", appName: "Did I leave Something Open", namespace: "Cobra", title: "<b>Load 'Did I leave Something Open' into this container</b>", multiple: true)
+        } 
+    }	
+		
+		
      if(!state.appName1.contains("Flasher") && state.appList.contains("Flasher")){
         section (""){
         app(name: "flasherParent", appName: "Flasher", namespace: "Cobra", title: "<b>Load 'Flasher' into this container</b>", multiple: true)
@@ -281,6 +291,7 @@ def checkInput(){
         "Contact Controlled Lights and Switches",
         "Daily Switch Event",
         "Daily Window or Blind Event",
+		"Did I leave Something Open",
         "Flasher",
 		"Irrigation Switch",
         "Message Central",
@@ -368,14 +379,14 @@ def stopAll(){
 		state.msg = "Disabled by Cobra Apps"
 		childApps.each { child ->
 		child.stopAllParent(state.parentDisable, state.msg)
-		log.warn "Disabling: $child.label"
+//		log.warn "Disabling: $child.label"
 		}
 	}	
 	if(state.parentDisable == false){
 		state.msg = "Enabled by Cobra Apps"
 		childApps.each { child ->
 		child.stopAllParent(state.parentDisable, state.msg)
-		log.trace "Re-enabling: $child.label "
+//		log.trace "Re-enabling: $child.label "
 		}
 	}
 }
@@ -472,7 +483,7 @@ def updateCheck(){
 
 
 def setVersion(){
-		state.version = "2.4.0"	 
+		state.version = "2.5.0"	 
 		state.InternalName = "CobraParent" 
     	state.ExternalName = "Cobra Apps Container"
     	state.CobraAppCheck = "cobraapps.json"

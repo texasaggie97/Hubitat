@@ -32,10 +32,11 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 29/11/2018
+ *  Last Update: 30/11/2018
  *
  *  Changes:
  *
+ *  V2.4.0 - Added 'Disable All Cobra Apps' switch
  *  V2.3.0 - Added 'Irrigation Switch'
  *  V2.2.2 - Revised UI
  *  V2.2.1 - Revised update checking - separate json file
@@ -132,6 +133,7 @@ if(state.appName1.contains("Sunset Switch")) {state.para1 = state.para1 + "<BR>S
         paragraph  "You can only load apps here once you have already installed the latest code for that app (both parent and child) <br>Parent & Child apps code can be found on GitHub <a href='https://github.com/CobraVmax/Hubitat/tree/master/Apps' target='_blank'>here</a> "
              }
     	childAppList()
+		displayDisable()
 	}
   }
 }
@@ -335,11 +337,48 @@ def display(){
 		section(){
 		input "updateNotification", "bool", title: "Send a 'Pushover' message when an update is available for Cobra Apps", required: true, defaultValue: false, submitOnChange: true 
 		if(updateNotification == true){ input "speakerUpdate", "capability.speechSynthesis", title: "PushOver Device", required: true, multiple: true}
-		}			
+		}	
+	
 }
 
 
+def displayDisable(){
+	if(app.label){
+	section("<hr>"){
+		input "disableAll", "bool", title: "Disable <b><i>ALL</i></b> ${app.label} within this container", required: true, defaultValue: false, submitOnChange: true
+		state.parentDisable = disableAll
+		stopAll()
+	}
+	section("<hr>"){}
+	}
+	else{
+	section("<hr>"){
+		input "disableAll", "bool", title: "Disable <b><i>ALL</i></b> apps within this container", required: true, defaultValue: false, submitOnChange: true
+		state.parentDisable = disableAll
+		stopAll()
+	}
+	section("<hr>"){}
+	}
+	
+}
 
+def stopAll(){
+	
+	if(state.parentDisable == true){ 
+		state.msg = "Disabled by Cobra Apps"
+		childApps.each { child ->
+		child.stopAllParent(state.parentDisable, state.msg)
+		log.warn "Disabling: $child.label"
+		}
+	}	
+	if(state.parentDisable == false){
+		state.msg = "Enabled by Cobra Apps"
+		childApps.each { child ->
+		child.stopAllParent(state.parentDisable, state.msg)
+		log.trace "Re-enabling: $child.label "
+		}
+	}
+}
 
 
 def checkButtons(){
@@ -433,7 +472,7 @@ def updateCheck(){
 
 
 def setVersion(){
-		state.version = "2.3.0"	 
+		state.version = "2.4.0"	 
 		state.InternalName = "CobraParent" 
     	state.ExternalName = "Cobra Apps Container"
     	state.CobraAppCheck = "cobraapps.json"
