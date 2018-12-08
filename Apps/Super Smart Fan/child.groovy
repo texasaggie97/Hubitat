@@ -34,10 +34,11 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 04/12/2018
+ *  Last Update: 08/12/2018
  *
  *  Changes:
  *
+ *  V1.5.1 - Fixed update code
  *  V1.5.0 - Added disable apps code
  *  V1.4.0 - Streamlined restrictions page to action faster if specific restrictions not used.
  *  V1.3.0 - Moved update notification to parent
@@ -97,11 +98,6 @@ def mainPage() {
      input "thresholdLow", "number", title: "Low Threshold (% humidity above baseline to switch off)", required: true, defaultValue: "5"
      }
         
-        
-    section("") {       
-    mode title: "Run only when in specific mode(s) ", required: false
-    input "debugMode", "bool", title: "Enable logging", required: true, defaultValue: false
-  	        }
 }
       
   }      
@@ -735,7 +731,7 @@ def updateCheck(){
     def paramsUD = [uri: "http://update.hubitat.uk/json/${state.CobraAppCheck}"]
     try {
     httpGet(paramsUD) { respUD ->
-//  log.warn " Version Checking - Response Data: ${respUD.data}"   // Troubleshooting Debug Code 
+  log.warn " Version Checking - Response Data: ${respUD.data}"   // Troubleshooting Debug Code 
        		def copyrightRead = (respUD.data.copyright)
        		state.Copyright = copyrightRead
             def commentRead = (respUD.data.Comment)
@@ -825,8 +821,8 @@ def setDefaults(){
 
 
 def setVersion(){
-    state.version = "1.5.0"	 
-    state.InternalName = "SuperSmartFan"
+    state.version = "1.5.1"	 
+    state.InternalName = "SuperSmartFanChild"
     state.ExternalName = "Super Smart Fan Child"
     state.preCheckMessage = "This app is designed to control a bathroom fan - switching with humidity, motion etc." 
     state.CobraAppCheck = "ssfan.json"

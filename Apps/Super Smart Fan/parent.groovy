@@ -33,10 +33,11 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 04/12/2018
+ *  Last Update: 08/12/2018
  *
  *  Changes:
  *
+ *  V1.2.1 - Fixed update code
  *  V1.2.0 - added disable apps code
  *  V1.1.0 - Moved update check to parent
  *  V1.0.0 - POC
@@ -291,8 +292,8 @@ def pushOverUpdate(inMsg){
 }
 
 def setVersion(){
-		state.version = "1.2.0"	 
-		state.InternalName = "ssfanParent" 
+		state.version = "1.2.1"	 
+		state.InternalName = "SuperSmartFanParent" 
     	state.ExternalName = "Super Smart Fan Parent"
     	state.CobraAppCheck = "ssfan.json"
 }
