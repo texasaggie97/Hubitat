@@ -731,7 +731,7 @@ def updateCheck(){
     def paramsUD = [uri: "http://update.hubitat.uk/json/${state.CobraAppCheck}"]
     try {
     httpGet(paramsUD) { respUD ->
-  log.warn " Version Checking - Response Data: ${respUD.data}"   // Troubleshooting Debug Code 
+//   log.warn " Version Checking - Response Data: ${respUD.data}"   // Troubleshooting Debug Code 
        		def copyrightRead = (respUD.data.copyright)
        		state.Copyright = copyrightRead
             def commentRead = (respUD.data.Comment)
