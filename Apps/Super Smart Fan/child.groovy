@@ -34,10 +34,12 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 08/12/2018
+ *  Last Update: 10/12/2018
  *
  *  Changes:
  *
+ *
+ *  V1.6.0 - Now checks current fan status so won't try to switch off/on if already off/on
  *  V1.5.1 - Fixed update code
  *  V1.5.0 - Added disable apps code
  *  V1.4.0 - Streamlined restrictions page to action faster if specific restrictions not used.
@@ -306,22 +308,28 @@ def motion1Handler(evt){
 
 
 def fanOn(){
-LOGDEBUG("Switching fan ON")       
+LOGDEBUG("Switching fan ON (If not already on)")   
+	if(state.fanSwitchNow != 'on'){
    fanSwitch1.on()     
     }
+}
+
 
 def fanOff(){
-LOGDEBUG("Switching fan OFF")         
+LOGDEBUG("Switching fan OFF (If not already off)") 
+	if(state.fanSwitchNow != 'off'){
     fanSwitch1.off()    
     }
-
+}
 
 
 
 
 def resetNow(){
- LOGDEBUG("Timer reset")    
-    fanSwitch1.off()
+ LOGDEBUG("Timer reset switching off (If not off already)")    
+  if(state.fanSwitchNow != 'off'){
+    fanSwitch1.off()    
+    }
  }
 
 
@@ -821,7 +829,7 @@ def setDefaults(){
 
 
 def setVersion(){
-    state.version = "1.5.1"	 
+    state.version = "1.6.0"	 
     state.InternalName = "SuperSmartFanChild"
     state.ExternalName = "Super Smart Fan Child"
     state.preCheckMessage = "This app is designed to control a bathroom fan - switching with humidity, motion etc." 
