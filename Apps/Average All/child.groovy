@@ -35,10 +35,11 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 04/12/2018
+ *  Last Update: 10/12/2018
  *
  *  Changes:
  *
+ *  V2.2.0 - Added auto checking of device driver for Vdevice - Disables 'lastdevice' if not correct driver.
  *  V2.1.0 - added disable apps code
  *  V2.0.0 - Streamlined restrictions page to action faster if specific restrictions not used.
  *  V1.9.0 - Moved update notification to parent
@@ -99,6 +100,7 @@ preferences {
      	if(state.selection == "Temperature"){ 
             input "tempSensors", "capability.temperatureMeasurement", title: "Physical Temperature Sensors", multiple: true
         	input "sendTempInterval", "number", title: "How Often To Update Virtual Temperature Device (Minutes - Set to '0' for instant)", required: true, defaultValue: "0"
+			
         }
      	if(state.selection == "Illuminance"){
             input "illumSensors", "capability.illuminanceMeasurement", title: "Physical Illuminance Sensors", multiple: true
@@ -210,7 +212,7 @@ def subscribeNow() {
 	LOGDEBUG( "You are using the correct Average All Virtual Device")
 	state.correctDevice = true
     }
-	else{ log.warn "You are not using the correct Average All Virtual Device - This may cause error messages, but will probably still work"
+	else{ log.warn "You are not using the correct Average All Virtual Device - This may cause errors and the app may not work correctly!"
 	state.correctDevice = false     
     }
  }
@@ -273,8 +275,10 @@ LOGDEBUG("Average Illuminance = $state.mean")
          if(timeCheck1 == 0){ timeCheck1 = 5}
 LOGDEBUG("Sending $state.mean to $vDevice then waiting $timeCheck1 seconds before I can send again")
      settings.vDevice.setLux("${state.mean}")
+		 if(state.correctDevice == true){
      settings.vDevice.lastDeviceLux("${aveDev}")  
-        
+		 }
+		 
         state.luxSendOK = false
 //         log.warn "timecheck1 = $timeCheck1"
        runIn(timeCheck1, resetLuxNow)  // , [overwrite: false])
@@ -319,7 +323,9 @@ LOGDEBUG( "Total Combined value =  $sumTemp")
         if(timeCheck2 == 0){timeCheck2 = 5}
         LOGDEBUG("Sending $state.meanTemp to $vDevice then waiting $timeCheck2 seconds before I can send again")
     settings.vDevice.setTemperature("${state.meanTemp}")
+		if(state.correctDevice == true){
     settings.vDevice.lastDeviceTemperature("${aveDev1}") 
+		}
  		state.tempSendOK = false
         runIn(timeCheck2, resetTempNow)  // , [overwrite: false])
  }
@@ -363,7 +369,9 @@ LOGDEBUG("Average Humidity = $state.meanHum")
          if(timeCheck3 == 0){timeCheck3 = 5}
 LOGDEBUG("Sending $state.mean to $vDevice then waiting $timeCheck3 seconds before I can send again")
      settings.vDevice.setHumidity("${state.meanHum}")
+		 if(state.correctDevice == true){
      settings.vDevice.lastDeviceHumidity("${aveDev3}") 
+		 }
         state.humSendOK = false
        runIn(timeCheck3, resetHumNow) // , [overwrite: false])
      }
@@ -409,7 +417,9 @@ LOGDEBUG( "Total Combined value =  $sumPress")
         if(timeCheck4 == 0){timeCheck4 = 5}
         LOGDEBUG("Sending $state.mean to $vDevice then waiting $timeCheck4 seconds before I can send again")
     settings.vDevice.setPressure("${state.meanPress}")
-    settings.vDevice.lastDevicePressure("${aveDev4}") 
+		if(state.correctDevice == true){
+    settings.vDevice.lastDevicePressure("${aveDev4}")
+		}
  		state.pressSendOK = false
         runIn(timeCheck4, resetPressNow)  // , [overwrite: false])
  }
@@ -453,7 +463,9 @@ LOGDEBUG("Received from: $aveDev5 - $ave5")
 LOGDEBUG("Active Sensors: ${activeNow.join(', ')}")
 LOGDEBUG( "Active Now!")         
 			settings.vDevice.setMotion("active")
-            settings.vDevice.lastDeviceMotion("${aveDev5}")  
+			if(state.correctDevice == true){
+            settings.vDevice.lastDeviceMotion("${aveDev5}") 
+			}
 }
    def inActiveNow = motionSensors.findAll { it?.latestValue("motion") == "inactive"}
 //    def inActiveNow = motionSensors.findAll { it?.currentValue("motion") == 'inactive' }
@@ -971,7 +983,7 @@ def setDefaults(){
 
     
 def setVersion(){
-		state.version = "2.1.0"	 
+		state.version = "2.2.0"	 
 		state.InternalName = "AverageAllChild"
     	state.ExternalName = "Average All Child"
 		state.preCheckMessage = "This app was designed to display/set an 'average' Illumination, Temperature, Humidity or Pressure from a group of devices. <br>It can also be used to 'group' a number of Motion sensors together to act as one"
