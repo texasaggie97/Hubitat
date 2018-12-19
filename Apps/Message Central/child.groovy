@@ -33,11 +33,11 @@
  *-------------------------------------------------------------------------------------------------------------------
  *
  *
- *  Last Update: 07/12/2018
+ *  Last Update: 19/12/2018
  *
  *  Changes:
  *
- *
+ *  V13.6.0 - Debug issues with multiple random message configuration - Removed most of the default random messages.
  *  V13.5.1 - Fixed an issue with delay on speechsynth output not working
  *  V13.5.0 - Added disable app code
  *  V13.4.0 - Streamlined restrictions page to action faster if specific restrictions not used. 
@@ -171,7 +171,7 @@ def subscribeNow() {
 	if(restrictPresenceSensor1){subscribe(restrictPresenceSensor1, "presence", restrictPresence1SensorHandler)}
 	if(sunriseSunset){astroCheck()}
 	if(sunriseSunset){schedule("0 1 0 1/1 * ? *", astroCheck)} // checks sunrise/sunset change at 00.01am every day
-    
+    state.appgo = true
   // App Specific subscriptions & settings below here
  
       if(state.multiVolumeSlots == null){state.multiVolumeSlots = false}    
@@ -373,7 +373,7 @@ def prePostPage4() {
 					g4Item = getGroup4(i)
                     g4ItemPadded = (i<9 ?'0' : '') + (i+1)
 					if(state.postCount1>i){
-                        input "postMsg${g4ItemPadded}", "text", title: " %group4% -  message ${g4ItemPadded}",  required: false, defaultValue: "${g4Item}"
+                        input "postMsg1${g4ItemPadded}", "text", title: " %group4% -  message ${g4ItemPadded}",  required: false, defaultValue: "${g4Item}"
 					}
                 }
             }
@@ -3869,34 +3869,14 @@ private getyear() {
 
 private getGroup1(msgPreitem) {
     def preList = [
-        "Welcome home %device%.", 
-        "How you doing %device%?",
-        "What's up %device%?",
-        "Long time no see %device%.",
-        "Hey %device%.",
-        "Nice you see you %device%.",
-        "Look who's home, it's %device%.",
-        "Nice to have you back %device%.",
-        "Howdy do %device%.",
-        "What's going on %device%?",
-        "How is everything %device%?",
-        "It's been ages since I have seen you %device%.",
-        "Where have you been hiding %device%?",
-        "How's ette hanging %device%?",
-        "What's cookin %device%?",
-        "What's shakin %device%?",
-        "Greetings and salutations %device%.",
-        "Aloha %device%.",
-        "Shalom %device%.",
-        "How goes ette %device%?",
-        "What's happening %device%",
-        "How goes ette %device%?",
-        "Roll out the red carpet for %device%!",
-        "%greeting% %device%.",
-        "OHlah %device%."
+        "Welcome home", 
+        "How you doing?",
+        "What's up?",
+        "Long time no see.",
+        "Hey!"
     ]
-    if(state.preCount>25){
-        for(int i = 25;i<state.preCount;i++) {
+    if(state.preCount>5){
+        for(int i = 5;i<state.preCount;i++) {
             def preDisplay = i.toInteger() + 1
             preList.add("Group 1 - Message ${preDisplay}")
         }
@@ -3916,34 +3896,15 @@ private getGroup1(msgPreitem) {
 
 private getGroup2(msgPostitem) {
     def postList = [            
-        "Goodbye %device%.  Hope you have a %greeting%." ,  
-        "See you later %device%.",
-        "Live long and prosper %device%.",
-        "Farewell %device%",
-        "Hope you have a great time %device%.",
-        "Take care %device%.",
-        "Smell you later %device%.",
-        "I thought %device% would never leave!",
-        "AhhDEEOhs %device%",
-        "Chow %device%.",
-        "Oh revwahr %device%.",
-        "Sighenara %device%.",
-        "Tah Tah for now %device%.",
-        "Catch you later %device%.",
-        "To-da-loo %device%.",
-        "See you in the funny papers %device%.",
-        "Toodles %device%.",
-        "Godspeed %device%.",
-        "So long %device%.",
-        "Ouf vee duhr zane %device%.",
-        "Aloha %device%",
-        "Shalom %device%",
-        "Cheerio %device%",
-        "AhrreevehDEHRtchee %device%",
-        "Bye %device%.  Hope you have a %greeting%."
+        "Goodbye , Hope you have a %greeting%." ,  
+        "See you later",
+        "Live long and prosper.",
+        "Farewell ",
+        "Hope you have a great time."
+        
     ]  
-    if(state.postCount>25){
-        for(int i = 25;i<state.postCount;i++) {
+    if(state.postCount>5){
+        for(int i = 5;i<state.postCount;i++) {
             def postDisplay = i.toInteger() + 1
             postList.add("Group 2 - Message ${postDisplay}")            
         }
@@ -3967,15 +3928,11 @@ private getGroup3(msgWakeitem) {
         "Please Wake Up!",
         "Come on!,,, It's time to wake up!",
         "Get out of bed!,NOW!",
-        "Come on! It's time to get up!",
-        "It is %time%.  Time to wake up!",
-        "I am not asking again.  Wake Up!",
-        "Rise and shine! It's time to get up!",
-        "Don't make me come over there. Get out of bed!,NOW!",
-        "I am going to start counting! ,,, 5 ,,, 4 ,,, 3,,, 2 ,,, 1"    
+        "Come on! It's time to get up!"
+       
     ]
-    if(state.wakeCount>10){
-        for(int i = 10;i<state.wakeCount;i++) {
+    if(state.wakeCount>5){
+        for(int i = 5;i<state.wakeCount;i++) {
             def wakeDisplay = i.toInteger() + 1
             wakeList.add("Group 3 - Message ${wakeDisplay}")
         }
@@ -3996,47 +3953,28 @@ private getGroup3(msgWakeitem) {
 
 
 private getGroup4(msgPostitem) {
-    def postList = [            
+    def postList1 = [            
         "Hey! ,,," ,  
         "Information!,",
         "I thought you might like to know ,",
         "I'm sorry to disturb you but,",
-        "Hey! ,, I thought you might like to know," ,
-        "Take care %device%.",
-        "Smell you later %device%.",
-        "I thought %device% would never leave!",
-        "AhhDEEOhs %device%",
-        "Chow %device%.",
-        "Oh revwahr %device%.",
-        "Sighenara %device%.",
-        "Tah Tah for now %device%.",
-        "Catch you later %device%.",
-        "To-da-loo %device%.",
-        "See you in the funny papers %device%.",
-        "Toodles %device%.",
-        "Godspeed %device%.",
-        "So long %device%.",
-        "Ouf vee duhr zane %device%.",
-        "Aloha %device%",
-        "Shalom %device%",
-        "Cheerio %device%",
-        "AhrreevehDEHRtchee %device%",
-        "Bye %device%.  Hope you have a %greeting%."
+        "Hey! ,, I thought you might like to know," 
+        
     ]  
-    if(state.postCount1>25){
-        for(int i = 25;i<state.postCount1;i++) {
+    if(state.postCount1>5){
+        for(int i = 5;i<state.postCount1;i++) {
             def postDisplay = i.toInteger() + 1
-            postList.add("Group 4 - Message ${postDisplay}")            
+            postList1.add("Group 4 - Message ${postDisplay}")            
         }
     }
     if(msgPostitem == null) {
-        MaxRandom4 = (postList.size() >= state.postCount1 ? postList.size() : state.postCount1)
+        MaxRandom4 = (postList1.size() >= state.postCount1 ? postList1.size() : state.postCount1)
         LOGDEBUG("MaxRandom4 = $MaxRandom4") 
         def randomKey4 = new Random().nextInt(MaxRandom4)
         LOGDEBUG("randomKey4 = $randomKey4") 
-        msgPost = postList[randomKey4]
+        msgPost = postList1[randomKey4]
     } else {
-        msgPos1t = postList[msgPostitem]
+        msgPost1 = postList1[msgPostitem]
     }
 
 	return msgPost1
@@ -4535,7 +4473,7 @@ def setDefaults(){
 
 
 def setVersion(){
-		state.version = "13.5.1"	 
+		state.version = "13.6.0"	 
 		state.InternalName = "MessageCentralChild" 
     	state.ExternalName = "Message Central Child"
 		state.preCheckMessage = "This is designed to use various 'triggers' to make your home 'speak'"

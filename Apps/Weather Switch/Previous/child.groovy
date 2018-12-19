@@ -33,12 +33,10 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 19/12/2018
+ *  Last Update: 04/12/2018
  *
  *  Changes:
  *
- *
- *  V3.1.0 - Added 'Cloud Cover' (cloudiness) trigger
  *  V3.0.0 - Added disable apps code
  *  V2.9.0 - Streamlined restrictions page to action faster if specific restrictions not used.
  *  V2.8.0 - Moved update notification to child
@@ -109,7 +107,6 @@ def mainPage() {
           
   		  "Alert",
           "Chance of Rain",
-		  "Cloud Cover",
           "Dewpoint",
           "Forecast Conditions",
           "Forecast High",
@@ -279,7 +276,6 @@ def subscribeNow() {
     state.already = 'off'
     state.selection = trigger
     if(state.selection == "Alert"){ subscribe(sensor1, "alert", alertHandler)}
-	if(state.selection == "Cloud Cover"){ subscribe(sensor1, "cloudiness", cloudHandler)}
     if(state.selection == "Illuminance"){ subscribe(sensor1, "illuminance", illuminanceHandler)}
     if(state.selection == "Humidity"){ subscribe(sensor1, "humidity", humidityHandler)}
     if(state.selection == "Solar Radiation"){subscribe(sensor1, "solarradiation", solarradiationHandler)}
@@ -639,19 +635,7 @@ def humidityHandler(evt){
     def call27 = 'Humidity'
 	LOGDEBUG("Humidity is $evt27")
     actionNow(call27, evt27)
-}        
-
-def cloudHandler(evt){
-	
-	def event28 = evt.value
-    def evt28 = event28.toDouble()
-    def call28 = 'Cloudiness'
-	LOGDEBUG("Cloudiness is $evt28")
-    actionNow(call28, evt28)
-}        
-
-
-
+}          
 
 def  alertHandler(evt){ 
    
@@ -1324,7 +1308,7 @@ def setDefaults(){
 
 
 def setVersion(){
-     state.version = "3.1.0"
+     state.version = "3.0.0"
      state.InternalName = "WeatherSwitchChild"
      state.ExternalName = "Weather Switch Child"
 	 state.preCheckMessage = "This app is designed to turn On/Off a switch based upon weather events." 
