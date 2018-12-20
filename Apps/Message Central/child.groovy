@@ -33,10 +33,12 @@
  *-------------------------------------------------------------------------------------------------------------------
  *
  *
- *  Last Update: 19/12/2018
+ *  Last Update: 20/12/2018
  *
  *  Changes:
  *
+ * 
+ *  V13.7.0 - Major random code rewrite - Now 4x groups of up to 10 phrases are available
  *  V13.6.0 - Debug issues with multiple random message configuration - Removed most of the default random messages.
  *  V13.5.1 - Fixed an issue with delay on speechsynth output not working
  *  V13.5.0 - Added disable app code
@@ -146,7 +148,7 @@ preferences {
   	  page name: "pageHelpVariables"
 	  page name: "prePostPage1"
 	  page name: "prePostPage2"
-	  page name: "wakeUpPage"
+	  page name: "prePostPage3"
 	  page name: "prePostPage4"
     
     page name: "setUpPage", title: "", install: false, uninstall: true, nextPage: "restrictionsPage" // "variablesPage"
@@ -310,13 +312,13 @@ def mainPage() {
 	preCheck()
    
        section{
-              href "pageHelp", title:"Message Variables", description:"Tap here for a list of 'variables' you can configure for use in your messages (and what they do)"
+              href "pageHelp", title:"Message Variables", description:"Click here for a list of 'variables' you can configure for use in your messages (and what they do)"
         }
       section() {
         	
-            triggerInput()
+          triggerInput()
 		  speakerInputs()
-            actionInputs()
+          actionInputs()
 		  
         }
          }
@@ -331,17 +333,23 @@ def variablesPage() {
     
 def prePostPage1() {
 	dynamicPage(name: "prePostPage1") {
-    state.preCount = settings.preCount.toInteger()
+    state.phraseCount1 = settings.phraseCount1.toInteger()
         section() { 
-            if (state.preCount != null && state.preCount > 0) {
-                for(int i = 0; i<state.preCount; i++) {
-					g1Item = getGroup1(i)
+            if (state.phraseCount1 != null && state.phraseCount1 > 0) {
+                for(int i = 0; i<state.phraseCount1; i++) {
                     g1ItemPadded = (i<9 ?'0' : '') + (i+1)
-					if(state.preCount>i){
-                        input "preMsg${g1ItemPadded}", "text", title: " %group1% -  message ${g1ItemPadded}",  required: false, defaultValue: "${g1Item}"
+					if(state.phraseCount1>i){
+                        input "group1Msg${g1ItemPadded}", "text", title: " %group1% -  message ${g1ItemPadded}",  required: false  // ,  defaultValue: " "// "${g1Item}" 
+						
+						state.pMesg = "group1Msg${g1ItemPadded}" // debug test code - AJP
+						log.warn "input - ${state.pMesg}"   // debug test code - AJP
+						
+						
 					}
+					 
+					
                 }
-            }
+            }  
         }  
     }
 }   
@@ -349,14 +357,13 @@ def prePostPage1() {
        
 def prePostPage2() {
 	dynamicPage(name: "prePostPage2") {
-    state.postCount = settings.postCount.toInteger()
+    state.phraseCount2 = settings.phraseCount2.toInteger()
 		section() {
-            if (state.postCount != null && state.postCount > 0) {
-                for(int i = 0; i<state.postCount; i++) {
-					g2Item = getGroup2(i)
+            if (state.phraseCount2 != null && state.phraseCount2 > 0) {
+                for(int i = 0; i<state.phraseCount2; i++) {
                     g2ItemPadded = (i<9 ?'0' : '') + (i+1)
-					if(state.postCount>i){
-                        input "postMsg${g2ItemPadded}", "text", title: " %group2% -  message ${g2ItemPadded}",  required: false, defaultValue: "${g2Item}"
+					if(state.phraseCount2>i){
+                        input "group2Msg${g2ItemPadded}", "text", title: " %group2% -  message ${g2ItemPadded}",  required: false  //, defaultValue: "${g2Item}"
 					}
                 }
             }
@@ -364,39 +371,41 @@ def prePostPage2() {
 	}
 }
 
-def prePostPage4() {
-	dynamicPage(name: "prePostPage4") {
-    state.postCount1 = settings.postCount1.toInteger()
-		section() {
-            if (state.postCount1 != null && state.postCount1 > 0) {
-                for(int i = 0; i<state.postCount1; i++) {
-					g4Item = getGroup4(i)
-                    g4ItemPadded = (i<9 ?'0' : '') + (i+1)
-					if(state.postCount1>i){
-                        input "postMsg1${g4ItemPadded}", "text", title: " %group4% -  message ${g4ItemPadded}",  required: false, defaultValue: "${g4Item}"
-					}
-                }
-            }
-		}  
-	}
-}
 
-def wakeUpPage() {
+def prePostPage3() {
 	dynamicPage(name: "wakeUpPage") {
-	state.wakeCount = settings.wakeCount.toInteger()        
+	state.phraseCount3 = settings.phraseCount3.toInteger()        
 		section() { 
-            if (state.wakeCount != null && state.wakeCount > 0) {
-                for(int i = 0; i<state.wakeCount; i++) {
-					g3Item = getGroup3(i)
+            if (state.phraseCount3 != null && state.phraseCount3 > 0) {
+                for(int i = 0; i<state.phraseCount3; i++) {
                     g3ItemPadded = (i<9 ?'0' : '') + (i+1)
-					if(state.wakeCount>i){
-                        input "wakeMsg${g3ItemPadded}", "text", title: " %group3% -  message ${g3ItemPadded}",  required: false, defaultValue: "${g3Item}"
+					if(state.phraseCount3>i){
+                        input "group3Msg${g3ItemPadded}", "text", title: " %group3% -  message ${g3ItemPadded}",  required: false  //, defaultValue: "${g3Item}"
 					}
                 }
             }
 		}  
 	}
 } 
+
+
+def prePostPage4() {
+	dynamicPage(name: "prePostPage4") {
+    state.phraseCount4 = settings.phraseCount4.toInteger()
+		section() {
+            if (state.phraseCount4 != null && state.phraseCount4 > 0) {
+                for(int i = 0; i<state.phraseCount4; i++) {
+                    g4ItemPadded = (i<9 ?'0' : '') + (i+1)
+					if(state.phraseCount4>i){
+                        input "group4Msg${g4ItemPadded}", "text", title: " %group4% -  message ${g4ItemPadded}",  required: false  //, defaultValue: "${g4Item}"
+					}
+                }
+            }
+		}  
+	}
+}
+
+
    
 def pageHelpVariables(){
     dynamicPage(name: "pageHelpVariables", title: "Message Variables", install: false, uninstall:false){
@@ -459,15 +468,19 @@ def pageHelpVariables(){
 def pageHelp(){
 	 dynamicPage(name: "pageHelp", title: "Message Variables", install: false, uninstall:false){
 section(){
-	href "pageHelpVariables", title:"Message Variables Help", description:"Tap here to view the available variables"
-    input "preCount", "number", title: "Number of 'Group1' Random Phrases?", submitOnChange: true,required: true, defaultValue: 5;            
-    if(settings.preCount>0){href "prePostPage1", title:"Group1 Random Messages", description:"Tap here to configure 'Group1' random messages"}
-    input "postCount", "number", title: "Number of 'Group2' Random Phrases?", submitOnChange: true, required: true, defaultValue: 5;                
-    if(settings.postCount>0){href "prePostPage2", title:"Group2 Random Messages", description:"Tap here to configure 'Group2 random messages"}
-    input "wakeCount", "number", title: "Number of 'Group3' Random Phrases?", submitOnChange: true, required: true, defaultValue: 5;                
-    if(settings.wakeCount>0){href "wakeUpPage", title:"Group3 Random Messages", description:"Tap here to configure 'Group3' random messages"}
-    input "postCount1", "number", title: "Number of 'Group4' Random Phrases?", submitOnChange: true,required: true, defaultValue: 5;            
-    if(settings.postCount1>0){href "prePostPage4", title:"Group4 Random Messages", description:"Tap here to configure 'Group4' random messages"}
+	href "pageHelpVariables", title:"Message Variables Help", description:"Click here to view the available variables"
+	
+	input "phraseCount1", "number", title: "Number of 'Group1' Random Phrases - (Max 10)", submitOnChange: true,required: true, defaultValue: 0;            
+    if(settings.phraseCount1>0){href "prePostPage1", title:"Group1 Random Messages", description:"Click here to configure 'Group1' random messages"}			
+		
+    input "phraseCount2", "number", title: "Number of 'Group2' Random Phrases - (Max 10)", submitOnChange: true, required: true, defaultValue: 0;                
+    if(settings.phraseCount2>0){href "prePostPage2", title:"Group2 Random Messages", description:"Click here to configure 'Group2 random messages"}
+		 
+    input "phraseCount3", "number", title: "Number of 'Group3' Random Phrases - (Max 10)", submitOnChange: true, required: true, defaultValue: 0;                
+    if(settings.phraseCount3>0){href "prePostPage3", title:"Group3 Random Messages", description:"Click here to configure 'Group3' random messages"}
+		 
+    input "phraseCount4", "number", title: "Number of 'Group4' Random Phrases - (Max10)", submitOnChange: true,required: true, defaultValue: 0;            
+    if(settings.phraseCount4>0){href "prePostPage4", title:"Group4 Random Messages", description:"Click here to configure 'Group4' random messages"}
     }
   }
 }    
@@ -558,7 +571,35 @@ def restrictionsPage() {
 
 
 
-           
+private getGroupTest(){
+def preAnswer = []
+	if(preMsg01){preAnswer.add("'1': ${preMsg01}")}
+	if(preMsg02){preAnswer.add("'2': ${preMsg02}")}	
+	if(preMsg03){preAnswer.add("'3': ${preMsg03}")}	
+	if(preMsg04){preAnswer.add("'4': ${preMsg04}")}	
+	if(preMsg05){preAnswer.add("'5': ${preMsg05}")}	
+	if(preMsg06){preAnswer.add("'6': ${preMsg06}")}	
+	if(preMsg07){preAnswer.add("'7': ${preMsg07}")}	
+	if(preMsg08){preAnswer.add("'8': ${preMsg08}")}	
+	if(preMsg09){preAnswer.add("'9': ${preMsg09}")}	
+	if(preMsg10){preAnswer.add("'10': ${preMsg10}")}	
+	
+	
+	
+	
+	log.warn "preAnswer = $preAnswer"
+
+
+															  
+def MaxRandom1 = (preAnswer.size() >= state.preCount ? preAnswer.size() : state.preCount)
+        LOGDEBUG("MaxRandom1 = $MaxRandom1") 
+        def randomKey1 = new Random().nextInt(MaxRandom1)
+        LOGDEBUG("randomKey1 = $randomKey1") 
+		msgGroup1 = preAnswer[randomKey1]															  												  
+		return msgGroup1													  
+
+}
+
 
 def modeHandler(evt){
 // legacy	
@@ -768,7 +809,7 @@ def speakerInputs(){
         input "missedMsgDelay", "number", title: "Delay after arriving home before reminder message (minutes)", defaultValue: '0', description: "Minutes", required: true
         input "speaker", "capability.musicPlayer", title: "Choose speaker(s)", required: true, multiple: true
 		input "volume1", "number", title: "Speaker volume", description: "0-100%", defaultValue: "70",  required: true  
-        input "preMsg", "text", title: "Message to speak before list of missed messages", required: false, defaultValue: "Welcome home! ,,, I know that you've just arrived ,,, but while you were away ,,, you missed the following messages ,,,"
+        input "preMsgMissed", "text", title: "Message to speak before list of missed messages", required: false, defaultValue: "Welcome home! ,,, I know that you've just arrived ,,, but while you were away ,,, you missed the following messages ,,,"
 		 input "runTime1", "time", title: "Time message is due", required: false, submitOnChange: true
 			if(runTime1){input "missedMessage1", "text", title: "Message to play when presence sensor arrives (if this event missed)",  required: true}  
 	}  
@@ -776,7 +817,7 @@ def speakerInputs(){
 		input "speaker", "capability.speechSynthesis", title: "Speech Synthesis Device(s)", required: false, multiple: true
   		input "missedMsgDelay", "number", title: "Delay after arriving home before reminder message (minutes)", defaultValue: '0', description: "Minutes", required: true
         input "speaker", "capability.musicPlayer", title: "Choose speaker(s)", required: true, multiple: true
-		input "preMsg", "text", title: "Message to speak before list of missed messages", required: false, defaultValue: "Welcome home! ,,, I know that you've just arrived ,,, but while you were away ,,, you missed the following messages ,,,"
+		input "preMsgMissed", "text", title: "Message to speak before list of missed messages", required: false, defaultValue: "Welcome home! ,,, I know that you've just arrived ,,, but while you were away ,,, you missed the following messages ,,,"
 	}   
      
      else if(state.msgType == "Join Message"){ 
@@ -3376,9 +3417,9 @@ private compileMsg(msg) {
     def msgComp = ""
     msgComp = msg.toLowerCase()
     LOGDEBUG("msgComp = $msgComp")
-    if (msgComp.toLowerCase().contains("%group1%")) {msgComp = msgComp.toLowerCase().replace('%group1%', getPre() )}
-    if (msgComp.toLowerCase().contains("%group2%")) {msgComp = msgComp.toLowerCase().replace('%group2%', getPost() )}
-    if (msgComp.toLowerCase().contains("%group3%")) {msgComp = msgComp.toLowerCase().replace('%group3%', getWakeUp() )}
+    if (msgComp.toLowerCase().contains("%group1%")) {msgComp = msgComp.toLowerCase().replace('%group1%', getGroup1() )}
+    if (msgComp.toLowerCase().contains("%group2%")) {msgComp = msgComp.toLowerCase().replace('%group2%', getGroup2() )}
+    if (msgComp.toLowerCase().contains("%group3%")) {msgComp = msgComp.toLowerCase().replace('%group3%', getGroup3() )}
     if (msgComp.toLowerCase().contains("%group4%")) {msgComp = msgComp.toLowerCase().replace('%group4%', getGroup4() )}
  	if (msgComp.toLowerCase().contains("%alert%")) {msgComp = msgComp.toLowerCase().replace('%alert%', state.weatherAlert )}
     if (msgComp.toLowerCase().contains("%wnow%")) {msgComp = msgComp.toLowerCase().replace('%wnow%', state.weatherNow)}
@@ -3431,31 +3472,102 @@ private compileMsg(msg) {
 
 
 // Random message processing ************************************
+private getGroup1(){
+def preAnswer1 = []
+	if(group1Msg01){preAnswer1.add("${group1Msg01}")}
+	if(group1Msg02){preAnswer1.add("${group1Msg02}")}	
+	if(group1Msg03){preAnswer1.add("${group1Msg03}")}	
+	if(group1Msg04){preAnswer1.add("${group1Msg04}")}	
+	if(group1Msg05){preAnswer1.add("${group1Msg05}")}	
+	if(group1Msg06){preAnswer1.add("${group1Msg06}")}	
+	if(group1Msg07){preAnswer1.add("${group1Msg07}")}	
+	if(group1Msg08){preAnswer1.add("${group1Msg08}")}	
+	if(group1Msg09){preAnswer1.add("${group1Msg09}")}	
+	if(group1Msg10){preAnswer1.add("${group1Msg10}")}	
 
-// 'Pre' random message processing
+//	log.warn "preAnswer1 = $preAnswer1"  // Test code
+															  
+def MaxRandom1 = (preAnswer1.size() >= state.phraseCount1 ? preAnswer1.size() : state.phraseCount1)
+        LOGDEBUG("MaxRandom1 = $MaxRandom1") 
+        def randomKey1 = new Random().nextInt(MaxRandom1)
+        LOGDEBUG("randomKey1 = $randomKey1") 
+		msgGroup1 = preAnswer1[randomKey1]															  					
+		return msgGroup1													  
 
-private getPre(){
-    def msgPre = getGroup1(null)
-    LOGDEBUG("msgPre = $msgPre")
-
-    return msgPre
 }
 
-// 'Post' random message processing
-private getPost(){
-    def msgPost = getGroup2(null)
-    LOGDEBUG("msgPost = $msgPost")
+private getGroup2(){
+def preAnswer2 = []
+	if(group2Msg01){preAnswer2.add("${group2Msg01}")}
+	if(group2Msg02){preAnswer2.add("${group2Msg02}")}	
+	if(group2Msg03){preAnswer2.add("${group2Msg03}")}	
+	if(group2Msg04){preAnswer2.add("${group2Msg04}")}	
+	if(group2Msg05){preAnswer2.add("${group2Msg05}")}	
+	if(group2Msg06){preAnswer2.add("${group2Msg06}")}	
+	if(group2Msg07){preAnswer2.add("${group2Msg07}")}	
+	if(group2Msg08){preAnswer2.add("${group2Msg08}")}	
+	if(group2Msg09){preAnswer2.add("${group2Msg09}")}	
+	if(group2Msg10){preAnswer2.add("${group2Msg10}")}	
 
-    return msgPost
+//	log.warn "preAnswer2 = $preAnswer2"  // Test code
+															  
+def MaxRandom2 = (preAnswer2.size() >= state.phraseCount2 ? preAnswer2.size() : state.phraseCount2)
+        LOGDEBUG("MaxRandom2 = $MaxRandom2") 
+        def randomKey2 = new Random().nextInt(MaxRandom2)
+        LOGDEBUG("randomKey2 = $randomKey2") 
+		msgGroup2 = preAnswer2[randomKey2]															  					
+		return msgGroup2
 }
 
-// 'WakeUp' random message processing
-private getWakeUp(){
-    def msgWake = getGroup3(null)
-    LOGDEBUG("msgWake = $msgWake")
+private getGroup3(){
+def preAnswer3 = []
+	if(group3Msg01){preAnswer3.add("${group3Msg01}")}
+	if(group3Msg02){preAnswer3.add("${group3Msg02}")}	
+	if(group3Msg03){preAnswer3.add("${group3Msg03}")}	
+	if(group3Msg04){preAnswer3.add("${group3Msg04}")}	
+	if(group3Msg05){preAnswer3.add("${group3Msg05}")}	
+	if(group3Msg06){preAnswer3.add("${group3Msg06}")}	
+	if(group3Msg07){preAnswer3.add("${group3Msg07}")}	
+	if(group3Msg08){preAnswer3.add("${group3Msg08}")}	
+	if(group3Msg09){preAnswer3.add("${group3Msg09}")}	
+	if(group3Msg10){preAnswer3.add("${group3Msg10}")}	
 
-    return msgWake
+//	log.warn "preAnswer3 = $preAnswer3"  // Test code
+															  
+def MaxRandom3 = (preAnswer3.size() >= state.phraseCount3 ? preAnswer3.size() : state.phraseCount3)
+        LOGDEBUG("MaxRandom3 = $MaxRandom3") 
+        def randomKey3 = new Random().nextInt(MaxRandom3)
+        LOGDEBUG("randomKey3 = $randomKey3") 
+		msgGroup3 = preAnswer3[randomKey3]															  					
+		return msgGroup3
 }
+
+private getGroup4(){
+def preAnswer4 = []
+	if(group4Msg01){preAnswer4.add("${group4Msg01}")}
+	if(group4Msg02){preAnswer4.add("${group4Msg02}")}	
+	if(group4Msg03){preAnswer4.add("${group4Msg03}")}	
+	if(group4Msg04){preAnswer4.add("${group4Msg04}")}	
+	if(group4Msg05){preAnswer4.add("${group4Msg05}")}	
+	if(group4Msg06){preAnswer4.add("${group4Msg06}")}	
+	if(group4Msg07){preAnswer4.add("${group4Msg07}")}	
+	if(group4Msg08){preAnswer4.add("${group4Msg08}")}	
+	if(group4Msg09){preAnswer4.add("${group4Msg09}")}	
+	if(group4Msg10){preAnswer4.add("${group4Msg10}")}	
+
+//	log.warn "preAnswer4 = $preAnswer4"  // Test code
+															  
+def MaxRandom4 = (preAnswer4.size() >= state.phraseCount4 ? preAnswer4.size() : state.phraseCount4)
+        LOGDEBUG("MaxRandom4 = $MaxRandom4") 
+        def randomKey4 = new Random().nextInt(MaxRandom4)
+        LOGDEBUG("randomKey4 = $randomKey4") 
+		msgGroup4 = preAnswer4[randomKey4]															  					
+		return msgGroup4
+}
+
+
+
+
 
 // End random message processing ************************************
 
@@ -3662,22 +3774,6 @@ return anyswitchesOff1
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 private convertWeatherMessage(msgIn){
 
 LOGDEBUG("Running convertWeatherMessage... Converting weather message to English (If weather requested)...")
@@ -3867,118 +3963,11 @@ private getyear() {
     return year
 }
 
-private getGroup1(msgPreitem) {
-    def preList = [
-        "Welcome home", 
-        "How you doing?",
-        "What's up?",
-        "Long time no see.",
-        "Hey!"
-    ]
-    if(state.preCount>5){
-        for(int i = 5;i<state.preCount;i++) {
-            def preDisplay = i.toInteger() + 1
-            preList.add("Group 1 - Message ${preDisplay}")
-        }
-    }
-    if(msgPreitem == null) {
-        MaxRandom = (preList.size() >= state.preCount ? preList.size() : state.preCount)
-        LOGDEBUG("MaxRandom = $MaxRandom") 
-        def randomKey1 = new Random().nextInt(MaxRandom)
-        LOGDEBUG("randomKey1 = $randomKey1") 
-		msgPre = preList[randomKey1]
-    } else {
-        msgPre = preList[msgPreitem]
-    }
-
-	return msgPre
-}
-
-private getGroup2(msgPostitem) {
-    def postList = [            
-        "Goodbye , Hope you have a %greeting%." ,  
-        "See you later",
-        "Live long and prosper.",
-        "Farewell ",
-        "Hope you have a great time."
-        
-    ]  
-    if(state.postCount>5){
-        for(int i = 5;i<state.postCount;i++) {
-            def postDisplay = i.toInteger() + 1
-            postList.add("Group 2 - Message ${postDisplay}")            
-        }
-    }
-    if(msgPostitem == null) {
-        MaxRandom2 = (postList.size() >= state.postCount ? postList.size() : state.postCount)
-        LOGDEBUG("MaxRandom2 = $MaxRandom2") 
-        def randomKey2 = new Random().nextInt(MaxRandom2)
-        LOGDEBUG("randomKey2 = $randomKey2") 
-        msgPost = postList[randomKey2]
-    } else {
-        msgPost = postList[msgPostitem]
-    }
-
-	return msgPost
-}
-
-private getGroup3(msgWakeitem) {
-        def wakeList = [                        
-        "It's time to wake up!",
-        "Please Wake Up!",
-        "Come on!,,, It's time to wake up!",
-        "Get out of bed!,NOW!",
-        "Come on! It's time to get up!"
-       
-    ]
-    if(state.wakeCount>5){
-        for(int i = 5;i<state.wakeCount;i++) {
-            def wakeDisplay = i.toInteger() + 1
-            wakeList.add("Group 3 - Message ${wakeDisplay}")
-        }
-    }
-
-	if(msgWakeitem == null) {
-        MaxRandom3 = (wakeList.size() >= state.wakeCount ? wakeList.size() : state.wakeCount)
-        LOGDEBUG("MaxRandom3 = $MaxRandom3") 
-        def randomKey3 = new Random().nextInt(MaxRandom3)
-        LOGDEBUG("randomKey3 = $randomKey3") 
-        msgWake = wakeList[randomKey3]
-    } else {
-        msgWake = wakeList[msgWakeitem]
-    }
-    
-    return msgWake
-}
 
 
-private getGroup4(msgPostitem) {
-    def postList1 = [            
-        "Hey! ,,," ,  
-        "Information!,",
-        "I thought you might like to know ,",
-        "I'm sorry to disturb you but,",
-        "Hey! ,, I thought you might like to know," 
-        
-    ]  
-    if(state.postCount1>5){
-        for(int i = 5;i<state.postCount1;i++) {
-            def postDisplay = i.toInteger() + 1
-            postList1.add("Group 4 - Message ${postDisplay}")            
-        }
-    }
-    if(msgPostitem == null) {
-        MaxRandom4 = (postList1.size() >= state.postCount1 ? postList1.size() : state.postCount1)
-        LOGDEBUG("MaxRandom4 = $MaxRandom4") 
-        def randomKey4 = new Random().nextInt(MaxRandom4)
-        LOGDEBUG("randomKey4 = $randomKey4") 
-        msgPost = postList1[randomKey4]
-    } else {
-        msgPost1 = postList1[msgPostitem]
-    }
 
-	return msgPost1
-}
+
+
 
 def checkAllow(){
     state.allAllow = false
@@ -4473,11 +4462,11 @@ def setDefaults(){
 
 
 def setVersion(){
-		state.version = "13.6.0"	 
+		state.version = "13.7.0"	 
 		state.InternalName = "MessageCentralChild" 
-    	state.ExternalName = "Message Central Child"
+    		state.ExternalName = "Message Central Child"
 		state.preCheckMessage = "This is designed to use various 'triggers' to make your home 'speak'"
-    	state.CobraAppCheck = "messagecentral.json"
+    		state.CobraAppCheck = "messagecentral.json"
 }
 
 
