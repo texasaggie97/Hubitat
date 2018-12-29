@@ -202,7 +202,7 @@ def subscribeNow() {
    LOGDEBUG("Trigger is $trigger")
    schedule(runTime,timeTalkNow)
   if (missedPresenceSensor1){subscribe(missedPresenceSensor1, "presence", missedPresenceCheckNow)}
-	state.timeDelay = 0
+	
     }
     
 if(trigger == 'Time if Contact Open'){
@@ -3085,18 +3085,16 @@ def speechSynthNow(inMsg){
     checkAllow()
     if(state.allAllow == true){ 
 			if(state.timer1 == true){
-	//		def newMessage = inMsg
+			if(triggerDelay){state.mydelay = triggerDelay}	
+			if(triggerDelay == null){state.mydelay = 0}
 			if(state.selection == "Weather Alert"){state.msg1 = inMsg}
 			if(state.selection != "Weather Alert"){
             compileMsg(inMsg)
 			LOGDEBUG("Compiled Message = $state.fullPhrase ")
-                   }
+             }
 			state.soundTypeSynth = inMsg.toUpperCase()	
-				if (triggerDelay){def mydelay = triggerDelay}
-				else {def mydelay = 0}
-
-	LOGDEBUG("Speaker(s) in use: $speaker - waiting $mydelay seconds before continuing..."  )
-	runIn(mydelay, processSynth)
+	LOGDEBUG("Speaker(s) in use: $speaker - waiting $state.mydelay seconds before continuing..."  )
+			runIn(state.mydelay, processSynth)
 			}		
 	}		
 }				
