@@ -35,10 +35,12 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 10/12/2018
+ *  Last Update: 28/12/2018
  *
  *  Changes:
  *
+ *
+ *  V2.2.1 - Created code to cleanup previously used schedule
  *  V2.2.0 - Added auto checking of device driver for Vdevice - Disables 'lastdevice' if not correct driver.
  *  V2.1.0 - added disable apps code
  *  V2.0.0 - Streamlined restrictions page to action faster if specific restrictions not used.
@@ -245,11 +247,9 @@ def illuminanceHandler(evt) {
 LOGDEBUG("Running illuminance handler")
     checkAllow()
 	if(state.allAllow == true){
-
-   
-     if(state.luxSendOK == true){
+    if(state.luxSendOK == true){
   def ave = evt.value
-   def aveDev = evt.device
+  def aveDev = evt.device
        
 LOGDEBUG( "Received from: $aveDev - $ave")
     def sum = 0
@@ -979,11 +979,15 @@ def setDefaults(){
 	state.restrictRun = false
 }
 
-
+def cobra(){
+	log.warn "Cleaning old 'Cobra' schedule from hub.."
+	unschedule(cobra)
+	log.info "Cleanup Done!"
+}
 
     
 def setVersion(){
-		state.version = "2.2.0"	 
+		state.version = "2.2.1"	 
 		state.InternalName = "AverageAllChild"
     	state.ExternalName = "Average All Child"
 		state.preCheckMessage = "This app was designed to display/set an 'average' Illumination, Temperature, Humidity or Pressure from a group of devices. <br>It can also be used to 'group' a number of Motion sensors together to act as one"

@@ -7,8 +7,7 @@
  *
  *  Copyright 2018 Andrew Parker
  *
- *  A big 'Thank You!' to @matthew for his creative work on the number of random phrases
- *  Without him, you would not have this feature!
+ *  
  *  
  *  This SmartApp is free!
  *  Donations to support development efforts are accepted via: 
@@ -33,11 +32,11 @@
  *-------------------------------------------------------------------------------------------------------------------
  *
  *
- *  Last Update: 20/12/2018
+ *  Last Update: 29/12/2018
  *
  *  Changes:
  *
- * 
+ *  V13.7.1 - Fixed bug in speechsynth time delay - Thanks to @napalmcsr for finding this
  *  V13.7.0 - Major random code rewrite - Now 4x groups of up to 10 phrases are available
  *  V13.6.0 - Debug issues with multiple random message configuration - Removed most of the default random messages.
  *  V13.5.1 - Fixed an issue with delay on speechsynth output not working
@@ -175,7 +174,8 @@ def subscribeNow() {
 	if(sunriseSunset){schedule("0 1 0 1/1 * ? *", astroCheck)} // checks sunrise/sunset change at 00.01am every day
     state.appgo = true
   // App Specific subscriptions & settings below here
- 
+ 		if (triggerDelay){def mydelay = triggerDelay}
+		else {def mydelay = 0}
       if(state.multiVolumeSlots == null){state.multiVolumeSlots = false}    
       if(state.multiVolumeSlotsq == null){state.multiVolumeSlotsq = false}
       state.timer1 = true
@@ -202,6 +202,7 @@ def subscribeNow() {
    LOGDEBUG("Trigger is $trigger")
    schedule(runTime,timeTalkNow)
   if (missedPresenceSensor1){subscribe(missedPresenceSensor1, "presence", missedPresenceCheckNow)}
+	state.timeDelay = 0
     }
     
 if(trigger == 'Time if Contact Open'){
@@ -1596,7 +1597,7 @@ checkAllow()
 
 def mp3Now(){
 
-def soundURI = pathURI + "/" + sound 
+def soundURI = "http://" + pathURI + "/" + sound 
 LOGDEBUG("soundURI = $soundURI " )
 state.soundToPlay = soundURI
 LOGDEBUG("Playing: $state.soundToPlay " )    
@@ -3091,7 +3092,9 @@ def speechSynthNow(inMsg){
 			LOGDEBUG("Compiled Message = $state.fullPhrase ")
                    }
 			state.soundTypeSynth = inMsg.toUpperCase()	
-			def mydelay = triggerDelay
+				if (triggerDelay){def mydelay = triggerDelay}
+				else {def mydelay = 0}
+
 	LOGDEBUG("Speaker(s) in use: $speaker - waiting $mydelay seconds before continuing..."  )
 	runIn(mydelay, processSynth)
 			}		
@@ -4462,11 +4465,11 @@ def setDefaults(){
 
 
 def setVersion(){
-		state.version = "13.7.0"	 
+		state.version = "13.7.1"	 
 		state.InternalName = "MessageCentralChild" 
-    		state.ExternalName = "Message Central Child"
+    	state.ExternalName = "Message Central Child"
 		state.preCheckMessage = "This is designed to use various 'triggers' to make your home 'speak'"
-    		state.CobraAppCheck = "messagecentral.json"
+    	state.CobraAppCheck = "messagecentral.json"
 }
 
 
