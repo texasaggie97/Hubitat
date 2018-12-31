@@ -32,10 +32,11 @@
  *-------------------------------------------------------------------------------------------------------------------
  *
  *
- *  Last Update: 29/12/2018
+ *  Last Update: 31/12/2018
  *
  *  Changes:
  *
+ *  V13.7.2 - Additional debug
  *  V13.7.1 - Fixed bug in speechsynth time delay - Thanks to @napalmcsr for finding this
  *  V13.7.0 - Major random code rewrite - Now 4x groups of up to 10 phrases are available
  *  V13.6.0 - Debug issues with multiple random message configuration - Removed most of the default random messages.
@@ -1584,6 +1585,7 @@ def weatherChanceOfRain(evt){
 
 
 def mp3EventHandler(){
+	LOGDEBUG( " mp3EventHandler...")
 checkAllow()
 
 	if(state.allAllow == true && state.mp3Timer == true){
@@ -1591,12 +1593,15 @@ checkAllow()
 	def delayBefore = mp3Delay
 	runIn(delayBefore, mp3Now)
     }
+	if(state.mp3Timer == false){
+		LOGDEBUG( " Cannot Continue... Too close to the last messages...")
+	}
 }
 
 
 
 def mp3Now(){
-
+LOGDEBUG( " mp3Now...")
 def soundURI = "http://" + pathURI + "/" + sound 
 LOGDEBUG("soundURI = $soundURI " )
 state.soundToPlay = soundURI
@@ -2877,23 +2882,21 @@ LOGDEBUG("Presence - Join Message - Sending Message: $state.fullPhrase")
 
 // Power 
 def powerTalkNow (evt){
-    checkAllow()
-	if(state.allAllow == true){
-state.meterValue = evt.value as double
+state.meterValue = evt.value.toDouble()
 state.nameOfDevice = evt.displayName
-state.actionEvent = evt.value as double
+state.actionEvent = evt.value.toDouble()
 	LOGDEBUG("$powerSensor shows $state.meterValue Watts")
     
 	checkNow1()  
 	
-	}                               
+	                              
 }
         
     
 def checkNow1(){
 if( actionType1 == false){
 LOGDEBUG( "checkNow1 -  Power is: $state.meterValue")
-    state.belowValue = belowThreshold as double
+    state.belowValue = belowThreshold.toDouble()
     if (state.meterValue < state.belowValue) {
    def mydelay = 60 * delay1 
    LOGDEBUG( "Checking again after delay: $delay1 minutes... Power is: $state.meterValue")
@@ -2903,7 +2906,7 @@ LOGDEBUG( "checkNow1 -  Power is: $state.meterValue")
       
 else if( actionType1 == true){
 LOGDEBUG( "checkNow1 -  Power is: $state.meterValue")
-    state.belowValue = belowThreshold as double
+    state.belowValue = belowThreshold.toDouble()
     if (state.meterValue > state.belowValue) {
    def mydelay = 60 * delay1
    LOGDEBUG( "Checking again after delay: $delay1 minutes... Power is: $state.meterValue")
@@ -2978,6 +2981,7 @@ def speakNow(){
 			}     
             
             if(state.msgType == "Play an Mp3 (No variables can be used)"){
+			LOGDEBUG("Power - MP3")
 			mp3EventHandler()
     		if(state.soundToPlay == null){ LOGDEBUG(" Mp3 ERROR - cannot find $state.soundToPlay")} 
        		startTimerPower()    
@@ -3081,12 +3085,13 @@ def pushOver(msgType, inMsg){
 // Speech Synth *****************
 
 def speechSynthNow(inMsg){
+	state.mydelay = 0
     LOGDEBUG("Calling.. speechSynthNow")
     checkAllow()
     if(state.allAllow == true){ 
 			if(state.timer1 == true){
 			if(triggerDelay){state.mydelay = triggerDelay}	
-			if(triggerDelay == null){state.mydelay = 0}
+			if(triggerDelay == null || triggerDelay == 0){state.mydelay = 0}
 			if(state.selection == "Weather Alert"){state.msg1 = inMsg}
 			if(state.selection != "Weather Alert"){
             compileMsg(inMsg)
@@ -4463,7 +4468,7 @@ def setDefaults(){
 
 
 def setVersion(){
-		state.version = "13.7.1"	 
+		state.version = "13.7.2"	 
 		state.InternalName = "MessageCentralChild" 
     	state.ExternalName = "Message Central Child"
 		state.preCheckMessage = "This is designed to use various 'triggers' to make your home 'speak'"
