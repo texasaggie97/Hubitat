@@ -32,10 +32,13 @@
  *-------------------------------------------------------------------------------------------------------------------
  *
  *
- *  Last Update: 31/12/2018
+ *  Last Update: 14/01/2019
  *
  *  Changes:
  *
+ *
+ *  V13.8.0 - Added additonal (2nd) switch for restriction
+ *  V13.7.3 - Debug presence restriction
  *  V13.7.2 - Additional debug
  *  V13.7.1 - Fixed bug in speechsynth time delay - Thanks to @napalmcsr for finding this
  *  V13.7.0 - Major random code rewrite - Now 4x groups of up to 10 phrases are available
@@ -167,14 +170,16 @@ def initialise(){
 }
 def subscribeNow() {
 	unsubscribe()
-	if(enableSwitch){subscribe(enableSwitch, "switch", switchEnable)}
+	if(enableSwitch1){subscribe(enableSwitch1, "switch", switchEnable1)}
+	if(enableSwitch2){subscribe(enableSwitch2, "switch", switchEnable2)}
 	if(enableSwitchMode == null){enableSwitchMode = true} // ????
 	if(restrictPresenceSensor){subscribe(restrictPresenceSensor, "presence", restrictPresenceSensorHandler)}
 	if(restrictPresenceSensor1){subscribe(restrictPresenceSensor1, "presence", restrictPresence1SensorHandler)}
 	if(sunriseSunset){astroCheck()}
 	if(sunriseSunset){schedule("0 1 0 1/1 * ? *", astroCheck)} // checks sunrise/sunset change at 00.01am every day
-    state.appgo = true
-  // App Specific subscriptions & settings below here
+    
+  // App Specific subscriptions & settings below here 
+	
  		if (triggerDelay){def mydelay = triggerDelay}
 		else {def mydelay = 0}
       if(state.multiVolumeSlots == null){state.multiVolumeSlots = false}    
@@ -517,10 +522,12 @@ def restrictionsPage() {
     dynamicPage(name: "restrictionsPage") {
         section(){paragraph "<font size='+1'>App Restrictions</font> <br>These restrictions are optional <br>Any restriction you don't want to use, you can just leave blank or disabled"}
         section(){
-		input "enableSwitchYes", "bool", title: "Enable restriction by external on/off switch", required: true, defaultValue: false, submitOnChange: true
+		input "enableSwitchYes", "bool", title: "Enable restriction by external on/off switch(es)", required: true, defaultValue: false, submitOnChange: true
 			if(enableSwitchYes){
-			input "enableSwitch", "capability.switch", title: "Select a switch Enable/Disable this app", required: false, multiple: false, submitOnChange: true 
-			if(enableSwitch){ input "enableSwitchMode", "bool", title: "Allow app to run only when this switch is On or Off", required: true, defaultValue: false, submitOnChange: true}
+			input "enableSwitch1", "capability.switch", title: "Select the first switch to Enable/Disable this app", required: false, multiple: false, submitOnChange: true 
+			if(enableSwitch1){ input "enableSwitchMode1", "bool", title: "Allow app to run only when this switch is On or Off", required: true, defaultValue: false, submitOnChange: true}
+			input "enableSwitch2", "capability.switch", title: "Select a second switch to Enable/Disable this app", required: false, multiple: false, submitOnChange: true 
+			if(enableSwitch2){ input "enableSwitchMode2", "bool", title: "Allow app to run only when this switch is On or Off", required: true, defaultValue: false, submitOnChange: true}
 			}
 		}
         section(){
@@ -544,7 +551,8 @@ def restrictionsPage() {
 		}
 		section(){
 		input "presenceYes", "bool", title: "Enable restriction by presence sensor(s)", required: true, defaultValue: false, submitOnChange: true	
-			if(presenceYes){	
+			if(presenceYes){
+		state.presenceYes = presenceYes
     	input "restrictPresenceSensor", "capability.presenceSensor", title: "Select presence sensor 1 to restrict action", required: false, multiple: false, submitOnChange: true
     	if(restrictPresenceSensor){input "restrictPresenceAction", "bool", title: "On = Allow action only when someone is 'Present'  <br>Off = Allow action only when someone is 'NOT Present'  ", required: true, defaultValue: false}
      	input "restrictPresenceSensor1", "capability.presenceSensor", title: "Select presence sensor 2 to restrict action", required: false, multiple: false, submitOnChange: true
@@ -617,7 +625,7 @@ def speakerInputs(){
     input "messageAction", "enum", title: "Select Message Type", required: false, submitOnChange: true,  options: [ "Voice Message (MusicPlayer)", "Voice Message (SpeechSynth)",  "SMS Message", "PushOver Message", "Join Message", "Play an Mp3 (No variables can be used)"]
 
  if (messageAction){
-     input "msgDelay", "number", title: "Delay between messages (Enter 0 for no delay)", defaultValue: '0', description: "Minutes", required: true
+     input "msgDelay", "number", title: "Minutes delay between messages (Enter 0 for no delay)", defaultValue: '0', description: "Minutes", required: true
      
  state.msgType = messageAction
     if(state.msgType == "Voice Message (MusicPlayer)"){
@@ -804,7 +812,8 @@ def speakerInputs(){
 	}
     else if(state.msgType == "Voice Message (SpeechSynth)"){ 
 		input "speaker", "capability.speechSynthesis", title: "Speech Synthesis Device(s)", required: false, multiple: true
-  
+  		input "volume1", "number", title: "Speaker volume", description: "0-100%", defaultValue: "70",  required: true
+        state.volumeAll = volume1
 	}
     else if(state.msgType == "Missed Message (MusicPlayer)"){ 
 		input "missedPresenceSensor1", "capability.presenceSensor", title: "Select presence sensor", required: true, multiple: false
@@ -1644,7 +1653,7 @@ LOGDEBUG( "Activate threshold reached or exceeded setting state.activate to: $st
 
 
 
- if(state.appgo == true && state.activate == true){
+ if(state.activate == true){
 LOGDEBUG( "powerApplianceNow -  Power is: $state.meterValue")
     state.belowValue = belowThreshold as double
     if (state.meterValue < state.belowValue) {
@@ -1661,10 +1670,7 @@ LOGDEBUG( "powerApplianceNow -  Power is: $state.meterValue")
      }
      
      
- if(state.appgo == false){
-    LOGDEBUG("App disabled by $enableswitch being off")
 
-}
 }
 }
 
@@ -2029,7 +2035,7 @@ state.actionEvent = evt.value
     
     LOGDEBUG(" state.openContact = $state.openContact")
     
-if (state.openContact == 'open' && state.appgo == true && state.presenceRestriction == true && state.presenceRestriction1 == true){
+if (state.openContact == 'open' && state.presenceRestriction == true && state.presenceRestriction1 == true){
 LOGDEBUG("tooLongOpen - Contact is open")
 openContactTimer1()
 }
@@ -2037,9 +2043,7 @@ openContactTimer1()
 else if (state.openContact == 'closed'){
 LOGDEBUG("tooLongOpen - Contact is closed")
 }
- else if(state.appgo == false){
-    LOGDEBUG("App disabled by $enableswitch being off")
-}
+
 
 }
 }
@@ -2183,7 +2187,7 @@ def timeTalkNow(evt){
 checkAllow()
 	if(state.allAllow == true){
 
-LOGDEBUG("state.appgo = $state.appgo - state.dayCheck = $state.dayCheck - state.volume = $state.volume - runTime = $runTime")
+LOGDEBUG("state.volume = $state.volume - runTime = $runTime")
 LOGDEBUG("Time trigger -  Activating now! ")
     
     if(state.msgType == "Play an Mp3 (No variables can be used)"){
@@ -2253,7 +2257,7 @@ def timeTalkNow1(evt){
 checkAllow()
 	if(state.allAllow == true){
 
-LOGDEBUG("state.appgo = $state.appgo - state.dayCheck = $state.dayCheck - state.volume = $state.volume - runTime = $runTime")
+LOGDEBUG("state.dayCheck = $state.dayCheck - state.volume = $state.volume - runTime = $runTime")
 if(state.contact1SW == 'open' ){
 LOGDEBUG("Time trigger -  Activating now! ")
 LOGDEBUG("Calling.. CompileMsg")
@@ -3105,6 +3109,9 @@ def speechSynthNow(inMsg){
 }				
   
 def processSynth(){
+	
+		speaker.setVolume(state.volumeAll)  // not all devices will accept this setting. - Comment out if errors on device
+	
 			if (state.soundTypeSynth == '%CHIME%')
 			speaker.chime()
 			else if (state.soundTypeSynth == '%DOORBELL%')
@@ -3999,8 +4006,12 @@ def checkAllow(){
 		state.modesYes = modesYes
 		state.dayYes = dayYes
 		state.sunrisesetYes = sunrisesetYes
+		state.presenceYes = presenceYes
 		
-		if(state.enableSwitchYes == false){state.appgo = true}
+		if(state.enableSwitchYes == false){
+		state.appgo1 = true
+		state.appgo2 = true
+		}
 		if(state.modes != null && state.modesYes == true){modeCheck()}	
 		if(state.fromTime !=null && state.timeYes == true){checkTime()}
 		if(state.days!=null && state.dayYes == true){checkDay()}
@@ -4014,16 +4025,19 @@ def checkAllow(){
 	if(state.presenceRestriction ==  false || state.presenceRestriction1 ==  false){
 	LOGDEBUG( "Cannot continue - Presence failed")
 	}
-	if(state.appgo == false){
-	LOGDEBUG("$enableSwitch is not in the correct position so cannot continue")
+	if(state.appgo1 == false){
+	LOGDEBUG("$enableSwitch1 is not in the correct position so cannot continue")
 	}
-	if(state.appgo == true && state.dayCheck == true && state.presenceRestriction == true && state.presenceRestriction1 == true && state.modeCheck == true && state.timeOK == true && state.noPause == true && state.sunGoNow == true){
+	if(state.appgo2 == false){
+	LOGDEBUG("$enableSwitch2 is not in the correct position so cannot continue")
+	}	
+	if(state.appgo1 == true && state.appgo2 == true && state.dayCheck == true && state.presenceRestriction == true && state.presenceRestriction1 == true && state.modeCheck == true && state.timeOK == true && state.noPause == true && state.sunGoNow == true){
 	state.allAllow = true 
  	  }
 	else{
  	state.allAllow = false
 	LOGWARN( "One or more restrictions apply - Unable to continue")
- 	LOGDEBUG("state.appgo = $state.appgo, state.dayCheck = $state.dayCheck, state.presenceRestriction = $state.presenceRestriction, state.presenceRestriction1 = $state.presenceRestriction1, state.modeCheck = $state.modeCheck, state.timeOK = $state.timeOK, state.noPause = $state.noPause, state.sunGoNow = $state.sunGoNow")
+ 	LOGDEBUG("state.appgo1 = $state.appgo1, state.appgo2 = $state.appgo2, state.dayCheck = $state.dayCheck, state.presenceRestriction = $state.presenceRestriction, state.presenceRestriction1 = $state.presenceRestriction1, state.modeCheck = $state.modeCheck, state.timeOK = $state.timeOK, state.noPause = $state.noPause, state.sunGoNow = $state.sunGoNow")
       }
    }
 LOGDEBUG( "checkallow complete - state.allAllow = $state.allAllow")
@@ -4225,26 +4239,48 @@ def checkPresence1(){
 	}
 }
 
-def switchEnable(evt){
-	state.enableInput = evt.value
+def switchEnable1(evt){
+	state.enableInput1 = evt.value
 	LOGDEBUG("Switch changed to: $state.enableInput")  
-    if(enableSwitchMode == true && state.enableInput == 'off'){
-	state.appgo = false
-	LOGDEBUG("Cannot continue - App disabled by switch")  
+    if(enableSwitchMode1 == true && state.enableInput1 == 'off'){
+	state.appgo1 = false
+	LOGDEBUG("Cannot continue - App disabled by switch1")  
     }
-	if(enableSwitchMode == true && state.enableInput == 'on'){
-	state.appgo = true
-	LOGDEBUG("Switch restriction is OK.. Continue...") 
+	if(enableSwitchMode1 == true && state.enableInput1 == 'on'){
+	state.appgo1 = true
+	LOGDEBUG("Switch1 restriction is OK.. Continue...") 
     }    
-	if(enableSwitchMode == false && state.enableInput == 'off'){
-	state.appgo = true
-	LOGDEBUG("Switch restriction is OK.. Continue...")  
+	if(enableSwitchMode1 == false && state.enableInput1 == 'off'){
+	state.appgo1 = true
+	LOGDEBUG("Switch1 restriction is OK.. Continue...")  
     }
-	if(enableSwitchMode == false && state.enableInput == 'on'){
-	state.appgo = false
-	LOGDEBUG("Cannot continue - App disabled by switch")  
+	if(enableSwitchMode1 == false && state.enableInput1 == 'on'){
+	state.appgo1 = false
+	LOGDEBUG("Cannot continue - App disabled by switch1")  
     }    
-	LOGDEBUG("Allow by switch is $state.appgo")
+	LOGDEBUG("Allow by switch1 is $state.appgo1")
+}
+
+def switchEnable2(evt){
+	state.enableInput2 = evt.value
+	LOGDEBUG("Switch changed to: $state.enableInput")  
+    if(enableSwitchMode2 == true && state.enableInput2 == 'off'){
+	state.appgo2 = false
+	LOGDEBUG("Cannot continue - App disabled by switch2")  
+    }
+	if(enableSwitchMode2 == true && state.enableInput2 == 'on'){
+	state.appgo2 = true
+	LOGDEBUG("Switch2 restriction is OK.. Continue...") 
+    }    
+	if(enableSwitchMode2 == false && state.enableInput2 == 'off'){
+	state.appgo2 = true
+	LOGDEBUG("Switch2 restriction is OK.. Continue...")  
+    }
+	if(enableSwitchMode2 == false && state.enableInput2 == 'on'){
+	state.appgo2 = false
+	LOGDEBUG("Cannot continue - App disabled by switch2")  
+    }    
+	LOGDEBUG("Allow by switch2 is $state.appgo2")
 }
 
 def version(){
@@ -4454,21 +4490,29 @@ def setDefaults(){
     LOGDEBUG("Initialising defaults...")
     if(pause1 == null){pause1 = false}
     if(state.pauseApp == null){state.pauseApp = false}
-    if(enableSwitch == null){
-    LOGDEBUG("Enable switch is NOT used. Switch is: $enableSwitch - Continue..")
-    state.appgo = true
-	state.restrictRun = false
+    if(enableSwitch1 == null){
+    LOGDEBUG("Enable switch1 is NOT used.. Continue..")
+    state.appgo1 = true
+	}
+	if(enableSwitch2 == null){
+    LOGDEBUG("Enable switch2 is NOT used.. Continue..")
+    state.appgo2 = true	
     }
+	state.restrictRun = false
+}
+
+def cobra(){
+	log.warn "Previous schedule for old 'Cobra Update' found... Removing......"
+	unschedule(cobra)
+	log.info "Cleanup Complete!"
 }
 
 
 
 
 
-
-
 def setVersion(){
-		state.version = "13.7.2"	 
+		state.version = "13.8.0"	 
 		state.InternalName = "MessageCentralChild" 
     	state.ExternalName = "Message Central Child"
 		state.preCheckMessage = "This is designed to use various 'triggers' to make your home 'speak'"

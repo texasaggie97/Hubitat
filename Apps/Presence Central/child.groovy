@@ -8,7 +8,7 @@
  *  This is the 'Child' app for presence automation
  *
  *
- *  Copyright 2018 Andrew Parker
+ *  Copyright 2018 - 2019 Andrew Parker
  *  
  *  This SmartApp is free!
  *  If you feel it's worth it then, donations to support development efforts are accepted via: 
@@ -16,7 +16,7 @@
  *  Paypal at: https://www.paypal.me/smartcobra
  *  
  *
- *  If you find this app useful then it would be nice to get a 'shout out' on the forum! -  @ajp
+ *  If you find this app useful then it would be nice to get a 'shout out' on the forum! -  @Cobra
  *  Have an idea to make this app better?  - Please let me know :)
  *
  * 
@@ -36,10 +36,14 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 04/12/2018
+ *  Last Update: 14/01/2019
  *
  *  Changes:
  *
+ *  V3.3.0 - Added additonal (2nd) switch for restriction & fixed other restriction bugs
+ *  V3.2.0 - Added presence delay to help with momentary departure of some devices
+ *  V3.1.2 - Debug update pushover message
+ *  V3.1.1 - Debug presence restriction
  *  V3.1.0 - Added disable apps code
  *  V3.0.0 - Streamlined restrictions page to action faster if specific restrictions not used. 
  *  V2.9.0 - Moved update notification to parent
@@ -109,14 +113,17 @@ def initialise(){
 }
 def subscribeNow() {
 	unsubscribe()
-	if(enableSwitch){subscribe(enableSwitch, "switch", switchEnable)}
+	if(enableSwitch1){subscribe(enableSwitch1, "switch", switchEnable1)}
+	if(enableSwitch2){subscribe(enableSwitch2, "switch", switchEnable2)}
 	if(enableSwitchMode == null){enableSwitchMode = true} // ????
 	if(restrictPresenceSensor){subscribe(restrictPresenceSensor, "presence", restrictPresenceSensorHandler)}
 	if(restrictPresenceSensor1){subscribe(restrictPresenceSensor1, "presence", restrictPresence1SensorHandler)}
 	if(sunriseSunset){astroCheck()}
 	if(sunriseSunset){schedule("0 1 0 1/1 * ? *", astroCheck)} // checks sunrise/sunset change at 00.01am every day
     
-  // App Specific subscriptions & settings below here
+  // App Specific subscriptions & settings below here   
+ 
+
 	state.selection1 = trigger
 	subscribe(location, "hsmStatus", statusHandler)
 	if(doorContact1){subscribe(doorContact1, "contact", doorContactHandler)}
@@ -146,10 +153,9 @@ def subscribeNow() {
         setPresence3()
 		subscribe(presenceSensor5, "presence", group3Handler)
 	} 
-	   
-	
 
-	
+	if(delayArrival == false){state.presence = 0}
+	if(delayDeparture == false){state.nopresence = 0}
     	 
 
    
@@ -176,10 +182,12 @@ def restrictionsPage() {
     dynamicPage(name: "restrictionsPage") {
         section(){paragraph "<font size='+1'>App Restrictions</font> <br>These restrictions are optional <br>Any restriction you don't want to use, you can just leave blank or disabled"}
         section(){
-		input "enableSwitchYes", "bool", title: "Enable restriction by external on/off switch", required: true, defaultValue: false, submitOnChange: true
+		input "enableSwitchYes", "bool", title: "Enable restriction by external on/off switch(es)", required: true, defaultValue: false, submitOnChange: true
 			if(enableSwitchYes){
-			input "enableSwitch", "capability.switch", title: "Select a switch Enable/Disable this app", required: false, multiple: false, submitOnChange: true 
-			if(enableSwitch){ input "enableSwitchMode", "bool", title: "Allow app to run only when this switch is On or Off", required: true, defaultValue: false, submitOnChange: true}
+			input "enableSwitch1", "capability.switch", title: "Select the first switch to Enable/Disable this app", required: false, multiple: false, submitOnChange: true 
+			if(enableSwitch1){ input "enableSwitchMode1", "bool", title: "Allow app to run only when this switch is On or Off", required: true, defaultValue: false, submitOnChange: true}
+			input "enableSwitch2", "capability.switch", title: "Select a second switch to Enable/Disable this app", required: false, multiple: false, submitOnChange: true 
+			if(enableSwitch2){ input "enableSwitchMode2", "bool", title: "Allow app to run only when this switch is On or Off", required: true, defaultValue: false, submitOnChange: true}
 			}
 		}
         section(){
@@ -230,6 +238,9 @@ def restrictionsPage() {
     }
 }
 
+           
+
+
 
 
 
@@ -264,6 +275,13 @@ def presenceActions(){
 	input "presenceSensor4", "capability.presenceSensor", title: "Select presence sensor to check", multiple: false, required: false
     }
     
+	input "delayArrival", "bool", title: "Enable Arrival Delay", required: true, defaultValue: false, submitOnChange: true
+			if(delayArrival == true){input "arrivalDelay", "number", title: "Delay before arrival registered (Minutes)", required: true}
+			
+			
+	input "delayDeparture", "bool", title: "Enable Departure Delay", required: true, defaultValue: false, submitOnChange: true
+			if(delayDeparture == true){input "departureDelay", "number", title: "Delay before departure registered (Minutes)", required: true}
+			
  }
 }
     
@@ -453,17 +471,51 @@ def modeHandler(evt){
 	
 }
 
+
+def checkDelaySetting(){
+	if(delayArrival == false){
+	LOGDEBUG("No arrival delay configured. Continue...")	
+	state.presence = 0
+	}
+	
+	if(delayArrival == true){
+	LOGDEBUG("Arrival delay configured: $state.presence seconds")	
+	state.presence = (60 * arrivalDelay)
+	}
+	
+	if(delayDeparture == false){
+	LOGDEBUG("No departure delay configured. Continue...")	
+	state.nopresence = 0
+	}
+	
+	if(delayDeparture == true){
+	LOGDEBUG("Departure delay configured: $state.nopresence seconds")
+	state.nopresence = (60 * departureDelay)
+	}	
+}
+
 // Single Presence =============================================================
 
 def singlePresenceHandler(evt){
-state.privatePresence = evt.value
+	checkDelaySetting()
+	
+	state.privatePresence = evt.value
 if (state.privatePresence == "present"){
-arrivalAction()
+	LOGDEBUG("Checking presence again in $state.presence seconds")
+	runIn(state.presence, checkPresenceAgain)
+
 }
 if (state.privatePresence == "not present"){
-departureAction()
+	LOGDEBUG("Checking presence again in $state.nopresence seconds")
+runIn(state.nopresence, checkPresenceAgain)
 }
 }
+
+def checkPresenceAgain(){
+	if (state.privatePresence == "present"){arrivalAction()}
+	if (state.privatePresence == "not present"){departureAction()}
+}
+
 // end single presence =========================================================
 
 // Timed Presence Check =========================================================
@@ -472,11 +524,12 @@ departureAction()
 
 def checkPresenceTimeNow(evt){
 LOGDEBUG("Activating timed check now.... ($checkTime)")
+
 if (state.privatePresence == "present"){
-arrivalAction()
+checkPresenceAgain()
 }
 if (state.privatePresence == "not present"){
-departureAction()
+checkPresenceAgain()
 }
 }
 
@@ -497,20 +550,21 @@ LOGDEBUG("state.privatePresence = $state.privatePresence")
 
 // Group 1  ======================================================================
 def group1Handler(evt) {
-
+checkDelaySetting()
+	
     if (evt.value == "present") {
         if (state.privatePresence1 != "present") {
             state.privatePresence1 = "present"
             state.privatePresence = "present"
            LOGDEBUG("A sensor arrived so setting group to '$state.privatePresence'")
-           arrivalAction ()
+           runIn(state.presence, checkPresenceAgain)
             }
     } else if (evt.value == "not present") {
         if (state.privatePresence1 != "not present") {
             state.privatePresence1 = "not present"
             state.privatePresence = "not present"
             LOGDEBUG("A sensor left so setting group to '$state.privatePresence'")
-            departureAction ()
+            runIn(state.nopresence, checkPresenceAgain)
         }
     }
 }
@@ -527,14 +581,14 @@ def group2Handler(evt) {
 
 
 // end group 2 ========================================================
-// Group 2 ============================================================
+// Group 3 ============================================================
 
 def group3Handler(evt) {
 	setPresence3()
 }
 
 
-// end group 2 ========================================================
+// end group 3 ========================================================
 
 
 // Door Contact Handler
@@ -874,6 +928,7 @@ checkFlashDeparted()
 // Group 1 Actions ======================================
 
 def setPresence1(){
+checkDelaySetting()
 	def presentCounter1 = 0
     
     presenceSensor2.each {
@@ -889,12 +944,14 @@ def setPresence1(){
     		state.privatePresence1 = "present"
             state.privatePresence = "present"
             log.debug("A sensor arrived so setting group to '$state.privatePresence'")
+			runIn(state.presence, checkPresenceAgain)
         }
     } else {
     	if (state.privatePresence1 != "not present") {
     		state.privatePresence1 = "not present"
             state.privatePresence = "not present"
             log.debug("A sensor left so setting group to '$state.privatePresence'")
+			runIn(state.nopresence, checkPresenceAgain)
         }
     }
 }
@@ -905,6 +962,7 @@ def setPresence1(){
 
 def setPresence2(){
 def	presentCounter2 = 0
+checkDelaySetting()
         presenceSensor3.each {
     	if (it.currentValue("presence") == "present") {
         	presentCounter2++
@@ -918,14 +976,14 @@ def	presentCounter2 = 0
             state.privatePresence2 = "present"
             state.privatePresence = "present"
             log.debug("Arrived - At least one sensor arrived - set group to '$state.privatePresence'")
-             arrivalAction()
+             runIn(state.presence, checkPresenceAgain)
         }
     } else {
     	if (state.privatePresence2 != "not present") {
             state.privatePresence2 = "not present"
             state.privatePresence = "not present"
             log.debug("Departed - Last sensor left - set group to '$state.privatePresence'")
-             departureAction()
+             runIn(state.nopresence, checkPresenceAgain)
         }
     }
 }
@@ -936,6 +994,7 @@ def	presentCounter2 = 0
 // Group 3 Actions ======================================
 
 def setPresence3(){
+checkDelaySetting()
 def	presentCounter3 = 0
         presenceSensor5.each {
     	if (it.currentValue("presence") == "not present") {
@@ -950,7 +1009,7 @@ def	presentCounter3 = 0
             state.privatePresence3 = "not present"
             state.privatePresence = "not present"
             log.debug("Arrived - At least one sensor left - set group to '$state.privatePresence'")
-            departureAction()
+            runIn(state.nopresence, checkPresenceAgain)
              
         }
     } else {
@@ -958,7 +1017,8 @@ def	presentCounter3 = 0
             state.privatePresence3 = "present"
             state.privatePresence = "present"
             log.debug("Departed - All sensors present - set group to '$state.privatePresence'")
-            arrivalAction()
+			log.warn "state.nopresence = $state.nopresence"
+            runIn(state.presence, checkPresenceAgain)
         }
     }
 }
@@ -1024,27 +1084,12 @@ def pushOver(status){
 def changeMode1() {
     LOGDEBUG( "changeMode1, location.mode = $location.mode, newMode1 = $newMode1, location.modes = $location.modes")
  	setLocationMode(newMode1) //inserted for Hubitat
-/*    if (location.mode != newMode1) {                             //edited for Hubitat
-       if (location.modes?.find{it.name == newMode1}) {
-           setLocationMode(newMode1)
-            
-        }  else {
-            LOGDEBUG( "Tried to change to undefined mode '${newMode1}'")
-        }
-    }
-*/
+
 }
 def changeMode2() {
     LOGDEBUG( "changeMode2, location.mode = $location.mode, newMode2 = $newMode2, location.modes = $location.modes")
  setLocationMode(newMode2)   //inserted for Hubitat
- /*   if (location.mode != newMode2) {                                   //edited for Hubitat
-        if (location.modes?.find{it.name == newMode2}) {
-            setLocationMode(newMode2)
-        }  else {
-            LOGDEBUG( "Tried to change to undefined mode '${newMode2}'")
-        }
-   }
-*/ 
+ 
 }
 
 // end mode actions =================================
@@ -1415,8 +1460,12 @@ def checkAllow(){
 		state.modesYes = modesYes
 		state.dayYes = dayYes
 		state.sunrisesetYes = sunrisesetYes
+		state.presenceYes = presenceYes
 		
-		if(state.enableSwitchYes == false){state.appgo = true}
+		if(state.enableSwitchYes == false){
+		state.appgo1 = true
+		state.appgo2 = true
+		}
 		if(state.modes != null && state.modesYes == true){modeCheck()}	
 		if(state.fromTime !=null && state.timeYes == true){checkTime()}
 		if(state.days!=null && state.dayYes == true){checkDay()}
@@ -1430,16 +1479,19 @@ def checkAllow(){
 	if(state.presenceRestriction ==  false || state.presenceRestriction1 ==  false){
 	LOGDEBUG( "Cannot continue - Presence failed")
 	}
-	if(state.appgo == false){
-	LOGDEBUG("$enableSwitch is not in the correct position so cannot continue")
+	if(state.appgo1 == false){
+	LOGDEBUG("$enableSwitch1 is not in the correct position so cannot continue")
 	}
-	if(state.appgo == true && state.dayCheck == true && state.presenceRestriction == true && state.presenceRestriction1 == true && state.modeCheck == true && state.timeOK == true && state.noPause == true && state.sunGoNow == true){
+	if(state.appgo2 == false){
+	LOGDEBUG("$enableSwitch2 is not in the correct position so cannot continue")
+	}
+	if(state.appgo1 == true && state.appgo2 == true && state.dayCheck == true && state.presenceRestriction == true && state.presenceRestriction1 == true && state.modeCheck == true && state.timeOK == true && state.noPause == true && state.sunGoNow == true){
 	state.allAllow = true 
  	  }
 	else{
  	state.allAllow = false
 	LOGWARN( "One or more restrictions apply - Unable to continue")
- 	LOGDEBUG("state.appgo = $state.appgo, state.dayCheck = $state.dayCheck, state.presenceRestriction = $state.presenceRestriction, state.presenceRestriction1 = $state.presenceRestriction1, state.modeCheck = $state.modeCheck, state.timeOK = $state.timeOK, state.noPause = $state.noPause, state.sunGoNow = $state.sunGoNow")
+ 	LOGDEBUG("state.appgo1 = $state.appgo1, state.appgo2 = $state.appgo2, state.dayCheck = $state.dayCheck, state.presenceRestriction = $state.presenceRestriction, state.presenceRestriction1 = $state.presenceRestriction1, state.modeCheck = $state.modeCheck, state.timeOK = $state.timeOK, state.noPause = $state.noPause, state.sunGoNow = $state.sunGoNow")
       }
    }
 
@@ -1641,27 +1693,53 @@ def checkPresence1(){
 	}
 }
 
-def switchEnable(evt){
-	state.enableInput = evt.value
+def switchEnable1(evt){
+	state.enableInput1 = evt.value
 	LOGDEBUG("Switch changed to: $state.enableInput")  
-    if(enableSwitchMode == true && state.enableInput == 'off'){
-	state.appgo = false
-	LOGDEBUG("Cannot continue - App disabled by switch")  
+    if(enableSwitchMode1 == true && state.enableInput1 == 'off'){
+	state.appgo1 = false
+	LOGDEBUG("Cannot continue - App disabled by switch1")  
     }
-	if(enableSwitchMode == true && state.enableInput == 'on'){
-	state.appgo = true
-	LOGDEBUG("Switch restriction is OK.. Continue...") 
+	if(enableSwitchMode1 == true && state.enableInput1 == 'on'){
+	state.appgo1 = true
+	LOGDEBUG("Switch1 restriction is OK.. Continue...") 
     }    
-	if(enableSwitchMode == false && state.enableInput == 'off'){
-	state.appgo = true
-	LOGDEBUG("Switch restriction is OK.. Continue...")  
+	if(enableSwitchMode1 == false && state.enableInput1 == 'off'){
+	state.appgo1 = true
+	LOGDEBUG("Switch1 restriction is OK.. Continue...")  
     }
-	if(enableSwitchMode == false && state.enableInput == 'on'){
-	state.appgo = false
-	LOGDEBUG("Cannot continue - App disabled by switch")  
+	if(enableSwitchMode1 == false && state.enableInput1 == 'on'){
+	state.appgo1 = false
+	LOGDEBUG("Cannot continue - App disabled by switch1")  
     }    
-	LOGDEBUG("Allow by switch is $state.appgo")
+	LOGDEBUG("Allow by switch1 is $state.appgo1")
 }
+
+def switchEnable2(evt){
+	state.enableInput2 = evt.value
+	LOGDEBUG("Switch changed to: $state.enableInput")  
+    if(enableSwitchMode2 == true && state.enableInput2 == 'off'){
+	state.appgo2 = false
+	LOGDEBUG("Cannot continue - App disabled by switch2")  
+    }
+	if(enableSwitchMode2 == true && state.enableInput2 == 'on'){
+	state.appgo2 = true
+	LOGDEBUG("Switch2 restriction is OK.. Continue...") 
+    }    
+	if(enableSwitchMode2 == false && state.enableInput2 == 'off'){
+	state.appgo2 = true
+	LOGDEBUG("Switch2 restriction is OK.. Continue...")  
+    }
+	if(enableSwitchMode2 == false && state.enableInput2 == 'on'){
+	state.appgo2 = false
+	LOGDEBUG("Cannot continue - App disabled by switch2")  
+    }    
+	LOGDEBUG("Allow by switch2 is $state.appgo2")
+}
+
+
+
+
 
 def version(){
 	setDefaults()
@@ -1823,7 +1901,7 @@ def updateCheck(){
         	log.warn "** There is a newer version of this app available  (Version: $newVerRaw) **"
         	log.warn " Update: $state.UpdateInfo "
              state.newBtn = state.status
-            def updateMsg = "There is a new version of '$state.ExternalName' available (Version: $newVerRaw)"
+            state.updateMsg = "There is a new version of '$state.ExternalName' available (Version: $newVerRaw)"
             
        		} 
 		else{ 
@@ -1866,14 +1944,24 @@ def preCheck(){
  	}
 }
 
+def cobra(){
+	log.warn "Previous schedule for old 'Cobra Update' found... Removing......"
+	unschedule(cobra)
+	log.info "Cleanup Complete!"
+}
+
+
 def setDefaults(){
     LOGDEBUG("Initialising defaults...")
     if(pause1 == null){pause1 = false}
     if(state.pauseApp == null){state.pauseApp = false}
-    if(enableSwitch == null){
-    LOGDEBUG("Enable switch is NOT used. Switch is: $enableSwitch - Continue..")
-    state.appgo = true
-	
+    if(enableSwitch1 == null){
+    LOGDEBUG("Enable switch1 is NOT used.. Continue..")
+    state.appgo1 = true
+	}
+	if(enableSwitch2 == null){
+    LOGDEBUG("Enable switch2 is NOT used.. Continue..")
+    state.appgo2 = true	
     }
 	state.restrictRun = false
 	state.timer1 = true
@@ -1884,10 +1972,8 @@ def setDefaults(){
 
 
 
-
-
 def setVersion(){
-		state.version = "3.1.0"
+		state.version = "3.3.0"
      		state.InternalName = "PresenceCentralChild"
     		state.ExternalName = "Presence Central Child"
 			state.preCheckMessage = "This app is designed to react to presence sensor(s)." 

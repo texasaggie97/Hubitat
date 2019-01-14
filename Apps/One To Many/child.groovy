@@ -5,7 +5,7 @@
  *	This was designed to force one or more switches/lights/dimmers to follow a single switch/light/dimmer 
  *
  *
- *  Copyright 2018 Andrew Parker
+ *  Copyright 2019 Andrew Parker
  *  
  *  This App is free!
  *  Donations to support development efforts are accepted via: 
@@ -33,10 +33,12 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 04/12/2018
+ *  Last Update: 14/01/2019
  *
  *  Changes:
  *
+ *  V1.6.0 - Added additonal (2nd) switch for restriction & fixed other restriction bugs
+ *  V1.5.1 - Debug presence restriction
  *  V1.5.0 - added disable apps code
  *  V1.4.0 - Streamlined restrictions page to action faster if specific restrictions not used.
  *  V1.3.0 - Moved update notification to parent
@@ -107,10 +109,12 @@ def restrictionsPage() {
     dynamicPage(name: "restrictionsPage") {
         section(){paragraph "<font size='+1'>App Restrictions</font> <br>These restrictions are optional <br>Any restriction you don't want to use, you can just leave blank or disabled"}
         section(){
-		input "enableSwitchYes", "bool", title: "Enable restriction by external on/off switch", required: true, defaultValue: false, submitOnChange: true
+		input "enableSwitchYes", "bool", title: "Enable restriction by external on/off switch(es)", required: true, defaultValue: false, submitOnChange: true
 			if(enableSwitchYes){
-			input "enableSwitch", "capability.switch", title: "Select a switch Enable/Disable this app", required: false, multiple: false, submitOnChange: true 
-			if(enableSwitch){ input "enableSwitchMode", "bool", title: "Allow app to run only when this switch is On or Off", required: true, defaultValue: false, submitOnChange: true}
+			input "enableSwitch1", "capability.switch", title: "Select the first switch to Enable/Disable this app", required: false, multiple: false, submitOnChange: true 
+			if(enableSwitch1){ input "enableSwitchMode1", "bool", title: "Allow app to run only when this switch is On or Off", required: true, defaultValue: false, submitOnChange: true}
+			input "enableSwitch2", "capability.switch", title: "Select a second switch to Enable/Disable this app", required: false, multiple: false, submitOnChange: true 
+			if(enableSwitch2){ input "enableSwitchMode2", "bool", title: "Allow app to run only when this switch is On or Off", required: true, defaultValue: false, submitOnChange: true}
 			}
 		}
         section(){
@@ -161,6 +165,7 @@ def restrictionsPage() {
     }
 }
 
+           
 
 
              
@@ -173,17 +178,18 @@ def initialise(){
 	log.info "Initialised with settings: ${settings}"
 	logCheck()	
 }
-
 def subscribeNow() {
 	unsubscribe()
-	if(enableSwitch){subscribe(enableSwitch, "switch", switchEnable)}
+	if(enableSwitch1){subscribe(enableSwitch1, "switch", switchEnable1)}
+	if(enableSwitch2){subscribe(enableSwitch2, "switch", switchEnable2)}
 	if(enableSwitchMode == null){enableSwitchMode = true} // ????
 	if(restrictPresenceSensor){subscribe(restrictPresenceSensor, "presence", restrictPresenceSensorHandler)}
 	if(restrictPresenceSensor1){subscribe(restrictPresenceSensor1, "presence", restrictPresence1SensorHandler)}
 	if(sunriseSunset){astroCheck()}
 	if(sunriseSunset){schedule("0 1 0 1/1 * ? *", astroCheck)} // checks sunrise/sunset change at 00.01am every day
     
-  // App Specific subscriptions & settings below here
+  // App Specific subscriptions & settings below here   
+ 
 
     subscribe(switch1, "switch", switchHandler1)
     subscribe(dimmer1, "level", dimmerHandler1)
@@ -289,8 +295,12 @@ def checkAllow(){
 		state.modesYes = modesYes
 		state.dayYes = dayYes
 		state.sunrisesetYes = sunrisesetYes
+		state.presenceYes = presenceYes
 		
-		if(state.enableSwitchYes == false){state.appgo = true}
+		if(state.enableSwitchYes == false){
+		state.appgo1 = true
+		state.appgo2 = true
+		}
 		if(state.modes != null && state.modesYes == true){modeCheck()}	
 		if(state.fromTime !=null && state.timeYes == true){checkTime()}
 		if(state.days!=null && state.dayYes == true){checkDay()}
@@ -304,16 +314,19 @@ def checkAllow(){
 	if(state.presenceRestriction ==  false || state.presenceRestriction1 ==  false){
 	LOGDEBUG( "Cannot continue - Presence failed")
 	}
-	if(state.appgo == false){
-	LOGDEBUG("$enableSwitch is not in the correct position so cannot continue")
+	if(state.appgo1 == false){
+	LOGDEBUG("$enableSwitch1 is not in the correct position so cannot continue")
 	}
-	if(state.appgo == true && state.dayCheck == true && state.presenceRestriction == true && state.presenceRestriction1 == true && state.modeCheck == true && state.timeOK == true && state.noPause == true && state.sunGoNow == true){
+	if(state.appgo2 == false){
+	LOGDEBUG("$enableSwitch2 is not in the correct position so cannot continue")
+	}
+	if(state.appgo1 == true && state.appgo2 == true && state.dayCheck == true && state.presenceRestriction == true && state.presenceRestriction1 == true && state.modeCheck == true && state.timeOK == true && state.noPause == true && state.sunGoNow == true){
 	state.allAllow = true 
  	  }
 	else{
  	state.allAllow = false
 	LOGWARN( "One or more restrictions apply - Unable to continue")
- 	LOGDEBUG("state.appgo = $state.appgo, state.dayCheck = $state.dayCheck, state.presenceRestriction = $state.presenceRestriction, state.presenceRestriction1 = $state.presenceRestriction1, state.modeCheck = $state.modeCheck, state.timeOK = $state.timeOK, state.noPause = $state.noPause, state.sunGoNow = $state.sunGoNow")
+ 	LOGDEBUG("state.appgo1 = $state.appgo1, state.appgo2 = $state.appgo2, state.dayCheck = $state.dayCheck, state.presenceRestriction = $state.presenceRestriction, state.presenceRestriction1 = $state.presenceRestriction1, state.modeCheck = $state.modeCheck, state.timeOK = $state.timeOK, state.noPause = $state.noPause, state.sunGoNow = $state.sunGoNow")
       }
    }
 
@@ -515,27 +528,53 @@ def checkPresence1(){
 	}
 }
 
-def switchEnable(evt){
-	state.enableInput = evt.value
+def switchEnable1(evt){
+	state.enableInput1 = evt.value
 	LOGDEBUG("Switch changed to: $state.enableInput")  
-    if(enableSwitchMode == true && state.enableInput == 'off'){
-	state.appgo = false
-	LOGDEBUG("Cannot continue - App disabled by switch")  
+    if(enableSwitchMode1 == true && state.enableInput1 == 'off'){
+	state.appgo1 = false
+	LOGDEBUG("Cannot continue - App disabled by switch1")  
     }
-	if(enableSwitchMode == true && state.enableInput == 'on'){
-	state.appgo = true
-	LOGDEBUG("Switch restriction is OK.. Continue...") 
+	if(enableSwitchMode1 == true && state.enableInput1 == 'on'){
+	state.appgo1 = true
+	LOGDEBUG("Switch1 restriction is OK.. Continue...") 
     }    
-	if(enableSwitchMode == false && state.enableInput == 'off'){
-	state.appgo = true
-	LOGDEBUG("Switch restriction is OK.. Continue...")  
+	if(enableSwitchMode1 == false && state.enableInput1 == 'off'){
+	state.appgo1 = true
+	LOGDEBUG("Switch1 restriction is OK.. Continue...")  
     }
-	if(enableSwitchMode == false && state.enableInput == 'on'){
-	state.appgo = false
-	LOGDEBUG("Cannot continue - App disabled by switch")  
+	if(enableSwitchMode1 == false && state.enableInput1 == 'on'){
+	state.appgo1 = false
+	LOGDEBUG("Cannot continue - App disabled by switch1")  
     }    
-	LOGDEBUG("Allow by switch is $state.appgo")
+	LOGDEBUG("Allow by switch1 is $state.appgo1")
 }
+
+def switchEnable2(evt){
+	state.enableInput2 = evt.value
+	LOGDEBUG("Switch changed to: $state.enableInput")  
+    if(enableSwitchMode2 == true && state.enableInput2 == 'off'){
+	state.appgo2 = false
+	LOGDEBUG("Cannot continue - App disabled by switch2")  
+    }
+	if(enableSwitchMode2 == true && state.enableInput2 == 'on'){
+	state.appgo2 = true
+	LOGDEBUG("Switch2 restriction is OK.. Continue...") 
+    }    
+	if(enableSwitchMode2 == false && state.enableInput2 == 'off'){
+	state.appgo2 = true
+	LOGDEBUG("Switch2 restriction is OK.. Continue...")  
+    }
+	if(enableSwitchMode2 == false && state.enableInput2 == 'on'){
+	state.appgo2 = false
+	LOGDEBUG("Cannot continue - App disabled by switch2")  
+    }    
+	LOGDEBUG("Allow by switch2 is $state.appgo2")
+}
+
+
+
+
 
 def version(){
 	setDefaults()
@@ -697,7 +736,7 @@ def updateCheck(){
         	log.warn "** There is a newer version of this app available  (Version: $newVerRaw) **"
         	log.warn " Update: $state.UpdateInfo "
              state.newBtn = state.status
-            def updateMsg = "There is a new version of '$state.ExternalName' available (Version: $newVerRaw)"
+            state.updateMsg = "There is a new version of '$state.ExternalName' available (Version: $newVerRaw)"
             
        		} 
 		else{ 
@@ -740,14 +779,24 @@ def preCheck(){
  	}
 }
 
+def cobra(){
+	log.warn "Previous schedule for old 'Cobra Update' found... Removing......"
+	unschedule(cobra)
+	log.info "Cleanup Complete!"
+}
+
+
 def setDefaults(){
     LOGDEBUG("Initialising defaults...")
     if(pause1 == null){pause1 = false}
     if(state.pauseApp == null){state.pauseApp = false}
-    if(enableSwitch == null){
-    LOGDEBUG("Enable switch is NOT used. Switch is: $enableSwitch - Continue..")
-    state.appgo = true
-	
+    if(enableSwitch1 == null){
+    LOGDEBUG("Enable switch1 is NOT used.. Continue..")
+    state.appgo1 = true
+	}
+	if(enableSwitch2 == null){
+    LOGDEBUG("Enable switch2 is NOT used.. Continue..")
+    state.appgo2 = true	
     }
 	state.restrictRun = false
 }
@@ -756,7 +805,7 @@ def setDefaults(){
 
 
 def setVersion(){
-    state.version = "1.5.0"
+    state.version = "1.6.0"
      state.InternalName = "OneToManyChild"
      state.ExternalName = "One To Many Child"
 	 state.preCheckMessage = "This app is designed to force one or more switches/lights/dimmers to follow a single switch/light/dimmer." 

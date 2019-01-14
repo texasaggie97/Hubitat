@@ -1,7 +1,13 @@
 /**
- *  ****************  Schedule A Switch Event  ****************
- *  This app can schedule a time to turn on a switch then schedule a time to turn it off again 
- *  Copyright 2019 Andrew Parker
+ *  ****************  Speaker Central ****************
+ *
+ *  Design Usage:
+ *  This app was designed to display/set an 'average' Illumination, Temperature, Humidity or Pressure from a group of devices. It can also be used to 'group' a number of Motion sensors together to act as one
+ *
+ *  This app was originally born from an idea by @bobgodbold and I thank him for that!
+ *  @bobgodbold ported some of the original driver code from SmartThings before I adapted it to it's present form for use with this app
+ *
+ *  Copyright 2018 Andrew Parker
  *  
  *  This SmartApp is free!
  *  Donations to support development efforts are accepted via: 
@@ -9,11 +15,10 @@
  *  Paypal at: https://www.paypal.me/smartcobra
  *  
  *
- *  I'm happy for you to use this without a donation (but, if you find it useful then it would be nice to get a 'shout out' on the forum!) -  @Cobra
- *
+ *  I'm very happy for you to use this app without a donation, but if you find it useful then it would be nice to get a 'shout out' on the forum! -  @Cobra
  *  Have an idea to make this app better?  - Please let me know :)
  *
- *  Website: http://securendpoint.com/smartthings
+ *  Website: http://hubitat.uk
  *
  *-------------------------------------------------------------------------------------------------------------------
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
@@ -26,75 +31,106 @@
  *  for the specific language governing permissions and limitations under the License.
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  If modifying this project, please keep the above header intact and add your comments/credits below -  @Cobra
+ *  If modifying this project, please keep the above header intact and add your comments/credits below - Thank you! -  @Cobra
  *
+ *-------------------------------------------------------------------------------------------------------------------
  *
- *
- *  Last Update: 14/01/2019
+ *  Last Update: 06/01/2019
  *
  *  Changes:
  *
- *  V1.5.0 - Added additonal (2nd) switch for restriction & fixed other restriction bugs
- *  V1.4.1 - Debug presence restriction
- *  V1.4.0 - added disable app code
- *  V1.3.0 - Streamlined restrictions page to action faster if specific restrictions not used.
- *  V1.2.0 - Moved update notification to parent
- *  V1.1.1 - Added restrictions page
- *  V1.1.0 - Added to Cobra Apps 
+ *
  *  V1.0.0 - POC
  *
  */
- 
- 
- 
- 
- 
- 
- 
- 
- 
+
+
+
 definition(
-    name: "Daily Switch Event Child",
+    name: "Speaker Central Child",
     namespace: "Cobra",
     author: "Andrew Parker",
-    description: "Schedule a time to turn on a switch then schedule a time to turn it off again",
-    category: "Convenience",
+    description: "Moving Speakers",
+    category: "My Apps",
     
-  parent: "Cobra:Daily Switch Event",
+		parent: "Cobra:Speaker Central",
     
     iconUrl: "",
-	iconX2Url: "",
-    iconX3Url: "",
-    )
-
+    iconX2Url: ""
+)
 preferences {
 	section() {
 	page name: "mainPage", title: "", install: false, uninstall: true, nextPage: "restrictionsPage"
 	page name: "restrictionsPage", title: "", install: true, uninstall: true
 	}
 }
+    
 
-def mainPage() {
-	dynamicPage(name: "mainPage") {
+ def mainPage() {
+	dynamicPage(name: "mainPage") {  
 	preCheck()
 
-
-    section("") {
-		input (name: "startTime", title: "Action time (On/Off)", type: "time",  required: true)
-		input name: "actionMode", type: "bool", title: "Turn on or off", required: true, defaultValue: false, submitOnChange: true  
-        if(actionMode == true){
-	    input name: "action1", type: "bool", title: "Turn switch off as well? ", required: true, defaultValue: false, submitOnChange: true  
-        }
-   		if(action1 == true){
-		input (name: "stopTime", title: "Stop time (Off)", type: "time",  required: false)
-	    }
-	}    
-        
-	
-	 section(){input "switch1",  "capability.switch", title: "Switch(es) to control", multiple: true, required: false}
-	}  
+		
+		section("Proxy Device") {input "vDevice", "device.ProxySpeechPlayer", title: "Proxy Speaker Virtual Device"}
+		
+	section("TTS Speakers") {	
+		input "typeSelect", "enum", required: true, title: "Please select output type", submitOnChange: true,  options: ["Music Player", "Speech Synth"] 
+		state.type = typeSelect 
+	}
+		
+		if(state.type == "Music Player"){
+		section() {
+		
+      	input "speaker1", "capability.musicPlayer", title: "Speaker(s)", multipe: true
+		input "volumeMode1", "bool", title: "Use a fixed volume for this device", required: true, defaultValue: false, submitOnChange: true
+		if(volumeMode1 == true){input "defaultVol", "number", title: "Fixed speaker Volume", description: "0-100%", defaultValue: "70",  required: true}
+			
+     	
+				
+    }
 }
-
+		if(state.type == "Speech Synth"){
+		section() {	
+		
+		input "speaker1", "capability.speechSynthesis", title: "Speaker(s)", multipe: true
+		input "volumeMode1", "bool", title: "Use a fixed volume for this device", required: true, defaultValue: false, submitOnChange: true
+		if(volumeMode1 == true){input "defaultVol", "number", title: "Fixed speaker Volume", description: "0-100%", defaultValue: "70",  required: true}	
+		}	
+	}
+		section() {	
+		input "controlSelect", "enum", required: true, title: "Please select control type", submitOnChange: true,  options: ["Mode", "Motion Sensor", "Switch", "Time" ] 
+			// Possible future feature...    , "Contact Open"] 
+		}
+		if(controlSelect){
+			if(controlSelect == "Motion Sensor"){	
+				section() {
+			input "motion1",  "capability.motionSensor", title: "Select Motion Sensor", required: false, multiple: false, submitOnChange: true
+			if(motion1){input "motion1Delay", "number", title: "Seconds delay after motion stops before speaker becomes inactive (set to 0 for no delay)", required: true, defaultValue: 60}
+				}
+			}	
+			if(controlSelect == "Switch"){	
+			section() {input "switch1",  "capability.switch", title: "On/Off Select Switch", required: false, multiple: false}		
+			}			
+			if(controlSelect == "Time"){
+			section() {	
+			input "startTime",  "time", title: "Select Active StartTime", required: true
+			input "endTime",  "time", title: "Select Active EndTime", required: true
+			}
+			}
+			
+			if(controlSelect == "Mode"){
+			 section() {input "newMode1", "mode", title: "Which Mode(s) do you want this speaker enabled for?", required: true, multiple: true} 
+			}
+			
+			
+			
+			
+			
+        }                     
+    }                   
+ }	
+   
+        
 def restrictionsPage() {
     dynamicPage(name: "restrictionsPage") {
         section(){paragraph "<font size='+1'>App Restrictions</font> <br>These restrictions are optional <br>Any restriction you don't want to use, you can just leave blank or disabled"}
@@ -155,10 +191,6 @@ def restrictionsPage() {
     }
 }
 
-           
-
-
-
 
 def installed(){initialise()}
 def updated(){initialise()}
@@ -179,39 +211,183 @@ def subscribeNow() {
 	if(sunriseSunset){schedule("0 1 0 1/1 * ? *", astroCheck)} // checks sunrise/sunset change at 00.01am every day
     
   // App Specific subscriptions & settings below here   
- 
-
-    schedule(startTime, checkNow1)
-    if(action1 == true){schedule(stopTime, checkNow2)}
-     }
-
-def checkNow1 (evt) {
-    checkAllow()
-	if(state.allAllow == true){
-
-	LOGDEBUG("Operation is scheduled for $startTime")
-	LOGDEBUG("Switching now...")        
-        if(state.modeAction == true){ switch1.on() }    
-        if(state.modeAction == false){ switch1.off() }     
-    }
+	if(controlSelect == "Mode"){subscribe(location, "mode", modeChangeHandler)}
+    subscribe(vDevice, "speak", speakHandler) 
+	subscribe(vDevice, "setLevel", volumeHandler)
+	
+	subscribe(vDevice, "playTextAndRestore", playTextHandler)
+	if(motion1){subscribe(motion1, "motion", motion1Handler)}
+	if(switch1){subscribe(switch1, "switch", switch1Handler)}
+	if(defaultVol == null){defaultVol = 70}
+	if(controlSelect == "Time"){
+	schedule(startTime,startNow)	
+	schedule(endTime,stopNow)
+	}
 }
 
-def checkNow2 (evt) {
-    checkAllow()
-	if(state.allAllow == true){
 
-	LOGDEBUG("Operation is scheduled for $stopTime")
-	LOGDEBUG("Switching now...")       
-        if(state.actionType == true){switch1.off()}
-    }
- }
+// Details from parent - possible later feature
+
+def proxySpeaker(proxy){
+	state.vspeaker = proxy.value
+	LOGDEBUG( "Proxy speaker = $state.vspeaker")
+}
+
+
+
+
+// Event Handlers
+
+
+def  modeChangeHandler(evt){
+	LOGDEBUG("Mode change handler running")
+	state.modeNow = evt.value    
+	state.modeRequired = newMode1
+	LOGDEBUG("modeRequired = $state.modeRequired - current mode = $state.modeNow")  
+	if(state.modeRequired.contains(location.mode)){ 
+	LOGDEBUG("Mode is now $state.modeRequired") 
+	LOGDEBUG( "Enabling: $speaker1 (Available for TTS)")
+	state.speaker1 = true
+	}
+	else{  
+	LOGDEBUG("Mode not matched")
+	LOGDEBUG( "Disabling: $speaker1 (No longer available for TTS)")
+	state.speaker1 = false
+	}
+}
+
+
+def startNow(){
+	LOGDEBUG( "Enabling: $speaker1 (Available for TTS)")
+		state.speaker1 = true	
+	LOGDEBUG( "state.speaker1 = $state.speaker1")
+}
+
+def stopNow(){
+	LOGDEBUG( "Disabling: $speaker1 (No longer available for TTS)")
+		state.speaker1 = false	
+	LOGDEBUG( "state.speaker1 = $state.speaker1")
+}
+
+
+
+def switch1Handler(evt){
+	LOGDEBUG( "$switch1 = $evt.value")
+	if(evt.value == 'on'){
+		LOGDEBUG( "Enabling: $speaker1 (Available for TTS)")
+		state.speaker1 = true}
+	
+	if(evt.value == 'off'){
+		LOGDEBUG( "Disabling: $speaker1 (No longer available for TTS)")
+		state.speaker1 = false}	
+	
+}
+
+def motion1Handler(evt){
+	LOGDEBUG( "$motion1 = $evt.value")
+	state.motion1 = evt.value
+	if(evt.value == 'active'){
+		LOGDEBUG( "Enabling: $speaker1 (Available for TTS)")
+		state.speaker1 = true}
+	state.delay1 = motion1Delay
+	if(evt.value == 'inactive'){
+		LOGDEBUG( "In $state.delay1 seconds I will disable: $speaker1 (Unless $motion1 becomes active again)")
+		runIn(state.delay1,resetMotion1)}	
+}	
+def resetMotion1(){
+	if(state.motion1 == 'active'){LOGDEBUG( "$motion1 is still active")}
+	else{
+	LOGDEBUG( "Delay complete - $speaker1 disabled (No longer available for TTS) until the next motion event")
+	state.speaker1 = false
+	}
+}
+
+
+	
+def speakSpeakerSelect(){	
+	checkAllow()
+	if(state.allAllow == true){
+	if(state.speaker1 == true){	
+	if(volumeMode1 == true){volumeDefault()}		
+	speaker1.speak(state.msg) 
+	LOGDEBUG( "$speaker1 is active")
+	}	
+	if(state.speaker1 == false || state.speaker1 == null){LOGWARN( "$speaker1 is not active")}	
+	}
+}
+
+def playSpeakerSelect(){	
+	checkAllow()
+	if(state.allAllow == true){
+	if(state.speaker1 == true){	
+	if(volumeMode1 == true){volumeDefault()}		
+	speaker1.playTextAndRestore(state.msg)
+	LOGDEBUG( "$speaker1 is active")
+	}	
+	if(state.speaker1 == false || state.speaker1 == null){LOGWARN( "$speaker1 is not active")}	
+	}
+}	
+
+
+
+def playTextHandler(msgIn){
+	state.msg = msgIn.value.toString()
+	LOGDEBUG( "playTextAndRestore - Text received: $state.msg")
+	playSpeakerSelect()
+}
+
+
+
+def speakHandler(msgIn){
+	state.msg = msgIn.value.toString()
+	LOGDEBUG( "Speak - Text received: $state.msg")
+	speakSpeakerSelect()	
+}
+
+def volumeHandler(volIn){	
+	def vol1 = volIn.value
+	state.vol = vol1.toInteger()
+
+	if(state.type == "Music Player"){
+		LOGDEBUG( "Volume received: $state.vol")
+		if(volumeMode1 != true){speaker1.setLevel(state.vol)}
+	}
+	if(state.type == "Speech Synth"){
+		LOGDEBUG( "Volume received: $state.vol")
+		if(volumeMode1 != true){speaker1.setVolume(state.vol)}
+	
+	}
+}
+
+def volumeDefault(){	
+	def vol = defaultVol.toInteger()
+	LOGDEBUG( "Volume received: $vol")
+	
+	if(state.type == "Music Player"){
+	speaker1.setLevel(vol)
+	}
+	if(state.type == "Speech Synth"){
+	speaker1.setVolume(vol)	 // Not all devices accept this setting so comment this out if there are problems with your device
+	}		
+}
+
+
+
+
+
+
+
+
+
+
+
 
 
 
 def checkAllow(){
     state.allAllow = false
     LOGDEBUG("Checking for any restrictions...")
-    if(state.pauseApp == true){log.warn "Unable to continue - App paused"}
+    if(state.pauseApp == true){LOGWARN( "Unable to continue - App paused")}
     if(state.pauseApp == false){
         LOGDEBUG("Continue - App NOT paused")
         state.noPause = true
@@ -467,7 +643,7 @@ def checkPresence1(){
 
 def switchEnable1(evt){
 	state.enableInput1 = evt.value
-	LOGDEBUG("Switch changed to: $state.enableInput")  
+	LOGDEBUG("Switch changed to: $state.enableInput1")  
     if(enableSwitchMode1 == true && state.enableInput1 == 'off'){
 	state.appgo1 = false
 	LOGDEBUG("Cannot continue - App disabled by switch1")  
@@ -489,7 +665,7 @@ def switchEnable1(evt){
 
 def switchEnable2(evt){
 	state.enableInput2 = evt.value
-	LOGDEBUG("Switch changed to: $state.enableInput")  
+	LOGDEBUG("Switch changed to: $state.enableInput2")  
     if(enableSwitchMode2 == true && state.enableInput2 == 'off'){
 	state.appgo2 = false
 	LOGDEBUG("Cannot continue - App disabled by switch2")  
@@ -530,8 +706,8 @@ def version(){
 
 def logCheck(){
     state.checkLog = debugMode
-    if(state.checkLog == true){log.info "All Logging Enabled"}
-    if(state.checkLog == false){log.info "Further Logging Disabled"}
+    if(state.checkLog == true){LOGDEBUG( "All Logging Enabled")}
+    if(state.checkLog == false){LOGDEBUG( "Further Logging Disabled")}
 }
 
 def LOGDEBUG(txt){
@@ -609,9 +785,9 @@ LOGDEBUG(" Calling 'pauseOrNot'...")
     state.pauseApp = true
     if(app.label){
     if(app.label.contains('red')){
-    log.warn "Paused"}
+    LOGWARN( "Paused")}
     else{app.updateLabel(app.label + ("<font color = 'red'> (Paused) </font>" ))
-    log.warn "App Paused - state.pauseApp = $state.pauseApp "   
+    LOGWARN( "App Paused - state.pauseApp = $state.pauseApp " )  
     }
    }
   }
@@ -699,7 +875,7 @@ def updateCheck(){
 
 
 def inform(){
-	log.warn "An update is available - Telling the parent!"
+	LOGWARN( "An update is available - Telling the parent!")
 	parent.childUpdate(true,state.updateMsg) 
 }
 
@@ -716,13 +892,6 @@ def preCheck(){
  	}
 }
 
-def cobra(){
-	log.warn "Previous schedule for old 'Cobra Update' found... Removing......"
-	unschedule(cobra)
-	log.info "Cleanup Complete!"
-}
-
-
 def setDefaults(){
     LOGDEBUG("Initialising defaults...")
     if(pause1 == null){pause1 = false}
@@ -735,21 +904,29 @@ def setDefaults(){
     LOGDEBUG("Enable switch2 is NOT used.. Continue..")
     state.appgo2 = true	
     }
-	state.modeAction = actionMode
-	state.actionType = action1  
 	state.restrictRun = false
 }
 
-
-
-
-def setVersion(){
-		state.version = "1.5.0"	 
-		state.InternalName = "DailySwitchEventChild"
-    	state.ExternalName = "Daily Switch Event Child"
-		state.preCheckMessage = "This app can schedule a time to turn on a switch then schedule a time to turn it off again" 
-    	state.CobraAppCheck = "dailyswitchevent.json"
+def cobra(){
+	log.warn "Previous schedule for old 'Cobra Update' found... Removing......"
+	unschedule(cobra)
+	log.info "Cleanup Done!"
 }
+
+    
+def setVersion(){
+		state.version = "1.0.0"	 
+		state.InternalName = "SpeakerCentralChild"
+    	state.ExternalName = "Speaker Central Child"
+		state.preCheckMessage = "This app was designed to use a special 'ProxySpeechPlayer' virtual device to enable/disable speakers around your home"
+    	state.CobraAppCheck = "speakercentral.json"
+}
+
+
+
+
+
+
 
 
 
