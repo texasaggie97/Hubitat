@@ -32,11 +32,11 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 07/12/2018
+ *  Last Update: 14/01/2019
  *
  *  Changes:
  *
- *
+ *  V2.6.0 - Added "Speaker Central"
  *  V2.5.0 - Added "Did I leave Something Open"
  *  V2.4.0 - Added 'Disable All Cobra Apps' switch
  *  V2.3.0 - Added 'Irrigation Switch'
@@ -120,12 +120,13 @@ def mainPage() {
         if(state.appName1.contains("One To Many")) {state.para1 = state.para1 + "<BR>One To Many"} 
     	if(state.appName1.contains("Presence Central")) {state.para1 = state.para1 + "<BR>Presence Central"}  
         if(state.appName1.contains("Scheduled Switch")) {state.para1 = state.para1 + "<BR>Scheduled Switch"}
-if(state.appName1.contains("Sunset Switch")) {state.para1 = state.para1 + "<BR>Sunset Switch"}
+		if(state.appName1.contains("Speaker Central")) {state.para1 = state.para1 + "<BR>Speaker Central"}
+//		if(state.appName1.contains("Sunset Switch")) {state.para1 = state.para1 + "<BR>Sunset Switch"}
         if(state.appName1.contains("Super Smart Fan")) {state.para1 = state.para1 + "<BR>Super Smart Fan"}
 		if(state.appName1.contains("Switch Changeover")) {state.para1 = state.para1 + "<BR>Switch Changeover"}
         if(state.appName1.contains("Temperature Controlled Single-Speed Fan")) {state.para1 = state.para1 + "<BR>Temperature Controlled Single-Speed Fan"} 
         if(state.appName1.contains("Temperature Controlled Switch")) {state.para1 = state.para1 + "<BR>Temperature Controlled Switch"} 
-        if(state.appName1.contains("Temperature Controlled Window-Vent-Blind")) {state.para1 = state.para1 + "<BR>Temperature Controlled Window-Vent-Blind"} 
+        if(state.appName1.contains("Temperature Controlled Window-Vent-Blind")) {state.para1 = state.para1 + "<BR>Temperature Controlled Window-Vent-Blind"} 		
     	if(state.appName1.contains("Weather Switch")) {state.para1 = state.para1 + "<BR>Weather Switch"}  
     	
    
@@ -231,7 +232,7 @@ def childAppList(){
         section (""){
 		app(name: "scheduledSwitchParent", appName: "Scheduled Switch", namespace: "Cobra", title: "<b>Load 'Scheduled Switch' into this container</b>", multiple: true)
             }
-     }
+     }	
      if(!state.appName1.contains("Sunset Switch") && state.appList.contains("Sunset Switch")){
         section (""){
 		app(name: "sunsetSwitchParent", appName: "Sunset Switch", namespace: "Cobra", title: "<b>Load 'Sunset Switch' into this container</b>", multiple: true)
@@ -263,7 +264,13 @@ def childAppList(){
         section (""){
 		app(name: "tempControlledWindowVentParent", appName: "Temperature Controlled Window-Vent-Blind", namespace: "Cobra", title: "<b>Load 'Temperature Controlled Window-Vent-Blind' into this container</b>", multiple: true)
             }
-     }    
+     }
+	if(!state.appName1.contains("Speaker Central") && state.appList.contains("Speaker Central")){
+       section (""){
+		app(name: "speakerCentralParent", appName: "Speaker Central", namespace: "Cobra", title: "<b>Load 'Speaker Central' into this container</b>", multiple: true)
+            }
+     }	
+		
     if(!state.appName1.contains("Weather Switch") && state.appList.contains("Weather Switch")){
         section (""){
 		app(name: "weatherSwitchParent", appName: "Weather Switch", namespace: "Cobra", title: "<b>Load 'Weather Switch' into this container</b>", multiple: true)
@@ -301,7 +308,8 @@ def checkInput(){
         "One To Many",
         "Presence Central",
         "Scheduled Switch",
-  //      "Sunset Switch",
+		"Speaker Central",
+//      "Sunset Switch",
 		"Super Smart Fan",
         "Switch Changeover",
         "Temperature Controlled Single-Speed Fan",
@@ -457,7 +465,7 @@ def updateCheck(){
         	log.warn "** There is a newer version of this app available  (Version: $newVerRaw) **"
         	log.warn " Update: $state.UpdateInfo "
              state.newBtn = state.status
-            def updateMsg = "There is a new version of '$state.ExternalName' available (Version: $newVerRaw)"
+            state.updateMsg = "There is a new version of '$state.ExternalName' available (Version: $newVerRaw)"
             
        		} 
 		else{ 
@@ -483,7 +491,7 @@ def updateCheck(){
 
 
 def setVersion(){
-		state.version = "2.5.0"	 
+		state.version = "2.6.0"	 
 		state.InternalName = "CobraParent" 
     	state.ExternalName = "Cobra Apps Container"
     	state.CobraAppCheck = "cobraapps.json"
