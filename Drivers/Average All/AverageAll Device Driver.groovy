@@ -36,8 +36,10 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update 23/11/2018/
+ *  Last Update 22/01/2019
  *
+ *
+ *  V1.4.1 - Debug issue with driver not working correctly after reboot
  *  V1.4.0 - New update json
  *  V1.3.3 - Debug - Typo in lastDeviceHumidity
  *  V1.3.2 - Debug UI
@@ -98,16 +100,16 @@ metadata {
 }
 
 def installed(){
-    initialise()
+    initialize()
 }
 
 def updated(){
-    initialise()
+    initialize()
 }
 
 
 
-def initialise() {
+def initialize() {
     logCheck()
     version()
     if(state.TemperatureUnit == null){ state.TemperatureUnit = "F"}
@@ -197,7 +199,7 @@ log.info "Further Logging Disabled"
 }
 def LOGDEBUG(txt){
     try {
-    	if (settings.debugMode) { log.debug("Device Version: ${state.Version}) - ${txt}") }
+    	if (settings.debugMode) { log.debug("Device Version: ${state.version}) - ${txt}") }
     } catch(ex) {
     	log.error("LOGDEBUG unable to output requested data!")
     }
@@ -226,7 +228,7 @@ def updateCheck(){
        		def currentVer = state.version.replace(".", "")
       		state.UpdateInfo = "Updated: "+state.newUpdateDate + " - "+(respUD.data.versions.UpdateInfo.Driver.(state.InternalName))
             state.author = (respUD.data.author)
-			
+			state.icon = (respUD.data.icon)
            
 		if(newVer == "NLS"){
             state.Status = "<b>** This driver is no longer supported by $state.author  **</b>"       
@@ -255,15 +257,15 @@ def updateCheck(){
 	    	sendEvent(name: "DriverUpdate", value: state.UpdateInfo, isStateChange: true)
 	     	sendEvent(name: "DriverStatus", value: state.Status, isStateChange: true)
 	    }   
- 			sendEvent(name: "DriverAuthor", value: state.author, isStateChange: true)
-    		sendEvent(name: "DriverVersion", value: state.vVersion, isStateChange: true)
+ 			sendEvent(name: " ", value: state.icon +"<br>" +state.Copyright, isStateChange: true)
+    		sendEvent(name: "DriverVersion", value: state.version, isStateChange: true)
     
     
     	//	
 }
 
 def setVersion(){
-    state.version = "1.4.0"
+    state.version = "1.4.1"
     state.InternalName = "AverageAllDriver"
    	state.CobraAppCheck = "averagealldriver.json"
     sendEvent(name: "DriverAuthor", value: "Cobra", isStateChange: true)

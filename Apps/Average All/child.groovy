@@ -35,11 +35,11 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 14/01/2019
+ *  Last Update: 22/01/2019
  *
  *  Changes:
  *
- *
+ *  V2.3.1 - Debug issue with app not working correctly after reboot
  *  V2.3.0 - Added additonal switch for restriction & fixed other restriction bugs & fixed update pushover messaging
  *  V2.2.2 - Debug presence restriction
  *  V2.2.1 - Created code to cleanup previously used schedule
@@ -193,9 +193,9 @@ def restrictionsPage() {
 }
 
 
-def installed(){initialise()}
-def updated(){initialise()}
-def initialise(){
+def installed(){initialize()}
+def updated(){initialize()}
+def initialize(){
 	version()
 	subscribeNow()
 	log.info "Initialised with settings: ${settings}"
@@ -1028,7 +1028,7 @@ def cobra(){
 
     
 def setVersion(){
-		state.version = "2.3.0"	 
+		state.version = "2.3.1"	 
 		state.InternalName = "AverageAllChild"
     	state.ExternalName = "Average All Child"
 		state.preCheckMessage = "This app was designed to display/set an 'average' Illumination, Temperature, Humidity or Pressure from a group of devices. <br>It can also be used to 'group' a number of Motion sensors together to act as one"
