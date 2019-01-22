@@ -32,11 +32,11 @@
  *-------------------------------------------------------------------------------------------------------------------
  *
  *
- *  Last Update: 14/01/2019
+ *  Last Update: 22/01/2019
  *
  *  Changes:
  *
- *
+ *  V13.8.1 - Debug issue with Appliance Power not using delay
  *  V13.8.0 - Added additonal (2nd) switch for restriction
  *  V13.7.3 - Debug presence restriction
  *  V13.7.2 - Additional debug
@@ -160,9 +160,9 @@ preferences {
     
 }
 
-def installed(){initialise()}
-def updated(){initialise()}
-def initialise(){
+def installed(){initialize()}
+def updated(){initialize()}
+def initialize(){
 	version()
 	subscribeNow()
 	log.info "Initialised with settings: ${settings}"
@@ -631,10 +631,13 @@ def speakerInputs(){
     if(state.msgType == "Voice Message (MusicPlayer)"){
 	
 		
-         input "speaker", "capability.musicPlayer", title: "All Music Player Device(s)", required: true, multiple: true
+         input "speaker", "capability.musicPlayer", title: "All Music Player Device(s)", required: true, multiple: true, submitOnChange: true
         input "multiVolume", "bool", title: "Multiple Volume Slots?", required: false, defaultValue: false, submitOnChange: true
         state.multiVolumeSlots = multiVolume
-
+		 if(state.multiVolumeSlots == false){
+            input "volume1", "number", title: "Normal Speaker volume", description: "0-100%", defaultValue: "70",  required: true
+            state.volumeAll = volume1
+        }
       
         if(state.multiVolumeSlots == true){
         
@@ -707,10 +710,7 @@ def speakerInputs(){
          }
             
         }
-        if(state.multiVolumeSlots == false){
-            input "volume1", "number", title: "Normal Speaker volume", description: "0-100%", defaultValue: "70",  required: true
-            state.volumeAll = volume1
-        }
+       
 		
 	// **********************
 		
@@ -1659,8 +1659,8 @@ LOGDEBUG( "powerApplianceNow -  Power is: $state.meterValue")
     if (state.meterValue < state.belowValue) {
    def mydelay = 60 * delay2 
    LOGDEBUG( "Checking again after delay: $delay2 minutes... Power is: $state.meterValue")
-       runIn(mydelay, checkApplianceAgain1, [overwrite: false])     
-       
+       runIn(mydelay, checkApplianceAgain1) 
+
       }
 }
 
@@ -4512,7 +4512,7 @@ def cobra(){
 
 
 def setVersion(){
-		state.version = "13.8.0"	 
+		state.version = "13.8.1"	 
 		state.InternalName = "MessageCentralChild" 
     	state.ExternalName = "Message Central Child"
 		state.preCheckMessage = "This is designed to use various 'triggers' to make your home 'speak'"
