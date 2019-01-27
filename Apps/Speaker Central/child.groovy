@@ -35,11 +35,12 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 06/01/2019
+ *  Last Update: 23/01/2019
  *
  *  Changes:
  *
- *
+ *  V1.1.0 - Added 'Initialize before speech' on speech synth to reconnect 'lazy' GH devices
+ *  (This removes error: java.lang.NullPointerException: Cannot invoke method launchApp() on null object (runQ) and reconnects device)
  *  V1.0.0 - POC
  *
  */
@@ -93,6 +94,8 @@ preferences {
 		section() {	
 		
 		input "speaker1", "capability.speechSynthesis", title: "Speaker(s)", multipe: true
+		input "wakeUp1", "bool", title: "Send 'Initialize' before speech for sleepy Google Home devices (May add a second before speaking)", required: true, defaultValue: false
+//		input "mute1", "bool", title: "Remove wakup chime from Google home devices (May add a second before speaking)", required: true, defaultValue: false
 		input "volumeMode1", "bool", title: "Use a fixed volume for this device", required: true, defaultValue: false, submitOnChange: true
 		if(volumeMode1 == true){input "defaultVol", "number", title: "Fixed speaker Volume", description: "0-100%", defaultValue: "70",  required: true}	
 		}	
@@ -191,10 +194,9 @@ def restrictionsPage() {
     }
 }
 
-
-def installed(){initialise()}
-def updated(){initialise()}
-def initialise(){
+def installed(){initialize()}
+def updated(){initialize()}
+def initialize(){
 	version()
 	subscribeNow()
 	log.info "Initialised with settings: ${settings}"
@@ -237,7 +239,19 @@ def proxySpeaker(proxy){
 
 
 // Event Handlers
+def wakeUp(){speaker1.initialize()}
 
+
+// test
+def firstMute(){
+	log.warn "mute - Unmute"
+//	def muteMsg = "i"
+	speaker1.mute()
+	pause(5000)
+	speaker1.speak("i")
+	speaker1.unmute()
+	return
+}
 
 def  modeChangeHandler(evt){
 	LOGDEBUG("Mode change handler running")
@@ -268,6 +282,27 @@ def stopNow(){
 		state.speaker1 = false	
 	LOGDEBUG( "state.speaker1 = $state.speaker1")
 }
+
+
+def betweenTimes(){
+    LOGDEBUG("Additional time restrictions")
+	def timecheckNow1 = startTime
+	if (timecheckNow1 != null){
+    
+def between1 = timeOfDayIsBetween(toDateTime(startTime), toDateTime(endTime), new Date(), location.timeZone)
+    if (between1) {
+    state.speaker1 = true
+   LOGDEBUG("Time Trigger is ok so can continue...")
+    
+}
+	else if (!between1) {
+	state.speaker1 = false
+	LOGDEBUG("Time Trigger is NOT ok so cannot continue...")
+	}
+  }
+}
+	
+
 
 
 
@@ -306,19 +341,26 @@ def resetMotion1(){
 	
 def speakSpeakerSelect(){	
 	checkAllow()
+	betweenTimes()
 	if(state.allAllow == true){
 	if(state.speaker1 == true){	
+	if(wakeUp1 == true){wakeUp()}
+//	if(mute1 == true){firstMute()}
+//	if(mute1 == false || mute1 == null ){speaker1.unmute()}
 	if(volumeMode1 == true){volumeDefault()}		
-	speaker1.speak(state.msg) 
+	speaker1.speak(state.msg)
+	
 	LOGDEBUG( "$speaker1 is active")
 	}	
 	if(state.speaker1 == false || state.speaker1 == null){LOGWARN( "$speaker1 is not active")}	
 	}
+	
 }
 
 def playSpeakerSelect(){	
 	checkAllow()
-	if(state.allAllow == true){
+	betweenTimes()
+		if(state.allAllow == true){
 	if(state.speaker1 == true){	
 	if(volumeMode1 == true){volumeDefault()}		
 	speaker1.playTextAndRestore(state.msg)
@@ -915,7 +957,7 @@ def cobra(){
 
     
 def setVersion(){
-		state.version = "1.0.0"	 
+		state.version = "1.1.0"	 
 		state.InternalName = "SpeakerCentralChild"
     	state.ExternalName = "Speaker Central Child"
 		state.preCheckMessage = "This app was designed to use a special 'ProxySpeechPlayer' virtual device to enable/disable speakers around your home"
