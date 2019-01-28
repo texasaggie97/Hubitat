@@ -37,9 +37,11 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update 30/08/2018
+ *  Last Update 23/11/2018
  *
- *
+ *  V2.5.1 - Revised update check
+ *  V2.5.0 - Revised 'alert' code
+ *  V2.4.1 - Forced change on weather alert
  *  V2.4.0 - Added 'Poll' button for use with Message Central
  *  V2.3.0 - Added 'forecastIcon' for use with SharpTools 
  *  V2.2.0 - Added Daily temp max & min for both inside and outside THIS REQUIRED ADDITIONS TO 'DAILY.JSON.TEMPL'
@@ -256,13 +258,15 @@ def PollWUNow(){
             
              // WU No Units ********************
             
-def possAlert = (resp2.data.alerts.description)
-               if (possAlert){
-               sendEvent(name: "alert", value: resp2.data.alerts.description, isStateChange: true)  
-               }
-                if (!possAlert){
-               sendEvent(name: "alert", value: " No current weather alerts for this area")
-                }
+
+      
+            state.tZone = location.timeZone.toString()
+            if(state.tZone.toLowerCase().contains("usa")){state.possAlert = (resp2.data.alerts.message)}
+            else{state.possAlert = (resp2.data.alerts.level_meteoalarm_description[0])}
+            if (state.possAlert){sendEvent(name: "alert", value: state.possAlert, isStateChange: true)}
+			if (!state.possAlert){sendEvent(name: "alert", value: " No current weather alerts for this area")}
+            state.tZone = " "
+            state.possAlert = " "
             
             
             sendEvent(name: "stationID", value: resp2.data.current_observation.station_id, isStateChange: true)
@@ -348,9 +352,16 @@ def possAlert = (resp2.data.alerts.description)
  			sendEvent(name: "forecastHigh", value: resp2.data.forecast.simpleforecast.forecastday[0].high.celsius, unit: "C", isStateChange: true)
             sendEvent(name: "forecastLow", value: resp2.data.forecast.simpleforecast.forecastday[0].low.celsius, unit: "C", isStateChange: true)
             } 
-            if(speedUnit == "Miles (MPH)"){  
-            sendEvent(name: "visibility", value: resp2.data.current_observation.visibility_mi, unit: "mi", isStateChange: true)  
+            if(speedUnit == "Miles (MPH)"){ 
+            def vis =  (resp2.data.current_observation.visibility_mi)
+                if(vis == 'N/A' || vis == 'n/a'){
+                  sendEvent(name: "visibility", value: "No Station Data", isStateChange: true)     
+                }
+                else{                    
+            sendEvent(name: "visibility", value: vis, unit: "mi", isStateChange: true)  
+                }
             }
+                
             if(speedUnit == "Kilometers (KPH)"){
             sendEvent(name: "visibility", value: resp2.data.current_observation.visibility_km, unit: "km", isStateChange: true)  
             }              
@@ -1281,6 +1292,7 @@ def PollStation()
                   sendEvent(name: "dewpoint", value: state.Dewpoint, isStateChange: true)
                   sendEvent(name: "humidity", value: state.Humidity, isStateChange: true)
                   sendEvent(name: "pressure", value: state.Pressure, isStateChange: true)
+               // sendEvent(name: "pressure", value: 100, isStateChange: true)
                   sendEvent(name: "wind", value: state.WindSpeed , isStateChange: true)
                   sendEvent(name: "wind_gust", value: state.WindGust, isStateChange: true)
                   sendEvent(name: "inside_temperature", value: state.InsideTemp, isStateChange: true)
@@ -1685,17 +1697,20 @@ def version(){
 
 def updateCheck(){
     setVersion()
-	def paramsUD = [uri: "http://update.hubitat.uk/cobra.json" ]  
+	def paramsUD = [uri: "http://update.hubitat.uk/json/${state.CobraAppCheck}"] 
        	try {
         httpGet(paramsUD) { respUD ->
- //  log.warn " Version Checking - Response Data: ${respUD.data}"   // Troubleshooting Debug Code **********************
+//  log.warn " Version Checking - Response Data: ${respUD.data}"   // Troubleshooting Debug Code **********************
        		def copyrightRead = (respUD.data.copyright)
        		state.Copyright = copyrightRead
             def newVerRaw = (respUD.data.versions.Driver.(state.InternalName))
-            def newVer = (respUD.data.versions.Driver.(state.InternalName).replace(".", ""))
-       		def currentVer = state.Version.replace(".", "")
-      		state.UpdateInfo = (respUD.data.versions.UpdateInfo.Driver.(state.InternalName))
+//			log.warn "$state.InternalName = $newVerRaw"
+			def newVer = newVerRaw.replace(".", "")
+//			log.warn "$state.InternalName = $newVer"
+       		def currentVer = state.version.replace(".", "")
+      		state.UpdateInfo = "Updated: "+ state.newUpdateDate + " - "+ (respUD.data.versions.UpdateInfo.Driver.(state.InternalName))
             state.author = (respUD.data.author)
+			state.newUpdateDate = (respUD.data.Comment)
            
 		if(newVer == "NLS"){
             state.Status = "<b>** This driver is no longer supported by $state.author  **</b>"       
@@ -1725,15 +1740,18 @@ def updateCheck(){
 	     	sendEvent(name: "DriverStatus", value: state.Status, isStateChange: true)
 	    }   
  			sendEvent(name: "DriverAuthor", value: state.author, isStateChange: true)
-    		sendEvent(name: "DriverVersion", value: state.Version, isStateChange: true)
+    		sendEvent(name: "DriverVersion", value: state.version, isStateChange: true)
     
     
     	//	
 }
 
 def setVersion(){
-		state.Version = "2.4.0"	
-		state.InternalName = "WeewxExternal"   
+    state.version = "2.5.1"
+    state.InternalName = "WeewxExternalDriver"
+   	state.CobraAppCheck = "weewxexternal.json"
+    
+      
 }
 
 
