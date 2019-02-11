@@ -36,9 +36,11 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update 22/01/2019
+ *  Last Update 11/02/2019
  *
  *
+ *   
+ *  V1.5.0 - Added 'LastEventTime' & 'LastEventDate' and date format option to show when a device reports
  *  V1.4.1 - Debug issue with driver not working correctly after reboot
  *  V1.4.0 - New update json
  *  V1.3.3 - Debug - Typo in lastDeviceHumidity
@@ -71,15 +73,18 @@ metadata {
         command "lastDevicePressure"
         command "lastDeviceMotion"
         command "setMotion", ["string"]
+		
 //      command "active"
 //		command "inactive"
         
-        attribute  " ", "string"
-        attribute  "LastDeviceLux", "string"
-        attribute  "LastDeviceTemperature", "string"
-        attribute  "LastDevicePressure", "string"
-        attribute  "LastDeviceHumidity", "string"
-        attribute  "LastDeviceMotion", "string"
+        attribute " ", "string"
+        attribute "LastDeviceLux", "string"
+        attribute "LastDeviceTemperature", "string"
+        attribute "LastDevicePressure", "string"
+        attribute "LastDeviceHumidity", "string"
+        attribute "LastDeviceMotion", "string"
+		attribute "LastEventDate", "string"
+		attribute "LastEventTime", "string"
         
 //        attribute "DriverAuthor", "string"
         attribute "DriverVersion", "string"
@@ -94,7 +99,8 @@ metadata {
      section("") {
    		input "unitSelect", "enum",  title: "Temperature Units (If using temperature)", required: true, options: ["C", "F"] 
    		input "pressureUnit", "enum", title: "Pressure Unit (If using pressure)", required:true, options: ["inhg", "mbar"]
-        input "debugMode", "bool", title: "Enable logging", required: true, defaultValue: false  
+        input "debugMode", "bool", title: "Enable debug logging", required: true, defaultValue: false 
+		input "dateFormatNow", "enum", title: "Last Event Date Format", required:true, options: ["dd MMM yyyy", "MMM dd yyyy"]
  		}  
  }   
 }
@@ -122,48 +128,74 @@ def initialize() {
 
 def lastDeviceLux(dev1){  
     state.LastDeviceLux = dev1
-	sendEvent(name: "LastDeviceLux", value: state.LastDeviceLux , isStateChange: true)
+	sendLastEvent()
+	sendEvent(name: "LastDeviceLux", value: state.LastDeviceLux)
+	
 }
 def LastDeviceHumidity(dev2){  
 	state.LastDeviceHumid = dev2
-    sendEvent(name: "LastDeviceHumidity", value: state.LastDeviceHumid , isStateChange: true)
+	sendLastEvent()
+    sendEvent(name: "LastDeviceHumidity", value: state.LastDeviceHumid)
 }
 def lastDevicePressure(dev3){ 
 	state.LastDevicePressure = dev3
-    sendEvent(name: "LastDevicePressure", value: state.LastDevicePressure , isStateChange: true)
+	sendLastEvent()
+    sendEvent(name: "LastDevicePressure", value: state.LastDevicePressure)
 }
 def lastDeviceTemperature(dev4){ 
 	state.LastDeviceTemperature = dev4
-    sendEvent(name: "LastDeviceTemperature", value: state.LastDeviceTemperature , isStateChange: true)
+	sendLastEvent()
+    sendEvent(name: "LastDeviceTemperature", value: state.LastDeviceTemperature)
 }
 
 def lastDeviceMotion(dev5){ 
 	state.LastDeviceMotion = dev5
-    sendEvent(name: "LastDeviceMotion", value: state.LastDeviceMotion , isStateChange: true)
+	sendLastEvent()
+    sendEvent(name: "LastDeviceMotion", value: state.LastDeviceMotion)
+}
+
+
+def sendLastEvent(){
+	if(dateFormatNow == null){log.warn "Date format not set"}
+	if(dateFormatNow == "dd MMM yyyy"){
+	def date = new Date()
+	state.LastTime = date.format('HH:mm:ss', location.timeZone)
+	state.LastDate = date.format('dd MMM yyyy', location.timeZone)	
+	}
+	
+	if(dateFormatNow == "MMM dd yyyy"){
+	def date = new Date()
+	state.LastTime = date.format('HH:mm:ss', location.timeZone)
+	state.LastDate = date.format('MMM dd yyyy', location.timeZone)	
+	}	
+	
+	sendEvent(name: "LastEventTime", value: state.LastTime)
+	sendEvent(name: "LastEventDate", value: state.LastDate)
+
 }
 
 def active(motion1) {
 //	state.ReceivedMotion = motion1
     LOGDEBUG( "Setting motion for ${device.displayName} from external input ($state.LastDeviceMotion), Motion = ${motion1}.")
-	sendEvent(name: "motion", value: 'active', isStateChange: true)
+	sendEvent(name: "motion", value: 'active')
 }
 
 def inactive(motion1) {
 //	state.ReceivedMotion = motion1
     LOGDEBUG( "Setting motion for ${device.displayName} from external input ($state.LastDeviceMotion), Motion = ${motion1}.")
-	sendEvent(name: "motion", value: 'inactive', isStateChange: true)
+	sendEvent(name: "motion", value: 'inactive')
 }
 
 def setMotion(motion1){
  state.ReceivedMotion = motion1
     LOGDEBUG( "Setting motion for ${device.displayName} from external input ($state.LastDeviceMotion), Motion = ${state.ReceivedMotion}.")
-   sendEvent(name: "motion", value: state.ReceivedMotion, isStateChange: true) 
+   sendEvent(name: "motion", value: state.ReceivedMotion) 
 }
 
 def setHumidity(hum1) {
 	state.ReceivedHumidity = hum1
     LOGDEBUG( "Setting humidity for ${device.displayName} from external input ($state.LastDeviceHumid), Humidity = ${state.ReceivedHumidity}.")
-	sendEvent(name: "humidity", value: state.ReceivedHumidity, unit: "%", isStateChange: true)
+	sendEvent(name: "humidity", value: state.ReceivedHumidity, unit: "%")
 }
 
 
@@ -193,7 +225,7 @@ if(state.checkLog == true){
 log.info "All Logging Enabled"
 }
 else if(state.checkLog == false){
-log.info "Further Logging Disabled"
+log.info "Debug Logging Disabled"
 }
 
 }
@@ -265,7 +297,7 @@ def updateCheck(){
 }
 
 def setVersion(){
-    state.version = "1.4.1"
+    state.version = "1.5.0"
     state.InternalName = "AverageAllDriver"
    	state.CobraAppCheck = "averagealldriver.json"
     sendEvent(name: "DriverAuthor", value: "Cobra", isStateChange: true)

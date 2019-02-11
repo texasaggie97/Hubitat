@@ -36,8 +36,11 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update 15/11/2018
+ *  Last Update 22/01/2019
  *
+ *
+ *  V1.4.1 - Debug issue with driver not working correctly after reboot
+ *  V1.4.0 - New update json
  *  V1.3.3 - Debug - Typo in lastDeviceHumidity
  *  V1.3.2 - Debug UI
  *  V1.3.1 - Debug 'LastDevice'
@@ -97,16 +100,16 @@ metadata {
 }
 
 def installed(){
-    initialise()
+    initialize()
 }
 
 def updated(){
-    initialise()
+    initialize()
 }
 
 
 
-def initialise() {
+def initialize() {
     logCheck()
     version()
     if(state.TemperatureUnit == null){ state.TemperatureUnit = "F"}
@@ -196,7 +199,7 @@ log.info "Further Logging Disabled"
 }
 def LOGDEBUG(txt){
     try {
-    	if (settings.debugMode) { log.debug("Device Version: ${state.Version}) - ${txt}") }
+    	if (settings.debugMode) { log.debug("Device Version: ${state.version}) - ${txt}") }
     } catch(ex) {
     	log.error("LOGDEBUG unable to output requested data!")
     }
@@ -204,27 +207,29 @@ def LOGDEBUG(txt){
 
 
 def version(){
-    unschedule()
-    schedule("0 0 8 ? * FRI *", updateCheck)  
     updateCheck()
+   schedule("0 0 9 ? * FRI *", updateCheck)
 }
+    
 
 def updateCheck(){
     setVersion()
-	def paramsUD = [uri: "http://update.hubitat.uk/cobra.json" ]  
+	def paramsUD = [uri: "http://update.hubitat.uk/json/${state.CobraAppCheck}"] 
        	try {
         httpGet(paramsUD) { respUD ->
- //  log.warn " Version Checking - Response Data: ${respUD.data}"   // Troubleshooting Debug Code **********************
+//  log.warn " Version Checking - Response Data: ${respUD.data}"   // Troubleshooting Debug Code **********************
        		def copyrightRead = (respUD.data.copyright)
        		state.Copyright = copyrightRead
             def newVerRaw = (respUD.data.versions.Driver.(state.InternalName))
-            def newVer = (respUD.data.versions.Driver.(state.InternalName).replace(".", ""))
-       		def currentVer = state.Version.replace(".", "")
-      		state.UpdateInfo = (respUD.data.versions.UpdateInfo.Driver.(state.InternalName))
+	//		log.warn "$state.InternalName = $newVerRaw"
+  			def newVer = newVerRaw.replace(".", "")
+//			log.warn "$state.InternalName = $newVer"
+			state.newUpdateDate = (respUD.data.Comment)
+       		def currentVer = state.version.replace(".", "")
+      		state.UpdateInfo = "Updated: "+state.newUpdateDate + " - "+(respUD.data.versions.UpdateInfo.Driver.(state.InternalName))
             state.author = (respUD.data.author)
-            def icon = (respUD.data.icon)
-            sendEvent(name: " ", value: respUD.data.icon + '<br>' +state.Copyright +'<br>'+'<br>', isStateChange: true)
-            
+			state.icon = (respUD.data.icon)
+           
 		if(newVer == "NLS"){
             state.Status = "<b>** This driver is no longer supported by $state.author  **</b>"       
             log.warn "** This driver is no longer supported by $state.author **"      
@@ -252,19 +257,21 @@ def updateCheck(){
 	    	sendEvent(name: "DriverUpdate", value: state.UpdateInfo, isStateChange: true)
 	     	sendEvent(name: "DriverStatus", value: state.Status, isStateChange: true)
 	    }   
-   
- 			
-    		sendEvent(name: "DriverVersion", value: state.Version, isStateChange: true)
+ 			sendEvent(name: " ", value: state.icon +"<br>" +state.Copyright, isStateChange: true)
+    		sendEvent(name: "DriverVersion", value: state.version, isStateChange: true)
     
     
-	
+    	//	
 }
 
 def setVersion(){
-		state.Version = "1.3.3"	
-		state.InternalName = "AverageAll"   
+    state.version = "1.4.1"
+    state.InternalName = "AverageAllDriver"
+   	state.CobraAppCheck = "averagealldriver.json"
+    sendEvent(name: "DriverAuthor", value: "Cobra", isStateChange: true)
+    sendEvent(name: "DriverVersion", value: state.version, isStateChange: true)
+    
 }
-
 
 
 
