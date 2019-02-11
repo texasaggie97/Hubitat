@@ -33,10 +33,11 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 14/01/2019
+ *  Last Update: 11/02/2019
  *
  *  Changes:
  *
+ *  V1.7.1 - Debug 'return' action not switching off (thanks to @jtmpush18 for finding this)
  *  V1.7.0 - Added additonal (2nd) switch for restriction & fixed other restriction bugs
  *  V1.6.2 - Debug presence restriction
  *  V1.6.1 - Changed input for minute from option to freeform number
@@ -163,15 +164,9 @@ def restrictionsPage() {
 }
 
            
-
-
-
-  
-
-
-def installed(){initialise()}
-def updated(){initialise()}
-def initialise(){
+def installed(){initialize()}
+def updated(){initialize()}
+def initialize(){
 	version()
 	subscribeNow()
 	log.info "Initialised with settings: ${settings}"
@@ -286,7 +281,7 @@ def switchNow2(){
         log.info "It's $state.selectedHour2:$state.selectedMin2 on $state.selectedMonth2 $state.selectedDate2 so switching on: $switch1"
         switch1.on()
     } 
-        if(state.switchMode == false){
+        if(state.switchMode2 == false){
         log.info "It's $state.selectedHour2:$state.selectedMin2 on $state.selectedMonth2 $state.selectedDate2 so switching off: $switch1"
         switch1.off()
     } 
@@ -842,7 +837,7 @@ def setDefaults(){
 
 
 def setVersion(){
-		state.version = "1.7.0"	 
+		state.version = "1.7.1"	 
 		state.InternalName = "SchedSwitchChild"
     	state.ExternalName = "Scheduled Switch Child"
 		state.preCheckMessage = "This app is designed to schedule a switch on/off some hours/days/weeks/months ahead..."
