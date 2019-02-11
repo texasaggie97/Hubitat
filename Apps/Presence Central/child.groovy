@@ -36,10 +36,12 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 14/01/2019
+ *  Last Update: 11/02/2019
  *
  *  Changes:
  *
+ *
+ *  V3.4.0 - Added ability to select minutes or seconds for arrival/departure delay
  *  V3.3.0 - Added additonal (2nd) switch for restriction & fixed other restriction bugs
  *  V3.2.0 - Added presence delay to help with momentary departure of some devices
  *  V3.1.2 - Debug update pushover message
@@ -102,10 +104,9 @@ preferences {
 	}
 }
 
-
-def installed(){initialise()}
-def updated(){initialise()}
-def initialise(){
+def installed(){initialize()}
+def updated(){initialize()}
+def initialize(){
 	version()
 	subscribeNow()
 	log.info "Initialised with settings: ${settings}"
@@ -256,6 +257,16 @@ def presenceActions(){
     
 	if(state.selection1 == "Single Presence Sensor"){
 	input "presenceSensor1", "capability.presenceSensor", title: "Select presence sensor to trigger action", required: false, multiple: false 
+	input "delayArrival", "bool", title: "Enable Arrival Delay", required: true, defaultValue: false, submitOnChange: true
+			if(delayArrival == true){
+				input "arrivalMinSec", "bool", title: "Delay: On for Minutes - Off for seconds", required: true
+				input "arrivalDelay", "number", title: "Delay before arrival registered", required: true}
+			
+			
+	input "delayDeparture", "bool", title: "Enable Departure Delay", required: true, defaultValue: false, submitOnChange: true
+			if(delayDeparture == true){
+				input "departureMinSec", "bool", title: "Delay: On for Minutes - Off for seconds", required: true
+				input "departureDelay", "number", title: "Delay before departure registered ", required: true}
     }
     
 	if(state.selection1 == "Group 1 (Anyone arrives or leaves = changed presence)"){
@@ -275,12 +286,7 @@ def presenceActions(){
 	input "presenceSensor4", "capability.presenceSensor", title: "Select presence sensor to check", multiple: false, required: false
     }
     
-	input "delayArrival", "bool", title: "Enable Arrival Delay", required: true, defaultValue: false, submitOnChange: true
-			if(delayArrival == true){input "arrivalDelay", "number", title: "Delay before arrival registered (Minutes)", required: true}
-			
-			
-	input "delayDeparture", "bool", title: "Enable Departure Delay", required: true, defaultValue: false, submitOnChange: true
-			if(delayDeparture == true){input "departureDelay", "number", title: "Delay before departure registered (Minutes)", required: true}
+	
 			
  }
 }
@@ -468,7 +474,7 @@ if(doorAction){
 
 def modeHandler(evt){
 // Legacy	
-	
+	unsubscribe(modeHandler) 
 }
 
 
@@ -479,8 +485,15 @@ def checkDelaySetting(){
 	}
 	
 	if(delayArrival == true){
+		if(arrivalMinSec == true){
+		state.presence = (60 * arrivalDelay)
+		}
+		if(arrivalMinSec == false){
+		state.presence = arrivalDelay
+		}
+		
 	LOGDEBUG("Arrival delay configured: $state.presence seconds")	
-	state.presence = (60 * arrivalDelay)
+		
 	}
 	
 	if(delayDeparture == false){
@@ -489,9 +502,15 @@ def checkDelaySetting(){
 	}
 	
 	if(delayDeparture == true){
-	LOGDEBUG("Departure delay configured: $state.nopresence seconds")
-	state.nopresence = (60 * departureDelay)
+		if(departureMinSec == true){
+		state.nopresence = (60 * departureDelay)
+		LOGDEBUG("Departure delay configured: $state.nopresence seconds")
 	}	
+	if(departureMinSec == false){
+		state.nopresence = departureDelay
+		LOGDEBUG("Departure delay configured: $state.nopresence seconds")
+	}	
+  }
 }
 
 // Single Presence =============================================================
@@ -961,8 +980,18 @@ checkDelaySetting()
 // Group 2 Actions ======================================
 
 def setPresence2(){
+
 def	presentCounter2 = 0
-checkDelaySetting()
+// checkDelaySetting()
+	
+			def home = presenceSensor3.findAll { it?.currentValue("presence") == 'present' }
+			def sensorsPresent = "${home.join(',')}"
+			log.info "Sensors Present = $sensorsPresent"
+	
+			def away = presenceSensor3.findAll { it?.currentValue("presence") == 'not present' }
+			def sensorsNotPresent = "${away.join(',')}"
+			log.info "Sensors Not Present = $sensorsNotPresent"
+	
         presenceSensor3.each {
     	if (it.currentValue("presence") == "present") {
         	presentCounter2++
@@ -975,7 +1004,7 @@ checkDelaySetting()
     	if (state.privatePresence2 != "present") {
             state.privatePresence2 = "present"
             state.privatePresence = "present"
-            log.debug("Arrived - At least one sensor arrived - set group to '$state.privatePresence'")
+			log.debug("Arrived - At least one sensor arrived - set group to '$state.privatePresence'")
              runIn(state.presence, checkPresenceAgain)
         }
     } else {
@@ -994,8 +1023,18 @@ checkDelaySetting()
 // Group 3 Actions ======================================
 
 def setPresence3(){
-checkDelaySetting()
+// checkDelaySetting()
 def	presentCounter3 = 0
+	
+	def home = presenceSensor5.findAll { it?.currentValue("presence") == 'present' }
+			def sensorsPresent = "${home.join(',')}"
+			log.info "Sensors Present = $sensorsPresent"
+	
+			def away = presenceSensor5.findAll { it?.currentValue("presence") == 'not present' }
+			def sensorsNotPresent = "${away.join(',')}"
+			log.info "Sensors Not Present = $sensorsNotPresent"
+	
+	
         presenceSensor5.each {
     	if (it.currentValue("presence") == "not present") {
         	presentCounter3++
@@ -1973,7 +2012,7 @@ def setDefaults(){
 
 
 def setVersion(){
-		state.version = "3.3.0"
+		state.version = "3.4.0"
      		state.InternalName = "PresenceCentralChild"
     		state.ExternalName = "Presence Central Child"
 			state.preCheckMessage = "This app is designed to react to presence sensor(s)." 
