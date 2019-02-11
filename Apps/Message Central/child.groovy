@@ -5,7 +5,7 @@
  *  This is the 'Child' app for message automation...
  *
  *
- *  Copyright 2018 Andrew Parker
+ *  Copyright 2019 Andrew Parker
  *
  *  
  *  
@@ -32,11 +32,14 @@
  *-------------------------------------------------------------------------------------------------------------------
  *
  *
- *  Last Update: 22/01/2019
- *
+ *  Last Update: 11/02/2019
  *  Changes:
  *
- *  V13.8.1 - Debug issue with Appliance Power not using delay
+ *
+ *  V14.0.0 - Prevented volume from changing if app disabled by a restriction.
+ *  V13.9.0 - Added ability to disable setting volume before speaking (speakers will be left set at previous level)
+ *  V13.8.2 - Added additional logging to power appliance routine
+ *  V13.8.1 - Debug issue with Appliance Power
  *  V13.8.0 - Added additonal (2nd) switch for restriction
  *  V13.7.3 - Debug presence restriction
  *  V13.7.2 - Additional debug
@@ -632,6 +635,8 @@ def speakerInputs(){
 	
 		
          input "speaker", "capability.musicPlayer", title: "All Music Player Device(s)", required: true, multiple: true, submitOnChange: true
+		input "doVolume", "bool", title: "Set Volume before speaking", required: true, defaultValue: true, submitOnChange: true
+		if(doVolume == true){
         input "multiVolume", "bool", title: "Multiple Volume Slots?", required: false, defaultValue: false, submitOnChange: true
         state.multiVolumeSlots = multiVolume
 		 if(state.multiVolumeSlots == false){
@@ -710,7 +715,7 @@ def speakerInputs(){
          }
             
         }
-       
+		      
 		
 	// **********************
 		
@@ -801,7 +806,7 @@ def speakerInputs(){
 
     	}
     }
-		
+}		
 		
 		// ***********************
             
@@ -812,8 +817,11 @@ def speakerInputs(){
 	}
     else if(state.msgType == "Voice Message (SpeechSynth)"){ 
 		input "speaker", "capability.speechSynthesis", title: "Speech Synthesis Device(s)", required: false, multiple: true
+		input "doVolume", "bool", title: "Set Volume before speaking", required: true, defaultValue: true, submitOnChange: true
+		if(doVolume == true){
   		input "volume1", "number", title: "Speaker volume", description: "0-100%", defaultValue: "70",  required: true
         state.volumeAll = volume1
+		}
 	}
     else if(state.msgType == "Missed Message (MusicPlayer)"){ 
 		input "missedPresenceSensor1", "capability.presenceSensor", title: "Select presence sensor", required: true, multiple: false
@@ -846,7 +854,10 @@ def speakerInputs(){
      }
 	if(state.msgType == "Play an Mp3 (No variables can be used)"){
    		 input "speaker", "capability.musicPlayer", title: "Speaker ", required: true, multiple: true
+		input "doVolume", "bool", title: "Set Volume before speaking", required: true, defaultValue: true, submitOnChange: true
+		if(doVolume == true){
          input "volume1", "number", title: "volume", description: "0-100%", required: true
+		}
          input "duration", "number", title: "Duration of mp3 (seconds)",  required: true
          input "mp3Delay", "number", title: "Seconds after event before playing mp3", description: "Seconds", defaultValue: '0', required: true
         
@@ -1654,7 +1665,7 @@ LOGDEBUG( "Activate threshold reached or exceeded setting state.activate to: $st
 
 
  if(state.activate == true){
-LOGDEBUG( "powerApplianceNow -  Power is: $state.meterValue")
+LOGDEBUG( "powerApplianceNow -  Power is: $state.meterValue - state.activate = $state.activate")
     state.belowValue = belowThreshold as double
     if (state.meterValue < state.belowValue) {
    def mydelay = 60 * delay2 
@@ -1665,7 +1676,7 @@ LOGDEBUG( "powerApplianceNow -  Power is: $state.meterValue")
 }
 
 	 if(state.activate == false){
-     LOGDEBUG( "Not reached threshold yet to activate monitoring")
+     LOGDEBUG( "Not reached threshold yet to activate monitoring - state.activate = $state.activate")
      
      }
      
@@ -1676,16 +1687,19 @@ LOGDEBUG( "powerApplianceNow -  Power is: $state.meterValue")
 
 
 def checkApplianceAgain1() {
-   
+	if(state.activate == true){
      if (state.meterValue < state.belowValue) {
       LOGDEBUG( " checkApplianceAgain1 - Checking again now... Power is: $state.meterValue")
-    
+   
       speakNow()
+	 LOGDEBUG( " checkApplianceAgain1 - setting state.activate to false - need to wait for threshold level again before speaking again.")
       state.activate = false  
 			}
-     else  if (state.meterValue > state.belowValue) {
+	}
+     if (state.meterValue > state.belowValue) {
      LOGDEBUG( "checkApplianceAgain1 -  Power is: $state.meterValue so cannot run yet...")
-	}	
+	}
+ 
 }	
 
 
@@ -3002,6 +3016,7 @@ def startTimerPower(){
 	state.timeDelay = (60 * state.msgDelay)
 	LOGDEBUG("Waiting for $state.timeDelay seconds before resetting timer to allow further messages")
 	runIn(state.timeDelay, resetTimerPower)
+	
 }
 
 def resetTimerPower() {
@@ -3109,9 +3124,11 @@ def speechSynthNow(inMsg){
 }				
   
 def processSynth(){
-	
-		speaker.setVolume(state.volumeAll)  // not all devices will accept this setting. - Comment out if errors on device
-	
+	if(doVolume == true){
+		speaker.setVolume(state.volumeAll)  // not all devices will accept this setting. - switch off if errors on device
+	}
+	if(doVolume == false){LOGDEBUG("Speaker volume not being set as this feature is disabled")}
+						  
 			if (state.soundTypeSynth == '%CHIME%')
 			speaker.chime()
 			else if (state.soundTypeSynth == '%DOORBELL%')
@@ -3180,6 +3197,10 @@ LOGDEBUG("All OK! - Playing message 2: '$state.fullPhrase'")
    
 
 def checkVolume(){
+	if(state.allAllow == false){LOGDEBUG("Speaker volume not set as app restriction in place")}
+	if(state.allAllow == true){
+	if(doVolume == false){LOGDEBUG("Speaker volume not being set as this feature is disabled by in-app switch")}
+	if(doVolume == true){
     LOGDEBUG("Calling.. CheckVolume")
     LOGDEBUG("state.multiVolumeSlots = $state.multiVolumeSlots")
 	def timecheck = fromTime2
@@ -3332,11 +3353,10 @@ else if (timecheck == null){
         speakerN5.setLevel(state.voiceVolumeE)     
 		}
        
-    } 
-    
-
+       }    
+	 }
 	}
- 
+  } 
 }
 // Message Actions ==================================
 
@@ -4512,7 +4532,7 @@ def cobra(){
 
 
 def setVersion(){
-		state.version = "13.8.1"	 
+		state.version = "14.0.0"	 
 		state.InternalName = "MessageCentralChild" 
     	state.ExternalName = "Message Central Child"
 		state.preCheckMessage = "This is designed to use various 'triggers' to make your home 'speak'"
