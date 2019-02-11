@@ -40,7 +40,7 @@
  *
  *  Changes:
  *
- *
+ *  V3.4.1 - debug presence delays
  *  V3.4.0 - Added ability to select minutes or seconds for arrival/departure delay
  *  V3.3.0 - Added additonal (2nd) switch for restriction & fixed other restriction bugs
  *  V3.2.0 - Added presence delay to help with momentary departure of some devices
@@ -257,6 +257,37 @@ def presenceActions(){
     
 	if(state.selection1 == "Single Presence Sensor"){
 	input "presenceSensor1", "capability.presenceSensor", title: "Select presence sensor to trigger action", required: false, multiple: false 
+	delaySet()
+	}
+    
+	if(state.selection1 == "Group 1 (Anyone arrives or leaves = changed presence)"){
+	input "presenceSensor2", "capability.presenceSensor", title: "Select presence sensors to trigger action", multiple: true, required: false
+	delaySet()
+  	}
+    
+	if(state.selection1 == "Group 2 ('Present' if ANYONE is at home - 'Not Present' only when EVERYONE leaves"){
+	input "presenceSensor3", "capability.presenceSensor", title: "Select presence sensors to trigger action", multiple: true, required: false
+	delaySet()
+    }
+    
+    if(state.selection1 == "Group 3 ('Present' only if EVERYONE is at home - 'Not Present' if ANYONE leaves)"){
+	input "presenceSensor5", "capability.presenceSensor", title: "Select presence sensors to trigger action", multiple: true, required: false
+	delaySet()
+    }
+    
+    if(state.selection1 == "Check for a presence sensor at a certain time"){
+    input "checkTime", "time", title: "Time to check presence ", required: true
+	input "presenceSensor4", "capability.presenceSensor", title: "Select presence sensor to check", multiple: false, required: false
+	
+    }
+    
+	
+			
+ }
+}
+    
+def delaySet(){
+		
 	input "delayArrival", "bool", title: "Enable Arrival Delay", required: true, defaultValue: false, submitOnChange: true
 			if(delayArrival == true){
 				input "arrivalMinSec", "bool", title: "Delay: On for Minutes - Off for seconds", required: true
@@ -267,31 +298,8 @@ def presenceActions(){
 			if(delayDeparture == true){
 				input "departureMinSec", "bool", title: "Delay: On for Minutes - Off for seconds", required: true
 				input "departureDelay", "number", title: "Delay before departure registered ", required: true}
-    }
-    
-	if(state.selection1 == "Group 1 (Anyone arrives or leaves = changed presence)"){
-	input "presenceSensor2", "capability.presenceSensor", title: "Select presence sensors to trigger action", multiple: true, required: false
-  	}
-    
-	if(state.selection1 == "Group 2 ('Present' if ANYONE is at home - 'Not Present' only when EVERYONE leaves"){
-	input "presenceSensor3", "capability.presenceSensor", title: "Select presence sensors to trigger action", multiple: true, required: false
-    }
-    
-    if(state.selection1 == "Group 3 ('Present' only if EVERYONE is at home - 'Not Present' if ANYONE leaves)"){
-	input "presenceSensor5", "capability.presenceSensor", title: "Select presence sensors to trigger action", multiple: true, required: false
-    }
-    
-    if(state.selection1 == "Check for a presence sensor at a certain time"){
-    input "checkTime", "time", title: "Time to check presence ", required: true
-	input "presenceSensor4", "capability.presenceSensor", title: "Select presence sensor to check", multiple: false, required: false
-    }
-    
-	
-			
- }
+ 
 }
-    
-
 
 
 
@@ -529,6 +537,8 @@ if (state.privatePresence == "not present"){
 runIn(state.nopresence, checkPresenceAgain)
 }
 }
+
+
 
 def checkPresenceAgain(){
 	if (state.privatePresence == "present"){arrivalAction()}
@@ -1041,7 +1051,7 @@ def	presentCounter3 = 0
         }
     }
     
-    log.debug("Number of sensors NOT present: ${presentCounter3}")
+//    log.debug("Number of sensors NOT present: ${presentCounter3}")
     
     if (presentCounter3 > 0) {
     	if (state.privatePresence3 != "not present") {
@@ -1140,10 +1150,7 @@ def changeMode2() {
 def sendMessage(msg) {
     
   LOGDEBUG("Sending message: '$msg' to configured phone numbers")
-//    if (location.contactBookEnabled) {
- //       sendNotificationToContacts(msg, recipients)
-//    }
-//    else {
+
      if (sms1) {
           LOGDEBUG("Sending message: '$msg' to $sms1")
          sendSms(sms1, msg)
@@ -1165,12 +1172,7 @@ def sendMessage(msg) {
          sendSms(sms5, msg)
      }
     
-    
-    
-  //      if (pushNotification) {
- //           sendPush(msg)
- //       }
- //   }
+
 }
 
 // end message actions ===============================
@@ -2012,7 +2014,7 @@ def setDefaults(){
 
 
 def setVersion(){
-		state.version = "3.4.0"
+		state.version = "3.4.1"
      		state.InternalName = "PresenceCentralChild"
     		state.ExternalName = "Presence Central Child"
 			state.preCheckMessage = "This app is designed to react to presence sensor(s)." 
