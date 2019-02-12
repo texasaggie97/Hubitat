@@ -13,12 +13,12 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  *
- *  Last Update: 14/01/2019
+ *  Last Update: 12/02/2019
  *
  *  Changes:
  *
  *
- *
+ *  V1.6.1 - Debug (lights not switching on to correct dim level)
  *  V1.6.0 - Added additonal (2nd) switch for restriction & fixed other restriction bugs
  *  V1.5.1 - Debug presence restrictions
  *  V1.5.0 - added disable apps code
@@ -148,10 +148,9 @@ def restrictionsPage() {
 }
 
 
-
-def installed(){initialise()}
-def updated(){initialise()}
-def initialise(){
+def installed(){initialize()}
+def updated(){initialize()}
+def initialize(){
 	version()
 	subscribeNow()
 	log.info "Initialised with settings: ${settings}"
@@ -170,6 +169,9 @@ def subscribeNow() {
   // App Specific subscriptions & settings below here   
 
     subscribe(motion1, "motion", motionHandler1)
+
+	
+	
 	
 }
 
@@ -182,35 +184,42 @@ def motionHandler1 (evt){
 state.motion = evt.value
 state.motionMode1 = motionMode1
 state.motionMode2 = motionMode2 
+		
+//		LOGDEBUG("state.motionMode1 = $state.motionMode1 - state.motionMode2 = $state.motionMode2")
+				 
+				 
     if(delay1){state.delay = 60 * delay1}
     else {state.delay = 0}     
 state.mylevel1 = dimLevel1
 state.mylevel2 = dimLevel2        
 
 if(state.motion == 'active' ){
-    if(state.motionMode2 == true){
 LOGDEBUG("Motion is 'active' ")
 		onNow()
 }
-}
+		
 if(state.motion == 'inactive'){
-LOGDEBUG("Motion has stopped")
-    if(state.motionMode1 == true){
-		runIn(state.delay, offNow)
-	}
+LOGDEBUG("Motion has stopped - Waiting for delay to expire before continuing ($state.delay seconds)")
+    
+		runIn(state.delay, offNow, [overwrite: true])
+
 	}
   }	
 }
 
 def onNow(){
 LOGDEBUG("Switching on now...")
+	if(state.motionMode2 == true){
     if(switch1){switch1.on()}
+	}
     if(switch2){switch2.setLevel (state.mylevel1)}
 
 }
 def offNow(){
 LOGDEBUG("Switching off now...")
+	if(state.motionMode1 == true){
     if(switch1){switch1.off()}
+	}
 	if(switch2){switch2.setLevel (state.mylevel2)}
 }
 
@@ -751,7 +760,7 @@ def setDefaults(){
 
 
 def setVersion(){
-		state.version = "1.6.0"	 
+		state.version = "1.6.1"	 
 		state.InternalName = "MotionSwitchChild" 
     	state.ExternalName = "Motion Controlled Switch Child"
 	state.preCheckMessage = "This app is designed to turn on/off a switch or a light with a motion sensor."
