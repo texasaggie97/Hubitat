@@ -35,12 +35,10 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 14/02/2019
+ *  Last Update: 23/01/2019
  *
  *  Changes:
  *
- *
- *  V1.2.0 - Added ability to NOT change volume
  *  V1.1.0 - Added 'Initialize before speech' on speech synth to reconnect 'lazy' GH devices
  *  (This removes error: java.lang.NullPointerException: Cannot invoke method launchApp() on null object (runQ) and reconnects device)
  *  V1.0.0 - POC
@@ -85,31 +83,22 @@ preferences {
 		section() {
 		
       	input "speaker1", "capability.musicPlayer", title: "Speaker(s)", multipe: true
-		input "volumeYesNo", "bool", title: "Send Volume before speaking", required: true, defaultValue: true, submitOnChange: true	
-		if(volumeYesNo == true){	
 		input "volumeMode1", "bool", title: "Use a fixed volume for this device", required: true, defaultValue: false, submitOnChange: true
 		if(volumeMode1 == true){input "defaultVol", "number", title: "Fixed speaker Volume", description: "0-100%", defaultValue: "70",  required: true}
-			}	
+			
      	
 				
     }
 }
-		
-	
-		
 		if(state.type == "Speech Synth"){
 		section() {	
 		
 		input "speaker1", "capability.speechSynthesis", title: "Speaker(s)", multipe: true
 		input "wakeUp1", "bool", title: "Send 'Initialize' before speech for sleepy Google Home devices (May add a second before speaking)", required: true, defaultValue: false
 //		input "mute1", "bool", title: "Remove wakup chime from Google home devices (May add a second before speaking)", required: true, defaultValue: false
-			
-		input "volumeYesNo", "bool", title: "Send Volume before speaking", required: true, defaultValue: true, submitOnChange: true	
-		if(volumeYesNo == true){	
 		input "volumeMode1", "bool", title: "Use a fixed volume for this device", required: true, defaultValue: false, submitOnChange: true
 		if(volumeMode1 == true){input "defaultVol", "number", title: "Fixed speaker Volume", description: "0-100%", defaultValue: "70",  required: true}	
-		}
-	  }
+		}	
 	}
 		section() {	
 		input "controlSelect", "enum", required: true, title: "Please select control type", submitOnChange: true,  options: ["Mode", "Motion Sensor", "Switch", "Time" ] 
@@ -215,7 +204,6 @@ def initialize(){
 }
 def subscribeNow() {
 	unsubscribe()
-	subscribe(location, "systemStart", updated)
 	if(enableSwitch1){subscribe(enableSwitch1, "switch", switchEnable1)}
 	if(enableSwitch2){subscribe(enableSwitch2, "switch", switchEnable2)}
 	if(enableSwitchMode == null){enableSwitchMode = true} // ????
@@ -237,9 +225,6 @@ def subscribeNow() {
 	schedule(startTime,startNow)	
 	schedule(endTime,stopNow)
 	}
-	
-	
-	
 }
 
 
@@ -275,15 +260,13 @@ def  modeChangeHandler(evt){
 	LOGDEBUG("modeRequired = $state.modeRequired - current mode = $state.modeNow")  
 	if(state.modeRequired.contains(location.mode)){ 
 	LOGDEBUG("Mode is now $state.modeRequired") 
-	LOGDEBUG( "Enabling: speaker (Available for TTS)")
+	LOGDEBUG( "Enabling: $speaker1 (Available for TTS)")
 	state.speaker1 = true
-	
 	}
 	else{  
 	LOGDEBUG("Mode not matched")
-	LOGDEBUG( "Disabling: speaker (No longer available for TTS)")
+	LOGDEBUG( "Disabling: $speaker1 (No longer available for TTS)")
 	state.speaker1 = false
-	
 	}
 }
 
@@ -291,14 +274,12 @@ def  modeChangeHandler(evt){
 def startNow(){
 	LOGDEBUG( "Enabling: $speaker1 (Available for TTS)")
 		state.speaker1 = true	
-			
 	LOGDEBUG( "state.speaker1 = $state.speaker1")
 }
 
 def stopNow(){
 	LOGDEBUG( "Disabling: $speaker1 (No longer available for TTS)")
-		state.speaker1 = false
-			
+		state.speaker1 = false	
 	LOGDEBUG( "state.speaker1 = $state.speaker1")
 }
 
@@ -311,13 +292,11 @@ def betweenTimes(){
 def between1 = timeOfDayIsBetween(toDateTime(startTime), toDateTime(endTime), new Date(), location.timeZone)
     if (between1) {
     state.speaker1 = true
-		
    LOGDEBUG("Time Trigger is ok so can continue...")
     
 }
 	else if (!between1) {
 	state.speaker1 = false
-	
 	LOGDEBUG("Time Trigger is NOT ok so cannot continue...")
 	}
   }
@@ -331,15 +310,11 @@ def switch1Handler(evt){
 	LOGDEBUG( "$switch1 = $evt.value")
 	if(evt.value == 'on'){
 		LOGDEBUG( "Enabling: $speaker1 (Available for TTS)")
-		state.speaker1 = true
-			
-	}
+		state.speaker1 = true}
 	
 	if(evt.value == 'off'){
 		LOGDEBUG( "Disabling: $speaker1 (No longer available for TTS)")
-		state.speaker1 = false
-		
-	}	
+		state.speaker1 = false}	
 	
 }
 
@@ -348,9 +323,7 @@ def motion1Handler(evt){
 	state.motion1 = evt.value
 	if(evt.value == 'active'){
 		LOGDEBUG( "Enabling: $speaker1 (Available for TTS)")
-		state.speaker1 = true
-			
-	}
+		state.speaker1 = true}
 	state.delay1 = motion1Delay
 	if(evt.value == 'inactive'){
 		LOGDEBUG( "In $state.delay1 seconds I will disable: $speaker1 (Unless $motion1 becomes active again)")
@@ -361,7 +334,6 @@ def resetMotion1(){
 	else{
 	LOGDEBUG( "Delay complete - $speaker1 disabled (No longer available for TTS) until the next motion event")
 	state.speaker1 = false
-		
 	}
 }
 
@@ -414,8 +386,7 @@ def speakHandler(msgIn){
 	speakSpeakerSelect()	
 }
 
-def volumeHandler(volIn){
-	if(volumeYesNo == true){
+def volumeHandler(volIn){	
 	def vol1 = volIn.value
 	state.vol = vol1.toInteger()
 
@@ -426,12 +397,11 @@ def volumeHandler(volIn){
 	if(state.type == "Speech Synth"){
 		LOGDEBUG( "Volume received: $state.vol")
 		if(volumeMode1 != true){speaker1.setVolume(state.vol)}
+	
 	}
-  }
 }
 
 def volumeDefault(){	
-	if(volumeYesNo == true){
 	def vol = defaultVol.toInteger()
 	LOGDEBUG( "Volume received: $vol")
 	
@@ -440,8 +410,7 @@ def volumeDefault(){
 	}
 	if(state.type == "Speech Synth"){
 	speaker1.setVolume(vol)	 // Not all devices accept this setting so comment this out if there are problems with your device
-	}
-  }
+	}		
 }
 
 
@@ -988,7 +957,7 @@ def cobra(){
 
     
 def setVersion(){
-		state.version = "1.2.0"	 
+		state.version = "1.1.0"	 
 		state.InternalName = "SpeakerCentralChild"
     	state.ExternalName = "Speaker Central Child"
 		state.preCheckMessage = "This app was designed to use a special 'ProxySpeechPlayer' virtual device to enable/disable speakers around your home"
