@@ -1,0 +1,147 @@
+/*
+ * Http GET Switch
+ *
+ * Calls URIs with HTTP GET for devices
+ * 
+ */
+metadata {
+    definition(name: "Maker API Commander", namespace: "Cobra", author: "Andrew Parker") {
+        capability "Actuator"
+        capability "Switch"
+        capability "Sensor"
+		capability "Refresh"
+		command "deviceID", ["number"]
+		command "setLevel", ["number"]
+		
+		attribute "refresh", "string"
+		attribute "level", "number"
+		attribute "device", "number"
+    }
+}
+
+preferences {
+    section("URIs") {
+        input "deviceURI", "text", title: "URI", required: false
+        input "makerToken1", "text", title: "Token", required: false
+		input name: "logInfo", type: "bool", title: "Enable informational logging", defaultValue: false
+        input name: "logEnable", type: "bool", title: "Enable debug logging", defaultValue: false
+    }
+}
+
+def logsOff() {
+    log.warn "debug logging disabled..."
+    device.updateSetting("logEnable", [value: "false", type: "bool"])
+}
+
+def updated() {
+    log.info "updated..."
+    log.warn "debug logging is: ${logEnable == true}"
+	log.warn "info logging is: ${logInfo == true}"
+    if (logEnable) runIn(1800, logsOff)
+	
+}
+
+def parse(String description) {
+    if (logEnable) log.debug(description)
+}
+
+
+
+
+def on() {
+    
+	def onURI = (deviceURI + state.DeviceID + "/on" + "?access_token=" + makerToken1)
+	if (logEnable) log.debug "Sending on GET request to [${onURI}]"
+    try {
+        httpGet(onURI) { resp ->
+            if (resp.success) {
+                sendEvent(name: "switch", value: "on", isStateChange: true)
+				if(logInfo){ log.info "Switch On"}
+            }
+            if (logEnable)
+                if (resp.data) log.debug "${resp.data}"
+        }
+    } catch (Exception e) {
+        log.warn "Call to on failed: ${e.message}"
+    }
+}
+
+def off() {
+    
+	def offURI = (deviceURI + state.DeviceID + "/off" + "?access_token=" + makerToken1)
+	if (logEnable) log.debug "Sending off GET request to [${offURI}]"
+    try {
+        httpGet(offURI) { resp ->
+            if (resp.success) {
+                sendEvent(name: "switch", value: "off", isStateChange: true)
+				if(logInfo){ log.info "Switch Off"}
+            }
+            if (logEnable)
+                if (resp.data) log.debug "${resp.data}"
+        }
+    } catch (Exception e) {
+        log.warn "Call to off failed: ${e.message}"
+    }
+}
+
+
+def setLevel(level1){
+	def levelURI = (deviceURI + state.DeviceID + "/setLevel/" + level1 + "?access_token=" + makerToken1)
+	if (logEnable) log.debug "Sending setLevel GET request to [${levelURI}]"
+    try {
+        httpGet(levelURI) { resp ->
+            if (resp.success) {
+                sendEvent(name: "level", value: level1, isStateChange: true)
+				if(logInfo){ log.info "Level set to: $level1"}
+            }
+            if (logEnable)
+                if (resp.data) log.debug "${resp.data}"
+        }
+    } catch (Exception e) {
+        log.warn "Call to setLevel failed: ${e.message}"
+    }
+}
+
+def deviceID(device1){
+	state.DeviceID = device1
+	if(logInfo){ log.info "Device set to: $state.DeviceID"}
+	 sendEvent(name: "device", value: state.DeviceID, isStateChange: true)
+}
+
+def refresh(){
+	def date = new Date()
+	state.LastTime = date.format('HH:mm:ss', location.timeZone)
+	 sendEvent(name: "refresh", value: " ", isStateChange: true)
+	def refreshURI = (deviceURI + state.DeviceID + "/refresh?access_token=" + makerToken1)
+	if (logEnable) log.debug "Sending refresh GET request to [${refreshURI}]"
+    try {
+        httpGet(refreshURI) { resp ->
+            if (resp.success) {
+                sendEvent(name: "refresh", value: state.LastTime, isStateChange: true)
+				if(logInfo){ log.info "Refreshing..."}
+		//		log.warn "${resp.data}"
+	
+	
+            }
+            if (logEnable)
+                if (resp.data) log.debug "${resp.data}"
+        }
+    } catch (Exception e) {
+        log.warn "Call to refresh failed: ${e.message}"
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -36,12 +36,12 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 14/02/2019
+ *  Last Update: 20/02/2019
  *
  *  Changes:
  *
- *
- *  V3.5.0 - Added 'Speech Synth' as an output option
+ *  V3.5.1 - Debug group delay errors (thanks to @BorrisTheCat for notifying me about this)
+ *  V3.5.0 - Added 'Speak A Message (Speech Synth)' as an output option
  *  V3.4.1 - debug presence delays
  *  V3.4.0 - Added ability to select minutes or seconds for arrival/departure delay
  *  V3.3.0 - Added additonal (2nd) switch for restriction & fixed other restriction bugs
@@ -1016,7 +1016,7 @@ checkDelaySetting()
 def setPresence2(){
 
 def	presentCounter2 = 0
-// checkDelaySetting()
+ checkDelaySetting()
 	
 			def home = presenceSensor3.findAll { it?.currentValue("presence") == 'present' }
 			def sensorsPresent = "${home.join(',')}"
@@ -1057,7 +1057,7 @@ def	presentCounter2 = 0
 // Group 3 Actions ======================================
 
 def setPresence3(){
-// checkDelaySetting()
+checkDelaySetting()
 def	presentCounter3 = 0
 	
 	def home = presenceSensor5.findAll { it?.currentValue("presence") == 'present' }
@@ -2044,7 +2044,7 @@ def setDefaults(){
 
 
 def setVersion(){
-		state.version = "3.5.0"
+		state.version = "3.5.1"
      		state.InternalName = "PresenceCentralChild"
     		state.ExternalName = "Presence Central Child"
 			state.preCheckMessage = "This app is designed to react to presence sensor(s)." 
