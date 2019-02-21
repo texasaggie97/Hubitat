@@ -33,12 +33,12 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 14/01/2019
+ *  Last Update: 21/02/2019
  *
  *  Changes:
  *
  *
- *
+ *  V2.3.0 - Added 'switch off' as a trigger option
  *  V2.2.0 - Added additonal (2nd) switch for restriction & fixed other restriction bugs
  *  V2.1.1 - Debug presence restriction
  *  V2.1.0 - added disable apps code
@@ -89,9 +89,10 @@ preferences {
  section() {
    input "newMode1", "mode", title: "Which Mode do you want to enter?", submitOnChange:true, required: true, multiple: false
      if(newMode1){
-    input "triggerMode", "enum", required: true, title: "Select Trigger ", submitOnChange: true,  options: ["Button", "Contact - Open","Illuminance", "Motion - Active", "Presence - Arrival", "Presence - Departure", "Sunrise", "Sunset", "Switch", "Time"]
+    input "triggerMode", "enum", required: true, title: "Select Trigger ", submitOnChange: true,  options: ["Button", "Contact - Open","Illuminance", "Motion - Active", "Presence - Arrival", "Presence - Departure", "Sunrise", "Sunset", "Switch On", "Switch Off", "Time"]
          
-          if(triggerMode == "Switch"){input "switch2", "capability.switch", title: "Select Switch", required: true, multiple: false}
+          if(triggerMode == "Switch On"){input "switch2", "capability.switch", title: "Select Switch", required: true, multiple: false}
+		 	if(triggerMode == "Switch Off"){input "switch2", "capability.switch", title: "Select Switch", required: true, multiple: false}
 		  if(triggerMode == "Motion - Active"){input "motion1", "capability.motionSensor", title: "Select Motion Sensor", required: true, multiple: false }
 		  if(triggerMode == "Contact - Open"){input "contact1",  "capability.contactSensor", title: "Select Contact Sensor", multiple: true}
 		 
@@ -188,12 +189,9 @@ def restrictionsPage() {
     }
 }
 
-
-
-
-def installed(){initialise()}
-def updated(){initialise()}
-def initialise(){
+def installed(){initialize()}
+def updated(){initialize()}
+def initialize(){
 	version()
 	subscribeNow()
 	log.info "Initialised with settings: ${settings}"
@@ -201,6 +199,7 @@ def initialise(){
 }
 def subscribeNow() {
 	unsubscribe()
+	subscribe(location, "systemStart", updated)
 	if(enableSwitch1){subscribe(enableSwitch1, "switch", switchEnable1)}
 	if(enableSwitch2){subscribe(enableSwitch2, "switch", switchEnable2)}
 	if(enableSwitchMode == null){enableSwitchMode = true} // ????
@@ -229,7 +228,8 @@ def subscribeNow() {
        state.sunSetGo = true
    	   state.sunRiseGo = false
    } 
-    if(triggerMode == "Switch"){subscribe(switch2, "switch.on", evtHandler)}
+    if(triggerMode == "Switch On"){subscribe(switch2, "switch.on", evtHandler)}
+	if(triggerMode == "Switch Off"){subscribe(switch2, "switch.off", evtHandler)}
     if(triggerMode == "Button"){
         if(buttonNumber == '1'){subscribe(button1, "pushed.1", evtHandler)}
         if(buttonNumber == '2'){subscribe(button1, "pushed.2", evtHandler)}
@@ -604,7 +604,7 @@ def version(){
 	pauseOrNot()
 	logCheck()
 	resetBtnName()
-	schedule("0 0 9 ? * FRI *", updateCheck) //  Check for updates at 9am every Friday
+	schedule("${state.checkCron}", updateCheck) //  Check for updates every Friday
 	checkButtons()
    
 }
@@ -830,10 +830,11 @@ def setDefaults(){
 
 
 def setVersion(){
-		state.version = "2.2.0"	 
+		state.version = "2.3.0"	 
 		state.InternalName = "ModesPlusChild"
     	state.ExternalName = "Modes Plus Child"
 		state.preCheckMessage = "This app is designed to use various triggers to control location modes."
     	state.CobraAppCheck = "modesplus.json"
+		state.checkCron = "0 10 9 ? * FRI *"
 }
 
