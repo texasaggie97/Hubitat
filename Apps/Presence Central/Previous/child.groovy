@@ -36,10 +36,12 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update: 11/02/2019
+ *  Last Update: 20/02/2019
  *
  *  Changes:
  *
+ *  V3.5.1 - Debug group delay errors (thanks to @BorrisTheCat for notifying me about this)
+ *  V3.5.0 - Added 'Speak A Message (Speech Synth)' as an output option
  *  V3.4.1 - debug presence delays
  *  V3.4.0 - Added ability to select minutes or seconds for arrival/departure delay
  *  V3.3.0 - Added additonal (2nd) switch for restriction & fixed other restriction bugs
@@ -305,7 +307,7 @@ def delaySet(){
 
 
 def outputActions(){
-input "presenceAction", "enum", title: "What to do?",required: true, submitOnChange: true, options: ["Control A Switch", "Change Mode",  "Control a Lock", "Send An SMS Message", "PushOver Message", "Speak A Message", "Set Safety Monitor Mode"]
+input "presenceAction", "enum", title: "What to do?",required: true, submitOnChange: true, options: ["Control A Switch", "Change Mode",  "Control a Lock", "Send An SMS Message", "PushOver Message", "Speak A Message (Music Player)", "Speak A Message (Speech Synth)", "Set Safety Monitor Mode"]
 
     // Removed from 'action' options until active/re-coded  ********************************************************************************************************************************
     // , "Control a Door", "Flash Lights", 
@@ -338,7 +340,7 @@ if (presenceAction) {
 
 	}
  
-    else if(state.selection2 == "Speak A Message"){ 
+    else if(state.selection2 == "Speak A Message (Music Player)"){ 
     input "speaker", "capability.musicPlayer", title: "Choose speaker(s)", required: false, multiple: true
 	input "volume1", "number", title: "Normal Speaker volume", description: "0-100%", defaultValue: "100",  required: true
     input "message1", "text", title: "Message to play when sensor arrives (Or is present at check time)",  required: false
@@ -348,7 +350,16 @@ if (presenceAction) {
     input "fromTime2", "time", title: "Quiet Time Start", required: false
     input "toTime2", "time", title: "Quiet Time End", required: false
 	}
-    
+    else if(state.selection2 == "Speak A Message (Speech Synth)"){ 
+    input "speaker", "capability.speechSynthesis", title: "Choose speaker(s)", required: false, multiple: true
+	input "volume1", "number", title: "Normal Speaker volume", description: "0-100%", defaultValue: "100",  required: true
+    input "message1", "text", title: "Message to play when sensor arrives (Or is present at check time)",  required: false
+	input "message2", "text", title: "Message to play when sensor leaves (Or is not present at check time)",  required: false
+    input "msgDelay", "number", title: "Minutes delay between messages (Enter 0 for no delay)", defaultValue: '0', description: "Minutes", required: true
+	input "volume2", "number", title: "Quiet Time Speaker volume", description: "0-100%", defaultValue: "0",  required: true
+    input "fromTime2", "time", title: "Quiet Time Start", required: false
+    input "toTime2", "time", title: "Quiet Time End", required: false
+	}
     
      else if(state.selection2 == "Send An SMS Message"){
      input "message1", "text", title: "Message to send when sensor arrives  (Or is present at check time)",  required: false
@@ -769,18 +780,24 @@ def decideActionArrival() {
 	}  
  }
  
-else if(state.selection2 == "PushOver Message"){
+  else if(state.selection2 == "PushOver Message"){
   LOGDEBUG("Decided to: Send a message via PushOver - Sending now... ")
 	pushOver('arrived')
    
  }
     
     
-else if(state.selection2 == "Speak A Message"){
-  LOGDEBUG("Decided to: 'Speak A Message' ")
+  else if(state.selection2 == "Speak A Message (Music Player)"){
+  LOGDEBUG("Decided to: 'Speak A Message (Music Player)' ")
   state.msg1 = message1
 	speakNow()
  }
+	
+  else if(state.selection2 == "Speak A Message (Speech Synth)"){
+  LOGDEBUG("Decided to: 'Speak A Message (Speech Synth)' ")
+  state.msg1 = message1
+	speakNow()
+ }	
   else if(state.selection2 == "Set Safety Monitor Mode"){
  LOGDEBUG("Decided to: 'Change HSM mode to Disarm' (intruder alerts only")
  sendLocationEvent(name: "hsmSetArm", value: "disarm")
@@ -884,11 +901,18 @@ else if(state.selection2 == "PushOver Message"){
 	pushOver('departed')
  }    
     
-else if(state.selection2 == "Speak A Message"){
-  LOGDEBUG("Decided to: 'Speak A Message' ")
+else if(state.selection2 == "Speak A Message (Music Player)"){
+  LOGDEBUG("Decided to: 'Speak A Message (Music Player)' ")
   state.msg1 = message2
 	speakNow()
  }
+	
+  else if(state.selection2 == "Speak A Message (Speech Synth)"){
+  LOGDEBUG("Decided to: 'Speak A Message (Speech Synth)' ")
+  state.msg1 = message2
+	speakNow()
+ }	
+	
  else if(state.selection2 == "Send An SMS Message"){
  LOGDEBUG("Decided to: 'Send An SMS Message' ")
    def msg = message2
@@ -992,7 +1016,7 @@ checkDelaySetting()
 def setPresence2(){
 
 def	presentCounter2 = 0
-// checkDelaySetting()
+ checkDelaySetting()
 	
 			def home = presenceSensor3.findAll { it?.currentValue("presence") == 'present' }
 			def sensorsPresent = "${home.join(',')}"
@@ -1033,7 +1057,7 @@ def	presentCounter2 = 0
 // Group 3 Actions ======================================
 
 def setPresence3(){
-// checkDelaySetting()
+checkDelaySetting()
 def	presentCounter3 = 0
 	
 	def home = presenceSensor5.findAll { it?.currentValue("presence") == 'present' }
@@ -1185,8 +1209,8 @@ checkVolume()
 
     if ( state.timer1 == true && state.msg1 != null){
 	LOGDEBUG("Speaking now - Message: '$state.msg1'")
-	speaker.playTextAndRestore(state.msg1)
- //   speaker.speak(state.msg1)
+		if(state.selection2 == "Speak A Message (Music Player)"){speaker.playTextAndRestore(state.msg1)}
+		if(state.selection2 == "Speak A Message (Speech Synth)"){speaker.speak(state.msg1)}
    	startTimerSpeak()  
  } 
 	else if ( state.timer1 == false){
@@ -1454,7 +1478,9 @@ def between2 = timeOfDayIsBetween(toDateTime(fromTime2), toDateTime(toTime2), ne
     if (between2) {
     
     state.volume = volume2
-   speaker.setLevel(state.volume)
+		
+if(state.selection2 == "Speak A Message (Speech Synth)"){speaker.setVolume(state.volume)}		
+if(state.selection2 == "Speak A Message (Music Player)"){speaker.setLevel(state.volume)}
     
    LOGDEBUG("Quiet Time = Yes - Setting Quiet time volume")
     
@@ -1463,14 +1489,18 @@ else if (!between2) {
 state.volume = volume1
 LOGDEBUG("Quiet Time = No - Setting Normal time volume")
 
-speaker.setLevel(state.volume)
+	
+	if(state.selection2 == "Speak A Message (Speech Synth)"){speaker.setVolume(state.volume)}	
+if(state.selection2 == "Speak A Message (Music Player)"){speaker.setLevel(state.volume)}
  
 	}
 }
 else if (timecheck == null){
 
 state.volume = volume1
-speaker.setLevel(state.volume)
+	
+	if(state.selection2 == "Speak A Message (Speech Synth)"){speaker.setVolume(state.volume)}	
+	if(state.selection2 == "Speak A Message (Music Player)"){ speaker.setLevel(state.volume)}
 
 	}
  
@@ -2014,7 +2044,7 @@ def setDefaults(){
 
 
 def setVersion(){
-		state.version = "3.4.1"
+		state.version = "3.5.1"
      		state.InternalName = "PresenceCentralChild"
     		state.ExternalName = "Presence Central Child"
 			state.preCheckMessage = "This app is designed to react to presence sensor(s)." 
