@@ -84,7 +84,7 @@ preferences {
 		if(state.type == "Music Player"){
 		section() {
 		
-      	input "speaker1", "capability.musicPlayer", title: "Speaker(s)", multipe: true
+      	input "speaker1", "capability.musicPlayer", title: "Speaker(s)", multiple: true
 		input "volumeYesNo", "bool", title: "Send Volume before speaking", required: true, defaultValue: true, submitOnChange: true	
 		if(volumeYesNo == true){	
 		input "volumeMode1", "bool", title: "Use a fixed volume for this device", required: true, defaultValue: false, submitOnChange: true
@@ -100,7 +100,7 @@ preferences {
 		if(state.type == "Speech Synth"){
 		section() {	
 		
-		input "speaker1", "capability.speechSynthesis", title: "Speaker(s)", multipe: true
+		input "speaker1", "capability.speechSynthesis", title: "Speaker(s)", multiple: true
 		input "wakeUp1", "bool", title: "Send 'Initialize' before speech for sleepy Google Home devices (May add a second before speaking)", required: true, defaultValue: false
 //		input "mute1", "bool", title: "Remove wakup chime from Google home devices (May add a second before speaking)", required: true, defaultValue: false
 			
