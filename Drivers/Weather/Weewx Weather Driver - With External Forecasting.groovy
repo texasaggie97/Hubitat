@@ -1505,192 +1505,107 @@ def fontSize(){
 
 
 
-def sData(){
-	state.slot1 = slot1
-	state.slot2 = slot2
-	state.slot3 = slot3
-	state.slot4 = slot4
-	state.slot5 = slot5
-	state.slot6 = slot6
-	state.slot7 = slot7
-	state.slot8 = slot8
-	state.slot1Text = slot1Text1
-	state.slot2Text = slot2Text1
-	state.slot3Text = slot3Text1
-	state.slot4Text = slot4Text1
-	state.slot5Text = slot5Text1
-	state.slot6Text = slot6Text1
-	state.slot7Text = slot7Text1
-	state.slot8Text = slot8Text1	
-	if(slot1){
-	if(state.slot1 == "Blank Line"){state.slot1Data = "  "}
-	if(state.slot1 == "Free Text"){state.slot1Data = state.slot1Text}
-	if(state.slot1 == "City"){state.slot1Data = state.city}
-	if(state.slot1 == "State - County"){state.slot1Data =state.county}
-	if(state.slot1 == "External Temp"){state.slot1Data = "Temp: " +state.Temperature +state.TU}
-	if(state.slot1 == "External Temp (Feels Like)"){state.slot1Data = "Temp: " +state.Temperature + state.TU + " (Feels Like: " +state.FeelsLike + state.TU +")"}
-	if(state.slot1 == "External Temp (Feels Like) Humidity"){state.slot1Data = "Temp: " +state.Temperature + state.TU + " (Feels Like: " +state.FeelsLike + state.TU +") Hum:" +state.Humidity +"%"}
-	if(state.slot1 == "Forecast Low, Forecast High"){state.slot1Data = "High: " +state.ForecastHigh + state.TU +", Low: " +state.ForecastLow+ state.TU}
-	if(state.slot1 == "Temp Feels Like"){state.slot1Data = "Temp Feels Like: " +state.FeelsLike + state.TU}
-	if(state.slot1 == "Humidity"){state.slot1Data = "Humidity: " +state.Humidity +"%"}
-	if(state.slot1 == "Wind Speed"){state.slot1Data = "Wind: " +state.WindSpeed +state.SU}
-	if(state.slot1 == "Wind Speed, Wind Gust"){state.slot1Data = "Wind: " +state.WindSpeed +state.SU +", Gust: " +state.WindGust +state.SU}
-	if(state.slot1 == "Wind Speed, Wind Direction, Wind Gust"){state.slot1Data = "Wind: " +state.WindSpeed +state.SU +", Dir: " +state.WindDir + ", Gust: " +state.WindGust +state.SU}
-	if(state.slot1 == "Wind Speed, Wind Direction"){state.slot1Data = "Wind: " +state.WindSpeed +state.SU +", Dir: " +state.WindDir}
-	if(state.slot1 == "Weather Forecast"){state.slot1Data = "Forecast Weather: " +state.weatherForecast}
-	if(state.slot1 == "Weather Current"){state.slot1Data = "Current Weather: " +state.weather}
-	if(state.slot1 == "Chance of Rain"){state.slot1Data = "Chance of Rain: " +state.chanceOfRain +"%"}
-	if(state.slot1 == "Rain Today"){state.slot1Data = "Rain Today: " +state.RainToday +state.RU}
-	if(state.slot1 == "Sunrise & Sunset"){state.slot1Data = "Sunrise: " +state.LocalSunrise +", Sunset: " +state.LocalSunset}
-	}	
-	if(slot2){
-	if(state.slot2 == "Blank Line"){state.slot2Data = "  "}
-	if(state.slot2 == "Free Text"){state.slot2Data = state.slot2Text}
-	if(state.slot2 == "City"){state.slot2Data = state.city}
-	if(state.slot2 == "State - County"){state.slot2Data =state.county}
-	if(state.slot2 == "External Temp"){state.slot2Data = "Temp: " +state.Temperature +stateTU}
-	if(state.slot2 == "External Temp (Feels Like)"){state.slot2Data = "Temp: " +state.Temperature + state.TU + " (Feels Like: " +state.FeelsLike + state.TU +")"}
-	if(state.slot2 == "External Temp (Feels Like) Humidity"){state.slot2Data = "Temp: " +state.Temperature + state.TU + " (Feels Like: " +state.FeelsLike + state.TU +") Hum:" +state.Humidity +"%"}
-	if(state.slot2 == "Forecast Low, Forecast High"){state.slot2Data = "High: " +state.ForecastHigh + state.TU +", Low: " +state.ForecastLow+ state.TU}
-	if(state.slot2 == "Temp Feels Like"){state.slot2Data = "Temp Feels Like: " +state.FeelsLike + state.TU}
-	if(state.slot2 == "Humidity"){state.slot2Data = "Humidity: " +state.Humidity +"%"}
-	if(state.slot2 == "Wind Speed"){state.slot2Data = "Wind: " +state.WindSpeed +state.SU}
-	if(state.slot2 == "Wind Speed, Wind Gust"){state.slot2Data = "Wind: " +state.WindSpeed +state.SU +", Gust: " +state.WindGust +state.SU}
-	if(state.slot2 == "Wind Speed, Wind Direction, Wind Gust"){state.slot2Data = "Wind: " +state.WindSpeed +state.SU +", Dir: " +state.WindDir + ", Gust: " +state.WindGust +state.SU}
-	if(state.slot2 == "Wind Speed, Wind Direction"){state.slot2Data = "Wind: " +state.WindSpeed +state.SU +", Dir: " +state.WindDir}
-	if(state.slot2 == "Weather Forecast"){state.slot2Data = "Forecast Weather: " +state.weatherForecast}
-	if(state.slot2 == "Weather Current"){state.slot2Data = "Current Weather: " +state.weather}
-	if(state.slot2 == "Chance of Rain"){state.slot2Data = "Chance of Rain: " +state.chanceOfRain +"%"}
-	if(state.slot2 == "Rain Today"){state.slot2Data = "Rain Today: " +state.RainToday +state.RU}
-	if(state.slot2 == "Sunrise & Sunset"){state.slot2Data = "Sunrise: " +state.LocalSunrise +", Sunset: " +state.LocalSunset}
-	}	
-	if(slot3){
-	if(state.slot3 == "Blank Line"){state.slot3Data = "  "}
-	if(state.slot3 == "Free Text"){state.slot3Data = state.slot3Text}
-	if(state.slot3 == "City"){state.slot3Data = state.city}
-	if(state.slot3 == "State - County"){state.slot3Data =state.county}
-	if(state.slot3 == "External Temp"){state.slot3Data = "Temp: " +state.Temperature +stateTU}
-	if(state.slot3 == "External Temp (Feels Like)"){state.slot3Data = "Temp: " +state.Temperature + state.TU + " (Feels Like: " +state.FeelsLike + state.TU +")"}
-	if(state.slot3 == "External Temp (Feels Like) Humidity"){state.slot3Data = "Temp: " +state.Temperature + state.TU + " (Feels Like: " +state.FeelsLike + state.TU +") Hum:" +state.Humidity +"%"}
-	if(state.slot3 == "Forecast Low, Forecast High"){state.slot3Data = "High: " +state.ForecastHigh + state.TU +", Low: " +state.ForecastLow+ state.TU}
-	if(state.slot3 == "Temp Feels Like"){state.slot3Data = "Temp Feels Like: " +state.FeelsLike + state.TU}
-	if(state.slot3 == "Humidity"){state.slot3Data = "Humidity: " +state.Humidity +"%"}
-	if(state.slot3 == "Wind Speed"){state.slot3Data = "Wind: " +state.WindSpeed +state.SU}
-	if(state.slot3 == "Wind Speed, Wind Gust"){state.slot3Data = "Wind: " +state.WindSpeed +state.SU +", Gust: " +state.WindGust +state.SU}
-	if(state.slot3 == "Wind Speed, Wind Direction, Wind Gust"){state.slot3Data = "Wind: " +state.WindSpeed +state.SU +", Dir: " +state.WindDir + ", Gust: " +state.WindGust +state.SU}
-	if(state.slot3 == "Wind Speed, Wind Direction"){state.slot3Data = "Wind: " +state.WindSpeed +state.SU +", Dir: " +state.WindDir}
-	if(state.slot3 == "Weather Forecast"){state.slot3Data = "Forecast Weather: " +state.weatherForecast}
-	if(state.slot3 == "Weather Current"){state.slot3Data = "Current Weather: " +state.weather}
-	if(state.slot3 == "Chance of Rain"){state.slot3Data = "Chance of Rain: " +state.chanceOfRain +"%"}
-	if(state.slot3 == "Rain Today"){state.slot3Data = "Rain Today: " +state.RainToday +state.RU}
-	if(state.slot3 == "Sunrise & Sunset"){state.slot3Data = "Sunrise: " +state.LocalSunrise +", Sunset: " +state.LocalSunset}
-	}
-	if(slot4){
-	if(state.slot4 == "Blank Line"){state.slot4Data = "  "}
-	if(state.slot4 == "Free Text"){state.slot4Data = state.slot4Text}
-	if(state.slot4 == "City"){state.slot4Data = state.city}
-	if(state.slot4 == "State - County"){state.slot4Data =state.county}
-	if(state.slot4 == "External Temp"){state.slot4Data = "Temp: " +state.Temperature +stateTU}
-	if(state.slot4 == "External Temp (Feels Like)"){state.slot4Data = "Temp: " +state.Temperature + state.TU + " (Feels Like: " +state.FeelsLike + state.TU +")"}
-	if(state.slot4 == "External Temp (Feels Like) Humidity"){state.slot4Data = "Temp: " +state.Temperature + state.TU + " (Feels Like: " +state.FeelsLike + state.TU +") Hum:" +state.Humidity +"%"}
-	if(state.slot4 == "Forecast Low, Forecast High"){state.slot4Data = "High: " +state.ForecastHigh + state.TU +", Low: " +state.ForecastLow+ state.TU}
-	if(state.slot4 == "Temp Feels Like"){state.slot4Data = "Temp Feels Like: " +state.FeelsLike + state.TU}
-	if(state.slot4 == "Humidity"){state.slot4Data = "Humidity: " +state.Humidity +"%"}
-	if(state.slot4 == "Wind Speed"){state.slot4Data = "Wind: " +state.WindSpeed +state.SU}
-	if(state.slot4 == "Wind Speed, Wind Gust"){state.slot4Data = "Wind: " +state.WindSpeed +state.SU +", Gust: " +state.WindGust +state.SU}
-	if(state.slot4 == "Wind Speed, Wind Direction, Wind Gust"){state.slot4Data = "Wind: " +state.WindSpeed +state.SU +", Dir: " +state.WindDir + ", Gust: " +state.WindGust +state.SU}
-	if(state.slot4 == "Wind Speed, Wind Direction"){state.slot4Data = "Wind: " +state.WindSpeed +state.SU +", Dir: " +state.WindDir}
-	if(state.slot4 == "Weather Forecast"){state.slot4Data = "Forecast Weather: " +state.weatherForecast}
-	if(state.slot4 == "Weather Current"){state.slot4Data = "Current Weather: " +state.weather}
-	if(state.slot4 == "Chance of Rain"){state.slot4Data = "Chance of Rain: " +state.chanceOfRain +"%"}
-	if(state.slot4 == "Rain Today"){state.slot4Data = "Rain Today: " +state.RainToday +state.RU}
-	if(state.slot4 == "Sunrise & Sunset"){state.slot4Data = "Sunrise: " +state.LocalSunrise +", Sunset: " +state.LocalSunset}
-	}
-	if(slot5){
-	if(state.slot5 == "Blank Line"){state.slot5Data = "  "}
-	if(state.slot5 == "Free Text"){state.slot5Data = state.slot5Text}
-	if(state.slot5 == "City"){state.slot5Data = state.city}
-	if(state.slot5 == "State - County"){state.slot5Data =state.county}
-	if(state.slot5 == "External Temp"){state.slot5Data = "Temp: " +state.Temperature +stateTU}
-	if(state.slot5 == "External Temp (Feels Like)"){state.slot5Data = "Temp: " +state.Temperature + state.TU + " (Feels Like: " +state.FeelsLike + state.TU +")"}
-	if(state.slot5 == "External Temp (Feels Like) Humidity"){state.slot5Data = "Temp: " +state.Temperature + state.TU + " (Feels Like: " +state.FeelsLike + state.TU +") Hum:" +state.Humidity +"%"}
-	if(state.slot5 == "Forecast Low, Forecast High"){state.slot5Data = "High: " +state.ForecastHigh + state.TU +", Low: " +state.ForecastLow+ state.TU}
-	if(state.slot5 == "Temp Feels Like"){state.slot5Data = "Temp Feels Like: " +state.FeelsLike + state.TU}
-	if(state.slot5 == "Humidity"){state.slot5Data = "Humidity: " +state.Humidity +"%"}
-	if(state.slot5 == "Wind Speed"){state.slot5Data = "Wind: " +state.WindSpeed +state.SU}
-	if(state.slot5 == "Wind Speed, Wind Gust"){state.slot5Data = "Wind: " +state.WindSpeed +state.SU +", Gust: " +state.WindGust +state.SU}
-	if(state.slot5 == "Wind Speed, Wind Direction, Wind Gust"){state.slot5Data = "Wind: " +state.WindSpeed +state.SU +", Dir: " +state.WindDir + ", Gust: " +state.WindGust +state.SU}
-	if(state.slot5 == "Wind Speed, Wind Direction"){state.slot5Data = "Wind: " +state.WindSpeed +state.SU +", Dir: " +state.WindDir}
-	if(state.slot5 == "Weather Forecast"){state.slot5Data = "Forecast Weather: " +state.weatherForecast}
-	if(state.slot5 == "Weather Current"){state.slot5Data = "Current Weather: " +state.weather}
-	if(state.slot5 == "Chance of Rain"){state.slot5Data = "Chance of Rain: " +state.chanceOfRain +"%"}
-	if(state.slot5 == "Rain Today"){state.slot5Data = "Rain Today: " +state.RainToday +state.RU}
-	if(state.slot5 == "Sunrise & Sunset"){state.slot5Data = "Sunrise: " +state.LocalSunrise +", Sunset: " +state.LocalSunset}
-	}
-	if(slot6){
-	if(state.slot6 == "Blank Line"){state.slot6Data = "  "}
-	if(state.slot6 == "Free Text"){state.slot6Data = state.slot6Text}
-	if(state.slot6 == "City"){state.slot6Data = state.city}
-	if(state.slot6 == "State - County"){state.slot6Data =state.county}
-	if(state.slot6 == "External Temp"){state.slot6Data = "Temp: " +state.Temperature +stateTU}
-	if(state.slot6 == "External Temp (Feels Like)"){state.slot6Data = "Temp: " +state.Temperature + state.TU + " (Feels Like: " +state.FeelsLike + state.TU +")"}
-	if(state.slot6 == "External Temp (Feels Like) Humidity"){state.slot6Data = "Temp: " +state.Temperature + state.TU + " (Feels Like: " +state.FeelsLike + state.TU +") Hum:" +state.Humidity +"%"}
-	if(state.slot6 == "Forecast Low, Forecast High"){state.slot6Data = "High: " +state.ForecastHigh + state.TU +", Low: " +state.ForecastLow+ state.TU}
-	if(state.slot6 == "Temp Feels Like"){state.slot6Data = "Temp Feels Like: " +state.FeelsLike + state.TU}
-	if(state.slot6 == "Humidity"){state.slot6Data = "Humidity: " +state.Humidity +"%"}
-	if(state.slot6 == "Wind Speed"){state.slot6Data = "Wind: " +state.WindSpeed +state.SU}
-	if(state.slot6 == "Wind Speed, Wind Gust"){state.slot6Data = "Wind: " +state.WindSpeed +state.SU +", Gust: " +state.WindGust +state.SU}
-	if(state.slot6 == "Wind Speed, Wind Direction, Wind Gust"){state.slot6Data = "Wind: " +state.WindSpeed +state.SU +", Dir: " +state.WindDir + ", Gust: " +state.WindGust +state.SU}
-	if(state.slot6 == "Wind Speed, Wind Direction"){state.slot6Data = "Wind: " +state.WindSpeed +state.SU +", Dir: " +state.WindDir}
-	if(state.slot6 == "Weather Forecast"){state.slot6Data = "Forecast Weather: " +state.weatherForecast}
-	if(state.slot6 == "Weather Current"){state.slot6Data = "Current Weather: " +state.weather}
-	if(state.slot6 == "Chance of Rain"){state.slot6Data = "Chance of Rain: " +state.chanceOfRain +"%"}
-	if(state.slot6 == "Rain Today"){state.slot6Data = "Rain Today: " +state.RainToday +state.RU}
-	if(state.slot6 == "Sunrise & Sunset"){state.slot6Data = "Sunrise: " +state.LocalSunrise +", Sunset: " +state.LocalSunset}
-	}
-	if(slot7){
-	if(state.slot7 == "Blank Line"){state.slot7Data = "  "}
-	if(state.slot7 == "Free Text"){state.slot7Data = state.slot7Text}
-	if(state.slot7 == "City"){state.slot7Data = state.city}
-	if(state.slot7 == "State - County"){state.slot7Data =state.county}
-	if(state.slot7 == "External Temp"){state.slot7Data = "Temp: " +state.Temperature +stateTU}
-	if(state.slot7 == "External Temp (Feels Like)"){state.slot7Data = "Temp: " +state.Temperature + state.TU + " (Feels Like: " +state.FeelsLike + state.TU +")"}
-	if(state.slot7 == "External Temp (Feels Like) Humidity"){state.slot7Data = "Temp: " +state.Temperature + state.TU + " (Feels Like: " +state.FeelsLike + state.TU +") Hum:" +state.Humidity +"%"}
-	if(state.slot7 == "Forecast Low, Forecast High"){state.slot7Data = "High: " +state.ForecastHigh + state.TU +", Low: " +state.ForecastLow+ state.TU}
-	if(state.slot7 == "Temp Feels Like"){state.slot7Data = "Temp Feels Like: " +state.FeelsLike + state.TU}
-	if(state.slot7 == "Humidity"){state.slot7Data = "Humidity: " +state.Humidity +"%"}
-	if(state.slot7 == "Wind Speed"){state.slot7Data = "Wind: " +state.WindSpeed +state.SU}
-	if(state.slot7 == "Wind Speed, Wind Gust"){state.slot7Data = "Wind: " +state.WindSpeed +state.SU +", Gust: " +state.WindGust +state.SU}
-	if(state.slot7 == "Wind Speed, Wind Direction, Wind Gust"){state.slot7Data = "Wind: " +state.WindSpeed +state.SU +", Dir: " +state.WindDir + ", Gust: " +state.WindGust +state.SU}
-	if(state.slot7 == "Wind Speed, Wind Direction"){state.slot7Data = "Wind: " +state.WindSpeed +state.SU +", Dir: " +state.WindDir}
-	if(state.slot7 == "Weather Forecast"){state.slot7Data = "Forecast Weather: " +state.weatherForecast}
-	if(state.slot7 == "Weather Current"){state.slot7Data = "Current Weather: " +state.weather}
-	if(state.slot7 == "Chance of Rain"){state.slot7Data = "Chance of Rain: " +state.chanceOfRain +"%"}
-	if(state.slot7 == "Rain Today"){state.slot7Data = "Rain Today: " +state.RainToday +state.RU}
-	if(state.slot7 == "Sunrise & Sunset"){state.slot7Data = "Sunrise: " +state.LocalSunrise +", Sunset: " +state.LocalSunset}
-	}
-	if(slot8){
-	if(state.slot8 == "Blank Line"){state.slot8Data = "  "}
-	if(state.slot8 == "Free Text"){state.slot8Data = state.slot8Text}
-	if(state.slot8 == "City"){state.slot8Data = state.city}
-	if(state.slot8 == "State - County"){state.slot8Data =state.county}
-	if(state.slot8 == "External Temp"){state.slot8Data = "Temp: " +state.Temperature +stateTU}
-	if(state.slot8 == "External Temp (Feels Like)"){state.slot8Data = "Temp: " +state.Temperature + state.TU + " (Feels Like: " +state.FeelsLike + state.TU +")"}
-	if(state.slot8 == "External Temp (Feels Like) Humidity"){state.slot8Data = "Temp: " +state.Temperature + state.TU + " (Feels Like: " +state.FeelsLike + state.TU +") Hum:" +state.Humidity +"%"}
-	if(state.slot8 == "Forecast Low, Forecast High"){state.slot8Data = "High: " +state.ForecastHigh + state.TU +", Low: " +state.ForecastLow+ state.TU}
-	if(state.slot8 == "Temp Feels Like"){state.slot8Data = "Temp Feels Like: " +state.FeelsLike + state.TU}
-	if(state.slot8 == "Humidity"){state.slot8Data = "Humidity: " +state.Humidity +"%"}
-	if(state.slot8 == "Wind Speed"){state.slot8Data = "Wind: " +state.WindSpeed +state.SU}
-	if(state.slot8 == "Wind Speed, Wind Gust"){state.slot8Data = "Wind: " +state.WindSpeed +state.SU +", Gust: " +state.WindGust +state.SU}
-	if(state.slot8 == "Wind Speed, Wind Direction, Wind Gust"){state.slot8Data = "Wind: " +state.WindSpeed +state.SU +", Dir: " +state.WindDir + ", Gust: " +state.WindGust +state.SU}
-	if(state.slot8 == "Wind Speed, Wind Direction"){state.slot8Data = "Wind: " +state.WindSpeed +state.SU +", Dir: " +state.WindDir}
-	if(state.slot8 == "Weather Forecast"){state.slot8Data = "Forecast Weather: " +state.weatherForecast}
-	if(state.slot8 == "Weather Current"){state.slot8Data = "Current Weather: " +state.weather}
-	if(state.slot8 == "Chance of Rain"){state.slot8Data = "Chance of Rain: " +state.chanceOfRain +"%"}
-	if(state.slot8 == "Rain Today"){state.slot8Data = "Rain Today: " +state.RainToday +state.RU}
-	if(state.slot8 == "Sunrise & Sunset"){state.slot8Data = "Sunrise: " + state.LocalSunrise +", Sunset: " +state.LocalSunset}
-	}
+def getSlotData(lineType, slotText) {
+    if (lineType == "Blank Line") {
+        return "  "
+    }
+    if (lineType == "Free Text") {
+        return slotText
+    }
+    if (lineType == "City") {
+        return state.city
+    }
+    if (lineType == "State - County") {
+        return state.county
+    }
+    if (lineType == "External Temp") {
+        return "Temp: " + state.Temperature + state.TU
+    }
+    if (lineType == "External Temp (Feels Like)") {
+        return "Temp: " + state.Temperature + state.TU + " (Feels Like: " + state.FeelsLike + state.TU + ")"
+    }
+    if (lineType == "External Temp (Feels Like) Humidity") {
+        return "Temp: " + state.Temperature + state.TU + " (Feels Like: " + state.FeelsLike + state.TU + ") Hum:" + state.Humidity + "%"
+    }
+    if (lineType == "Forecast Low, Forecast High") {
+        return "High: " + state.ForecastHigh + state.TU + ", Low: " + state.ForecastLow + state.TU
+    }
+    if (lineType == "Temp Feels Like") {
+        return "Temp Feels Like: " + state.FeelsLike + state.TU
+    }
+    if (lineType == "Humidity") {
+        return "Humidity: " + state.Humidity + "%"
+    }
+    if (lineType == "Wind Speed") {
+        return "Wind: " + state.WindSpeed + state.SU
+    }
+    if (lineType == "Wind Speed, Wind Gust") {
+        return "Wind: " + state.WindSpeed + state.SU + ", Gust: " + state.WindGust + state.SU
+    }
+    if (lineType == "Wind Speed, Wind Direction, Wind Gust") {
+        return "Wind: " + state.WindSpeed + state.SU + ", Dir: " + state.WindDir + ", Gust: " + state.WindGust + state.SU
+    }
+    if (lineType == "Wind Speed, Wind Direction") {
+        return "Wind: " + state.WindSpeed + state.SU + ", Dir: " + state.WindDir
+    }
+    if (lineType == "Weather Forecast") {
+        return "Forecast Weather: " + state.weatherForecast
+    }
+    if (lineType == "Weather Current") {
+        return "Current Weather: " + state.weather
+    }
+    if (lineType == "Chance of Rain") {
+        return "Chance of Rain: " + state.chanceOfRain + "%"
+    }
+    if (lineType == "Rain Today") {
+        return "Rain Today: " + state.RainToday + state.RU
+    }
+    if (lineType == "Sunrise & Sunset") {
+        return "Sunrise: " + state.LocalSunrise + ", Sunset: " + state.LocalSunset
+    }
+}
 
+def sData() {
+    state.slot1 = slot1
+    state.slot2 = slot2
+    state.slot3 = slot3
+    state.slot4 = slot4
+    state.slot5 = slot5
+    state.slot6 = slot6
+    state.slot7 = slot7
+    state.slot8 = slot8
+    state.slot1Text = slot1Text1
+    state.slot2Text = slot2Text1
+    state.slot3Text = slot3Text1
+    state.slot4Text = slot4Text1
+    state.slot5Text = slot5Text1
+    state.slot6Text = slot6Text1
+    state.slot7Text = slot7Text1
+    state.slot8Text = slot8Text1
+    if (slot1) {
+        state.slot1Data = getSlotData(slot1, slot1Text)
+    }
+    if (slot2) {
+        state.slot2Data = getSlotData(slot2, slot2Text)
+    }
+    if (slot3) {
+        state.slot3Data = getSlotData(slot3, slot3Text)
+    }
+    if (slot4) {
+        state.slot4Data = getSlotData(slot4, slot4Text)
+    }
+    if (slot5) {
+        state.slot5Data = getSlotData(slot5, slot5Text)
+    }
+    if (slot6) {
+        state.slot6Data = getSlotData(slot6, slot6Text)
+    }
+    if (slot7) {
+        state.slot7Data = getSlotData(slot7, slot7Text)
+    }
+    if (slot8) {
+        state.slot8Data = getSlotData(slot8, slot8Text)
+    }
 }
 
 
