@@ -88,7 +88,7 @@ metadata {
    preferences() {
 	   		input "fweight", "enum",  title: "Font Weight", submitOnChange: true, defaultValue: "Normal", options: ["Normal", "Italic", "Bold"]
 			input "fcolour", "text",  title: "Font Colour (Hex Value)", defaultValue:"FFFFFF", submitOnChange: true
-	   		input "fsize", "number",  title: "Font Size", defaultValue:"10", submitOnChange: true
+	   		input "fsize", "number",  title: "Relative Font Size", defaultValue:"5", submitOnChange: true
 	   
    }	
 	   
@@ -171,14 +171,14 @@ def compile() {
 def standardDash(){
 	setFont()
 	state.dashFormat = ""
-	state.dashFormat +="<div><br><font color = $state.fc>$state.fw1 ${state.in1a} ${state.in1b} ${state.in1c} $state.fw2</font><br></div>"
+	state.dashFormat +="<div><br><font color = $state.fc><font size = $state.fs>$state.fw1 ${state.in1a} ${state.in1b} ${state.in1c} $state.fw2</font></font><br></div>"
 	state.dashFormat +="<div><font color = $state.fc><font size = $state.fs>$state.fw1 ${state.in2a} ${state.in2b} ${state.in2c} $state.fw2</font></font><br></div>"
-	state.dashFormat +="<div><font color = $state.fc>$state.fw1 ${state.in3a} ${state.in3b} ${state.in3c} $state.fw2</font><br></div>"
-	state.dashFormat +="<div><font color = $state.fc>$state.fw1 ${state.in4a} ${state.in4b} ${state.in4c} $state.fw2</font><br></div>"
-	state.dashFormat +="<div><font color = $state.fc>$state.fw1 ${state.in5a} ${state.in5b} ${state.in5c} $state.fw2</font><br></div>"
-	state.dashFormat +="<div><font color = $state.fc>$state.fw1 ${state.in6a} ${state.in6b} ${state.in6c} $state.fw2</font><br></div>"
-	state.dashFormat +="<div><font color = $state.fc>$state.fw1 ${state.in7a} ${state.in7b} ${state.in7c} $state.fw2</font><br></div>"
-	state.dashFormat +="<div><font color = $state.fc>$state.fw1 ${state.in8a} ${state.in8b} ${state.in8c} $state.fw2</font></div>"
+	state.dashFormat +="<div><font color = $state.fc><font size = $state.fs>$state.fw1 ${state.in3a} ${state.in3b} ${state.in3c} $state.fw2</font></font><br></div>"
+	state.dashFormat +="<div><font color = $state.fc><font size = $state.fs>$state.fw1 ${state.in4a} ${state.in4b} ${state.in4c} $state.fw2</font></font><br></div>"
+	state.dashFormat +="<div><font color = $state.fc><font size = $state.fs>$state.fw1 ${state.in5a} ${state.in5b} ${state.in5c} $state.fw2</font></font><br></div>"
+	state.dashFormat +="<div><font color = $state.fc><font size = $state.fs>$state.fw1 ${state.in6a} ${state.in6b} ${state.in6c} $state.fw2</font></font><br></div>"
+	state.dashFormat +="<div><font color = $state.fc><font size = $state.fs>$state.fw1 ${state.in7a} ${state.in7b} ${state.in7c} $state.fw2</font></font><br></div>"
+	state.dashFormat +="<div><font color = $state.fc><font size = $state.fs>$state.fw1 ${state.in8a} ${state.in8b} ${state.in8c} $state.fw2</font></font><br></div>"
 	sendEvent(name: "CustomDisplay", value: state.dashFormat, isStateChange: true)
 
 	
