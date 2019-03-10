@@ -677,7 +677,42 @@ def pollSchedule()
 def parse(String description) {
 }
 
-       
+def fixTemperature(rawTemperature) {
+    if (rawTemperature == null || rawTemperature.contains("N/A")) {
+        return 'No Station Data'
+    }
+
+    if (rawTemperature.contains("F")) {
+        rawTemperature = rawTemperature.replace(fcode, "")
+
+        if (temperatureUnit == "Fahrenheit (°F)") {
+            state.TU = '&deg;F'
+            LOGINFO("Dewpoint Input = F - Output = F -- No conversion required")
+            return rawTemperature
+        }
+        if (temperatureUnit == "Celsius (°C)") {
+            state.TU = '&deg;C'
+            def temperature = convertFtoC(rawTemperature)
+            return temperature
+        }
+    }
+
+    if (rawTemperature.contains("C")) {
+        rawTemperature = rawTemperature.replace(ccode, "")
+
+        if (temperatureUnit == "Fahrenheit (°F)") {
+            state.TU = '&deg;F'
+            def temperature = convertCtoF(rawTemperature)
+            return temperature
+        }
+        if (temperatureUnit == "Celsius (°C)") {
+            state.TU = '&deg;C'
+            LOGINFO("Dewpoint Input = C - Output = C -- No conversion required")
+            return rawTemperature
+        }
+    }
+}
+
 
 def PollStation()
 {
@@ -758,41 +793,7 @@ def PollStation()
 // ************************* DEWPOINT *****************************************************************************************
             LOGINFO("Checking Dewpoint")
                 def dewpointRaw1 = (resp1.data.stats.current.dewpoint)
-                 	if(dewpointRaw1 == null || dewpointRaw1.contains("N/A")){
-                    state.Dewpoint = 'No Station Data'}
-            
-            	if (dewpointRaw1.contains("F")) {
-                dewpointRaw1 = dewpointRaw1.replace(fcode, "")
-                    
-                if(temperatureUnit == "Fahrenheit (°F)"){
-            	state.TU = '&deg;F'
-                state.Dewpoint = dewpointRaw1
-                LOGINFO("Dewpoint Input = F - Output = F -- No conversion required")
-                }    
-                if(temperatureUnit == "Celsius (°C)"){
-                state.TU = '&deg;C'
-                def dewpoint1 = convertFtoC(dewpointRaw1) 
-                state.Dewpoint = dewpoint1 
-                   
-                }    
-
-            } 
-            
-           		if (dewpointRaw1.contains("C")) {
-                dewpointRaw1 = dewpointRaw1.replace(ccode, "")
-                    
-                 if(temperatureUnit == "Fahrenheit (°F)"){
-            	state.TU = '&deg;F'
-                def dewpoint1 = convertCtoF(dewpointRaw1)    
-                state.Dewpoint = dewpoint1 
-                }    
-                 if(temperatureUnit == "Celsius (°C)"){
-                state.TU = '&deg;C'
-                state.Dewpoint = dewpointRaw1
-                 LOGINFO("Dewpoint Input = C - Output = C -- No conversion required" ) 
-                }        
-
-            } 
+                state.Dewpoint = fixTemperature(dewpointRaw1)
             
             
             
@@ -926,42 +927,7 @@ def PollStation()
 // ************************** INSIDE TEMP **************************************************************************************** 
           LOGINFO("Checking Inside Temperature")
               def insideTemperatureRaw1 = (resp1.data.stats.current.insideTemp)
-                    if (insideTemperatureRaw1 == null || insideTemperatureRaw1.contains("N/A")){
-                    state.InsideTemp = 'No Station Data'}
-            
-            if (insideTemperatureRaw1.contains("F")) {
-                insideTemperatureRaw1 = insideTemperatureRaw1.replace(fcode, "")
-                
-                if(temperatureUnit == "Fahrenheit (°F)"){
-            	state.TU = '&deg;F'
-                state.InsideTemp = insideTemperatureRaw1
-                LOGINFO("InsideTemperature Input = F - Output = F -- No conversion required")
-                }
-                
-                if(temperatureUnit == "Celsius (°C)"){
-                state.TU = '&deg;C'
-                def insideTemp1 = convertFtoC(insideTemperatureRaw1) 
-                state.InsideTemp = insideTemp1 
-                
-                }
-                
-            } 
-            
-            if (insideTemperatureRaw1.contains("C")) {
-                insideTemperatureRaw1 = insideTemperatureRaw1.replace(ccode, "")
-                
-            	if(temperatureUnit == "Fahrenheit (°F)"){
-            	state.TU = '&deg;F'
-                def insideTemp1 = convertCtoF(insideTemperatureRaw1)
-                state.InsideTemp = insideTemp1
-                }
-                if(temperatureUnit == "Celsius (°C)"){
-                state.TU = '&deg;C'
-                state.InsideTemp = insideTemperatureRaw1  
-                LOGINFO( "InsideTemperature Input = C - Output = C --No conversion required")
-                }
-                
-            } 
+              state.InsideTemp = fixTemperature(insideTemperatureRaw1)
   
 // ************************** RAIN RATE ****************************************************************************************    
             LOGINFO("Checking Rain Rate")
@@ -1045,210 +1011,31 @@ def PollStation()
 // ************************** TEMPERATURE ****************************************************************************************
             LOGINFO("Checking Temperature")
               def temperatureRaw1 = (resp1.data.stats.current.outTemp) 
-            	if(temperatureRaw1 ==null || temperatureRaw1.contains("N/A")){
-                state.Temperature = 'No Station Data'}
-            
-            if (temperatureRaw1.contains("F")) {
-                temperatureRaw1 = temperatureRaw1.replace(fcode, "")
-                
-                if(temperatureUnit == "Fahrenheit (°F)"){
-            	state.TU = '&deg;F'
-                state.Temperature = temperatureRaw1
-                LOGINFO("Temperature Input = F - Output = F -- No conversion required")
-                }
-                
-                if(temperatureUnit == "Celsius (°C)"){
-                state.TU = '&deg;C'
-                def temp1 = convertFtoC(temperatureRaw1) 
-                state.Temperature = temp1 
-                
-                }
-                
-            } 
-            
-            if (temperatureRaw1.contains("C")) {
-                temperatureRaw1 = temperatureRaw1.replace(ccode, "")
-                
-            	if(temperatureUnit == "Fahrenheit (°F)"){
-            	state.TU = '&deg;F'
-                    def temp1 = convertCtoF(temperatureRaw1)
-                state.Temperature = temp1
-                }
-                if(temperatureUnit == "Celsius (°C)"){
-                state.TU = '&deg;C'
-                state.Temperature = temperatureRaw1  
-                 LOGINFO("Temperature Input = C - Output = C --No conversion required")
-                }
-                
-            } 
-           
+              state.Temperature = fixTemperature(temperatureRaw1)
                     
 // ************************** MIN Outside TEMPERATURE *******************************************************************************                     
 
              LOGINFO("Checking Min Outside Temperature")
               def tempMinRaw1 = (resp1.data.stats.sinceMidnight.mintemptoday) 
-            	if(tempMinRaw1 ==null || tempMinRaw1.contains("N/A")){
-                state.MinTemperature = 'No Station Data'}
-            
-            if (tempMinRaw1.contains("F")) {
-                tempMinRaw1 = tempMinRaw1.replace(fcode, "")
-                
-                if(temperatureUnit == "Fahrenheit (°F)"){
-            	state.TU = '&deg;F'
-                state.MinTemperature = tempMinRaw1
-                LOGINFO("Min Temperature Input = F - Output = F -- No conversion required")
-                }
-                
-                if(temperatureUnit == "Celsius (°C)"){
-                state.TU = '&deg;C'
-                def tempMin = convertFtoC(tempMinRaw1) 
-                state.MinTemperature = tempMin 
-                
-                }
-                
-            } 
-            
-            if (tempMinRaw1.contains("C")) {
-                tempMinRaw1 = tempMinRaw1.replace(ccode, "")
-                
-            	if(temperatureUnit == "Fahrenheit (°F)"){
-            	state.TU = '&deg;F'
-                    def tempMin = convertCtoF(tempMinRaw1)
-                state.MinTemperature = tempMin
-                }
-                if(temperatureUnit == "Celsius (°C)"){
-                state.TU = '&deg;C'
-                state.MinTemperature = tempMinRaw1 
-                 LOGINFO("Min Temperature Input = C - Output = C --No conversion required")
-                }
-                
-            } 
-            
+              state.MinTemperature = fixTemperature(tempMinRaw1)
             
  // ************************** MAX Outside TEMPERATURE *******************************************************************************                     
 
              LOGINFO("Checking Max Outside Temperature")
               def tempMaxRaw1 = (resp1.data.stats.sinceMidnight.maxtemptoday) 
-            	if(tempMaxRaw1 ==null || tempMaxRaw1.contains("N/A")){
-                state.MaxTemperature = 'No Station Data'}
-            
-            if (tempMaxRaw1.contains("F")) {
-                tempMaxRaw1 = tempMaxRaw1.replace(fcode, "")
-                
-                if(temperatureUnit == "Fahrenheit (°F)"){
-            	state.TU = '&deg;F'
-                state.MaxTemperature = tempMinRaw1
-                LOGINFO("Max Temperature Input = F - Output = F -- No conversion required")
-                }
-                
-                if(temperatureUnit == "Celsius (°C)"){
-                state.TU = '&deg;C'
-                def tempMax = convertFtoC(tempMaxRaw1) 
-                state.MaxTemperature = tempMax 
-                
-                }
-                
-            } 
-            
-            if (tempMaxRaw1.contains("C")) {
-                tempMaxRaw1 = tempMaxRaw1.replace(ccode, "")
-                
-            	if(temperatureUnit == "Fahrenheit (°F)"){
-            	state.TU = '&deg;F'
-                    def tempMax = convertCtoF(tempMinRaw1)
-                state.MaxTemperature = tempMax
-                }
-                if(temperatureUnit == "Celsius (°C)"){
-                state.TU = '&deg;C'
-                state.MaxTemperature = tempMaxRaw1 
-                 LOGINFO("Max Temperature Input = C - Output = C --No conversion required")
-                }
-                
-            }            
+              state.MaxTemperature = fixTemperature(tempMaxRaw1)
             
 // ************************** MIN Inside TEMPERATURE *******************************************************************************                     
 
              LOGINFO("Checking Min Inside Temperature")
               def tempMinInRaw1 = (resp1.data.stats.sinceMidnight.mininsidetemptoday) 
-            	if(tempMinInRaw1 ==null || tempMinInRaw1.contains("N/A")){
-                state.MinInsideTemperature = 'No Station Data'}
-            
-            if (tempMinInRaw1.contains("F")) {
-                tempMinInRaw1 = tempMinInRaw1.replace(fcode, "")
-                
-                if(temperatureUnit == "Fahrenheit (°F)"){
-            	state.TU = '&deg;F'
-                state.MinInsideTemperature = tempMinInRaw1
-                LOGINFO("Min Temperature Input = F - Output = F -- No conversion required")
-                }
-                
-                if(temperatureUnit == "Celsius (°C)"){
-                state.TU = '&deg;C'
-                def tempMinIn = convertFtoC(tempMinInRaw1) 
-                state.MinInsideTemperature = tempMinIn 
-                
-                }
-                
-            } 
-            
-            if (tempMinInRaw1.contains("C")) {
-                tempMinInRaw1 = tempMinInRaw1.replace(ccode, "")
-                
-            	if(temperatureUnit == "Fahrenheit (°F)"){
-            	state.TU = '&deg;F'
-                    def tempMinIn = convertCtoF(tempMinInRaw1)
-                state.MinInsideTemperature = tempMinIn
-                }
-                if(temperatureUnit == "Celsius (°C)"){
-                state.TU = '&deg;C'
-                state.MinInsideTemperature = tempMinInRaw1 
-                 LOGINFO("Min Temperature Input = C - Output = C --No conversion required")
-                }
-                
-            }    
-            
+              state.MinInsideTemperature = fixTemperature(tempMinInRaw1)
             
   // ************************** MAX Inside TEMPERATURE *******************************************************************************                     
 
              LOGINFO("Checking Max Inside Temperature")
               def tempMaxInRaw1 = (resp1.data.stats.sinceMidnight.maxinsidetemptoday) 
-            	if(tempMaxInRaw1 ==null || tempMaxInRaw1.contains("N/A")){
-                state.MaxInsideTemperature = 'No Station Data'}
-            
-            if (tempMaxInRaw1.contains("F")) {
-                tempMaxInRaw1 = tempMaxInRaw1.replace(fcode, "")
-                
-                if(temperatureUnit == "Fahrenheit (°F)"){
-            	state.TU = '&deg;F'
-                state.MaxInsideTemperature = tempMaxInRaw1
-                LOGINFO("Max Temperature Input = F - Output = F -- No conversion required")
-                }
-                
-                if(temperatureUnit == "Celsius (°C)"){
-                state.TU = '&deg;C'
-                def tempMaxIn = convertFtoC(tempMaxInRaw1) 
-                state.MaxInsideTemperature = tempMaxIn 
-                
-                }
-                
-            } 
-            
-            if (tempMaxInRaw1.contains("C")) {
-                tempMaxInRaw1 = tempMaxInRaw1.replace(ccode, "")
-                
-            	if(temperatureUnit == "Fahrenheit (°F)"){
-            	state.TU = '&deg;F'
-                    def tempMaxIn = convertCtoF(tempMaxInRaw1)
-                state.MaxInsideTemperature = tempMaxIn
-                }
-                if(temperatureUnit == "Celsius (°C)"){
-                state.TU = '&deg;C'
-                state.MaxInsideTemperature = tempMaxInRaw1 
-                 LOGINFO("Max Temperature Input = C - Output = C --No conversion required")
-                }
-                
-            }             
-            
+              state.MaxInsideTemperature = fixTemperature(tempMaxInRaw1)
             
 // ************************** UV ************************************************************************************************            
             LOGINFO("Checking UV")
@@ -1301,43 +1088,7 @@ def PollStation()
 // ************************** WINDCHILL ****************************************************************************************            
             LOGINFO("Checking WindChill")
               def windChillRaw1 = (resp1.data.stats.current.windchill)
-            	if(windChillRaw1 ==null || windChillRaw1.contains("N/A")){
-                   state.FeelsLike = 'No Station Data'}
-                	
-            
- 				if (windChillRaw1.contains("F")) {
-                windChillRaw1 = windChillRaw1.replace(fcode, "")
-                
-                if(temperatureUnit == "Fahrenheit (°F)"){
-            	state.TU = '&deg;F'
-                state.FeelsLike = windChillRaw1
-                LOGINFO( "FeelsLike Input = F - Output = F -- No conversion required")
-                }
-                
-                if(temperatureUnit == "Celsius (°C)"){
-                state.TU = '&deg;C'
-                def feelslike1 = convertFtoC(windChillRaw1) 
-                state.FeelsLike = feelslike1
-                
-                }
-                
-            } 
-            
-            if (windChillRaw1.contains("C")) {
-                windChillRaw1 = windChillRaw1.replace(ccode, "")
-                             
-            	if(temperatureUnit == "Fahrenheit (°F)"){
-            	state.TU = '&deg;F'
-                def feelslike1 = convertCtoF(windChillRaw1)
-                state.FeelsLike = feelslike1
-                }
-                if(temperatureUnit == "Celsius (°C)"){
-                state.TU = '&deg;C'
-                state.FeelsLike = windChillRaw1 
-                 LOGINFO( "FeelsLike Input = C - Output = C --No conversion required")
-                }
-                
-            } 
+              state.FeelsLike = fixTemperature(windChillRaw1)
            
 // ************************** WIND DIR ****************************************************************************************  
              LOGINFO("Checking Wind direction")
