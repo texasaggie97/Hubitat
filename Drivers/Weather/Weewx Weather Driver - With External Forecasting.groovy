@@ -146,7 +146,6 @@ metadata {
         attribute "alert", "string"
         attribute "moonIllumination", "string"
         attribute "stationID", "string"
-
     }
     preferences() {
         section("Query Inputs") {
@@ -670,7 +669,6 @@ def PollStation(){
             } else {
                 state.InsideHumidity = inHumidRaw1
             }
-
 
             // ************************* DEWPOINT *****************************************************************************************
             LOGINFO("Checking Dewpoint")
