@@ -683,8 +683,9 @@ def PollStation()
 {
     units()
   
-    
- 
+    def fcode = "\u00B0F"
+    def ccode = "\u00B0C"
+
     LOGDEBUG("Weewx: ForcePoll called")
     def params1 = [
         uri: "http://${ipaddress}:${weewxPort}/${weewxPath}"
