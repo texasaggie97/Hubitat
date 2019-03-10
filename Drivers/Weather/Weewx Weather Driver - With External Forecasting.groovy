@@ -1227,49 +1227,6 @@ def sData() {
     }
 }
 
-def sData() {
-    state.slot1 = slot1
-    state.slot2 = slot2
-    state.slot3 = slot3
-    state.slot4 = slot4
-    state.slot5 = slot5
-    state.slot6 = slot6
-    state.slot7 = slot7
-    state.slot8 = slot8
-    state.slot1Text = slot1Text1
-    state.slot2Text = slot2Text1
-    state.slot3Text = slot3Text1
-    state.slot4Text = slot4Text1
-    state.slot5Text = slot5Text1
-    state.slot6Text = slot6Text1
-    state.slot7Text = slot7Text1
-    state.slot8Text = slot8Text1
-    if (slot1) {
-        state.slot1Data = getSlotData(slot1, slot1Text)
-    }
-    if (slot2) {
-        state.slot2Data = getSlotData(slot2, slot2Text)
-    }
-    if (slot3) {
-        state.slot3Data = getSlotData(slot3, slot3Text)
-    }
-    if (slot4) {
-        state.slot4Data = getSlotData(slot4, slot4Text)
-    }
-    if (slot5) {
-        state.slot5Data = getSlotData(slot5, slot5Text)
-    }
-    if (slot6) {
-        state.slot6Data = getSlotData(slot6, slot6Text)
-    }
-    if (slot7) {
-        state.slot7Data = getSlotData(slot7, slot7Text)
-    }
-    if (slot8) {
-        state.slot8Data = getSlotData(slot8, slot8Text)
-    }
-}
-
 def setup() {
     dFontW()
     dfontC()
