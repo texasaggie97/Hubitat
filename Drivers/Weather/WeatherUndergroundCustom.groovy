@@ -1,7 +1,7 @@
 /**
  * Custom WU Driver
  *
- *  Copyright 2018 Cobra
+ *  Copyright 2019 Andrew Parker
  *
  *  This driver was originally written by @mattw01 and I thank him for that!
  *  Heavily modified by myself: @Cobra with lots of help from @Scottma61 ( @Matthew )
@@ -16,8 +16,10 @@
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
  *  for the specific language governing permissions and limitations under the License.
  *
- *  Last Update 23/11/2018
+ *  Last Update 10/03/2019
  *
+ *
+ *  V3.1.0 - Added Icons for current and forecast weather for use with new tile app
  *  V3.0.0 - Updated info checking.
  *  V2.9.0 - Changed with way 'alerts' are handled for US/Non US timezones
  *  V2.8.1 - Debug Poll command
@@ -70,7 +72,9 @@ metadata {
         attribute "weather", "string"
         attribute "feelsLike", "number"
         attribute "forecastIcon", "string"
-	attribute "weatherIcon", "string"
+		attribute "weatherIcon", "string"
+		attribute "weatherIcon_Image", "string"
+		attribute "forecastIcon_Image", "string"
 		attribute "city", "string"
         attribute "state", "string"
         attribute "percentPrecip", "string"
@@ -211,7 +215,11 @@ def ForcePoll()
             sendEvent(name: "percentPrecip", value: resp1.data.forecast.simpleforecast.forecastday[0].pop , isStateChange: true)
             sendEvent(name: "localSunrise", value: resp1.data.sun_phase.sunrise.hour + ":" + resp1.data.sun_phase.sunrise.minute, descriptionText: "Sunrise today is at $localSunrise", isStateChange: true)
         	sendEvent(name: "localSunset", value: resp1.data.sun_phase.sunset.hour + ":" + resp1.data.sun_phase.sunset.minute, descriptionText: "Sunset today at is $localSunset", isStateChange: true)
-             
+             def weatherIconImage = ( resp2.data.current_observation.icon_url)
+			sendEvent(name: "weatherIcon_Image", value: "<img src=" +weatherIconImage +">", isStateChange: true)  // Current Conditions Icon URL
+			
+			def forecastIconImage = (resp2.data.forecast.simpleforecast.forecastday[0].icon_url)
+			sendEvent(name: "forecastIcon_Image", value: "<img src=" +forecastIconImage +">", isStateChange: true) // Forecast Icon URL
             
  // Select Icon
                 if(iconType == false){   
@@ -474,7 +482,7 @@ def updateCheck(){
 }
 
 def setVersion(){
-    state.version = "3.0.0"
+    state.version = "3.1.0"
     state.InternalName = "WUWeatherDriver"
    	state.CobraAppCheck = "customwu.json"
     sendEvent(name: "DriverAuthor", value: "Cobra", isStateChange: true)

@@ -132,7 +132,7 @@ def lastDeviceLux(dev1){
 	sendEvent(name: "LastDeviceLux", value: state.LastDeviceLux)
 	
 }
-def LastDeviceHumidity(dev2){  
+def lastDeviceHumidity(dev2){  
 	state.LastDeviceHumid = dev2
 	sendLastEvent()
     sendEvent(name: "LastDeviceHumidity", value: state.LastDeviceHumid)

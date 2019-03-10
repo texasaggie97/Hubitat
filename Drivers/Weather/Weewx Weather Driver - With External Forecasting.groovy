@@ -37,9 +37,9 @@
  *
  *-------------------------------------------------------------------------------------------------------------------
  *
- *  Last Update 28/01/2019
+ *  Last Update 10/03/2019
  *
- *
+ *  V2.9.0 - Added Icons for current and forecast weather for use with dashboards
  *  V2.8.0 - Added 'Custom' weather dashboard output for tile
  *  V2.7.0 - Added 'Basic' default output for a weather dashboard
  *  V2.6.0 - Revised UI & Icon
@@ -143,7 +143,11 @@ metadata {
         attribute "rainTomorrow", "string"
         attribute "rainDayAfterTomorrow", "string"
         attribute "weatherIcon", "string"
+		attribute "weatherIcon_Image", "string"
+
         attribute "forecastIcon", "string"
+		attribute "forecastIcon_Image", "string"
+		
         attribute "weatherForecast", "string"
         attribute "visibility", "string"
         attribute "chanceOfRain", "string"
@@ -367,6 +371,12 @@ def PollWUNow(){
 			sendEvent(name: "country", value: resp2.data.current_observation.display_location.country) // resp2.data.city.country)
             sendEvent(name: "weatherIcon", value: resp2.data.current_observation.icon)  // Current Conditions Icon
             sendEvent(name: "forecastIcon", value: resp2.data.forecast.simpleforecast.forecastday[0].icon) // Forecast Icon
+			
+			def weatherIconImage = ( resp2.data.current_observation.icon_url)
+			sendEvent(name: "weatherIcon_Image", value: "<img src=" +weatherIconImage +">", isStateChange: true)  // Current Conditions Icon URL
+			
+			def forecastIconImage = (resp2.data.forecast.simpleforecast.forecastday[0].icon_url)
+			sendEvent(name: "forecastIcon_Image", value: "<img src=" +forecastIconImage +">", isStateChange: true) // Forecast Icon URL
             
             
             
@@ -1517,7 +1527,7 @@ def sData(){
 	if(state.slot1 == "Free Text"){state.slot1Data = state.slot1Text}
 	if(state.slot1 == "City"){state.slot1Data = state.city}
 	if(state.slot1 == "State - County"){state.slot1Data =state.county}
-	if(state.slot1 == "External Temp"){state.slot1Data = "Temp: " +state.Temperature +stateTU}
+	if(state.slot1 == "External Temp"){state.slot1Data = "Temp: " +state.Temperature +state.TU}
 	if(state.slot1 == "External Temp (Feels Like)"){state.slot1Data = "Temp: " +state.Temperature + state.TU + " (Feels Like: " +state.FeelsLike + state.TU +")"}
 	if(state.slot1 == "External Temp (Feels Like) Humidity"){state.slot1Data = "Temp: " +state.Temperature + state.TU + " (Feels Like: " +state.FeelsLike + state.TU +") Hum:" +state.Humidity +"%"}
 	if(state.slot1 == "Forecast Low, Forecast High"){state.slot1Data = "High: " +state.ForecastHigh + state.TU +", Low: " +state.ForecastLow+ state.TU}
@@ -2127,7 +2137,7 @@ def updateCheck(){
 }
 
 def setVersion(){
-    state.version = "2.8.0"
+    state.version = "2.9.0"
     state.InternalName = "WeewxExternalDriver"
    	state.CobraAppCheck = "weewxexternal.json"
     
